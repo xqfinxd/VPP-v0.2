@@ -25,6 +25,7 @@
 *.la
 *.a
 *.lib
+!/glfw-3.3.8/lib/*/*.lib
 
 # Executables
 *.exe
@@ -35,3 +36,8 @@
 # VS Files
 *.user
 .vs
+
+/lua_lib/x64
+/lua_runtime/x64
+/vk/x64
+/x64
