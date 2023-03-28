@@ -19,7 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\lua_ext.cc" />
     <ClCompile Include="..\source\main.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\source\lua_ext.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
