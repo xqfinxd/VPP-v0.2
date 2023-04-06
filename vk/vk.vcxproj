@@ -19,10 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\device.cc" />
     <ClCompile Include="..\source\lua_ext.cc" />
     <ClCompile Include="..\source\main.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\source\device.h" />
     <ClInclude Include="..\source\lua_ext.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

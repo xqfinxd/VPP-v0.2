@@ -21,9 +21,15 @@
     <ClCompile Include="..\source\lua_ext.cc">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\device.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\source\lua_ext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\device.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

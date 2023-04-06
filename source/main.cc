@@ -1,58 +1,59 @@
 ﻿#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 #include <cassert>
+#include <memory>
 
 #include "lua_ext.h"
 
-static reg_object reg_window{};
+struct WindowDeleter {
+    void operator()(GLFWwindow* win) {
+        if (win) {
+            glfwDestroyWindow(win);
+        }
+    }
+};
+static std::unique_ptr<GLFWwindow, WindowDeleter> kUniqueWindow = nullptr;
+GLFWwindow* GetWindow() { 
+    if (kUniqueWindow)
+        return kUniqueWindow.get();
+    return nullptr;
+}
 
-static void init_glfw() {
+static void InitGlfw() {
     assert(GLFW_TRUE == glfwInit() && "GLFW init failure!");
     assert(GLFW_TRUE == glfwVulkanSupported() && "Vulkan is not available!");
-}
-
-static GLFWwindow* init_window(lua_State* L) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window = glfwCreateWindow(1080, 810, "vk", NULL, NULL);
-    lua_pushlightuserdata(L, window);
-    reg_window = reg_object(L, -1);
-    lua_pop(L, 1);
-    return window;
+    kUniqueWindow = std::unique_ptr<GLFWwindow, WindowDeleter>{
+        glfwCreateWindow(1080, 810, "vk", NULL, NULL)
+    };
 }
 
-static void quit_window(lua_State* L) {
-    auto window = (GLFWwindow*)reg_window.get(luaget::pointer{});
-    glfwDestroyWindow(window);
-    reg_window.dispose();
-}
-
-static int vk_init(lua_State* L) {
+static int InitModule(lua_State* L) {
     printf("vk module init...\n");
-    init_glfw();
-    auto window = init_window(L);
-    while (!glfwWindowShouldClose(window)) {
+    InitGlfw();
+    auto window = GetWindow();
+    while (window && !glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
     }
     return 0;
 }
 
-static int vk_quit(lua_State* L) {
+static int QuitModule(lua_State* L) {
     printf("vk module quit...\n");
-    quit_window(L);
     return 0;
 }
 
-static const luaL_Reg vklib[] = {
-  {"init", vk_init},
-  {"quit", vk_quit},
+static const luaL_Reg kLuaApi[] = {
+  {"init", InitModule},
+  {"quit", QuitModule},
   {NULL, NULL}
 };
 
 extern "C" {
 
     __declspec(dllexport) int luaopen_vk(lua_State* L) {
-        luaL_newlib(L, vklib);
+        luaL_newlib(L, kLuaApi);
         return 1;
     }
 
