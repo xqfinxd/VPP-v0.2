@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "lua_ext.h"
+#include "device.h"
 
 struct WindowDeleter {
     void operator()(GLFWwindow* win) {
@@ -13,7 +14,7 @@ struct WindowDeleter {
     }
 };
 static std::unique_ptr<GLFWwindow, WindowDeleter> kUniqueWindow = nullptr;
-GLFWwindow* GetWindow() { 
+extern GLFWwindow* GetWindow() { 
     if (kUniqueWindow)
         return kUniqueWindow.get();
     return nullptr;
@@ -31,6 +32,7 @@ static void InitGlfw() {
 static int InitModule(lua_State* L) {
     printf("vk module init...\n");
     InitGlfw();
+    GetDevice().Init();
     auto window = GetWindow();
     while (window && !glfwWindowShouldClose(window)) {
 
@@ -40,14 +42,15 @@ static int InitModule(lua_State* L) {
 }
 
 static int QuitModule(lua_State* L) {
+    GetDevice().Quit();
     printf("vk module quit...\n");
     return 0;
 }
 
 static const luaL_Reg kLuaApi[] = {
-  {"init", InitModule},
-  {"quit", QuitModule},
-  {NULL, NULL}
+    {"init", InitModule},
+    {"quit", QuitModule},
+    {NULL, NULL}
 };
 
 extern "C" {
