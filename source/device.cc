@@ -61,6 +61,98 @@ static std::vector<const char*> GetRequiredExtensions() {
     return extensions;
 }
 
+QueueFamilyIndices::QueueFamilyIndices(VkPhysicalDevice gpu, VkSurfaceKHR surface) {
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, queueFamilies.data());
+
+    uint32_t i = 0;
+    for (const auto& queueFamily : queueFamilies) {
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            graphics = i;
+        }
+
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, surface, &presentSupport);
+
+        if (presentSupport) {
+            present = i;
+        }
+
+        if (valid()) {
+            break;
+        }
+
+        i++;
+    }
+}
+
+SurfaceSupport::SurfaceSupport(VkPhysicalDevice gpu, VkSurfaceKHR surface) {
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, surface, &capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &formatCount, nullptr);
+
+    if (formatCount != 0) {
+        formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &formatCount, formats.data());
+    }
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface, &presentModeCount, nullptr);
+
+    if (presentModeCount != 0) {
+        present_modes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface, &presentModeCount, present_modes.data());
+    }
+}
+
+VkSurfaceFormatKHR SurfaceSupport::SelectFormat() const {
+    for (const auto& availableFormat : formats) {
+        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB
+            && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            return availableFormat;
+        }
+    }
+
+    return formats[0];
+}
+
+VkPresentModeKHR SurfaceSupport::SelectPresentMode() const {
+    for (const auto& availablePresentMode : present_modes) {
+        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            return availablePresentMode;
+        }
+    }
+
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D SurfaceSupport::SelectExtent() const {
+    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+        return capabilities.currentExtent;
+    } else {
+        int width, height;
+        glfwGetFramebufferSize(GetWindow(), &width, &height);
+
+        VkExtent2D actualExtent = {
+            static_cast<uint32_t>(width),
+            static_cast<uint32_t>(height)
+        };
+
+        actualExtent.width = glm::clamp(actualExtent.width,
+            capabilities.minImageExtent.width,
+            capabilities.maxImageExtent.width);
+        actualExtent.height = glm::clamp(actualExtent.height,
+            capabilities.minImageExtent.height,
+            capabilities.maxImageExtent.height);
+
+        return actualExtent;
+    }
+}
+
 void RenderDevice::Init() {
     CreateInstance();
     SetupDebugMessenger();
@@ -144,7 +236,7 @@ void RenderDevice::PickGpu() {
 }
 
 void RenderDevice::CreateDeviceAndQueue() {
-    QueueFamilyIndices indices = FindQueueFamilies(gpu_);
+    QueueFamilyIndices indices(gpu_, surface_);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { indices.graphics, indices.present };
@@ -182,15 +274,15 @@ void RenderDevice::CreateDeviceAndQueue() {
 }
 
 void RenderDevice::CreateSwapchain() {
-    SwapchainSupport swapChainSupport = QuerySwapChainSupport(gpu_);
+    SurfaceSupport surfSupport(gpu_, surface_);
 
-    VkSurfaceFormatKHR surfaceFormat = ChooseSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode = ChooseSurfacePresentMode(swapChainSupport.present_modes);
-    VkExtent2D extent = ChooseSurfaceExtent(swapChainSupport.capabilities);
+    VkSurfaceFormatKHR surfaceFormat = surfSupport.SelectFormat();
+    VkPresentModeKHR presentMode = surfSupport.SelectPresentMode();
+    VkExtent2D extent = surfSupport.SelectExtent();
 
-    color_image_count_ = swapChainSupport.capabilities.minImageCount + 1;
-    if (swapChainSupport.capabilities.maxImageCount > 0 && color_image_count_ > swapChainSupport.capabilities.maxImageCount) {
-        color_image_count_ = swapChainSupport.capabilities.maxImageCount;
+    color_image_count_ = surfSupport.capabilities.minImageCount + 1;
+    if (surfSupport.capabilities.maxImageCount > 0 && color_image_count_ > surfSupport.capabilities.maxImageCount) {
+        color_image_count_ = surfSupport.capabilities.maxImageCount;
     }
 
     VkSwapchainCreateInfoKHR createInfo{};
@@ -204,7 +296,7 @@ void RenderDevice::CreateSwapchain() {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = FindQueueFamilies(gpu_);
+    QueueFamilyIndices indices(gpu_, surface_);
     uint32_t queueFamilyIndices[] = { indices.graphics, indices.present };
 
     if (indices.graphics != indices.present) {
@@ -215,7 +307,7 @@ void RenderDevice::CreateSwapchain() {
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
 
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.preTransform = surfSupport.capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
@@ -256,17 +348,17 @@ void RenderDevice::CreateImageViews() {
 }
 
 bool RenderDevice::IsDeviceSuitable(const VkPhysicalDevice& gpu) const {
-    QueueFamilyIndices indices = FindQueueFamilies(gpu);
+    QueueFamilyIndices indices(gpu, surface_);
 
     bool extensionsSupported = CheckDeviceExtensionSupport(gpu);
 
-    bool swapChainAdequate = false;
+    bool swapchainAdequate = false;
     if (extensionsSupported) {
-        SwapchainSupport swapChainSupport = QuerySwapChainSupport(gpu);
-        swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.present_modes.empty();
+        SurfaceSupport surfSupport(gpu, surface_);
+        swapchainAdequate = !surfSupport.formats.empty() && !surfSupport.present_modes.empty();
     }
 
-    return indices && extensionsSupported && swapChainAdequate;
+    return indices && extensionsSupported && swapchainAdequate;
 }
 
 bool RenderDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice& gpu) const {
@@ -283,104 +375,4 @@ bool RenderDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice& gpu) cons
     }
 
     return requiredExtensions.empty();
-}
-
-QueueFamilyIndices RenderDevice::FindQueueFamilies(const VkPhysicalDevice& gpu) const {
-    QueueFamilyIndices indices;
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(gpu, &queueFamilyCount, queueFamilies.data());
-
-    int i = 0;
-    for (const auto& queueFamily : queueFamilies) {
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphics = i;
-        }
-
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(gpu, i, surface_, &presentSupport);
-
-        if (presentSupport) {
-            indices.present = i;
-        }
-
-        if (indices) {
-            break;
-        }
-
-        i++;
-    }
-
-    return indices;
-}
-
-SwapchainSupport RenderDevice::QuerySwapChainSupport(const VkPhysicalDevice& gpu) const {
-    SwapchainSupport details;
-
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, surface_, &details.capabilities);
-
-    uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface_, &formatCount, nullptr);
-
-    if (formatCount != 0) {
-        details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface_, &formatCount, details.formats.data());
-    }
-
-    uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface_, &presentModeCount, nullptr);
-
-    if (presentModeCount != 0) {
-        details.present_modes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface_, &presentModeCount, details.present_modes.data());
-    }
-
-    return details;
-}
-
-VkSurfaceFormatKHR RenderDevice::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) const {
-    for (const auto& availableFormat : formats) {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB
-            && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-            return availableFormat;
-        }
-    }
-
-    return formats[0];
-}
-
-VkPresentModeKHR RenderDevice::ChooseSurfacePresentMode(const std::vector<VkPresentModeKHR>& presentModes) const {
-    for (const auto& availablePresentMode : presentModes) {
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return availablePresentMode;
-        }
-    }
-
-    return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkExtent2D RenderDevice::ChooseSurfaceExtent(const VkSurfaceCapabilitiesKHR& capabilities) const {
-    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-        return capabilities.currentExtent;
-    } else {
-        int width, height;
-        glfwGetFramebufferSize(GetWindow(), &width, &height);
-
-        VkExtent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)
-        };
-
-        actualExtent.width = glm::clamp(actualExtent.width,
-            capabilities.minImageExtent.width,
-            capabilities.maxImageExtent.width);
-        actualExtent.height = glm::clamp(actualExtent.height,
-            capabilities.minImageExtent.height,
-            capabilities.maxImageExtent.height);
-
-        return actualExtent;
-    }
 }

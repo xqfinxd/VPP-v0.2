@@ -7,19 +7,31 @@
 #include <vulkan/vulkan.h>
 
 struct QueueFamilyIndices {
+	QueueFamilyIndices(VkPhysicalDevice gpu, VkSurfaceKHR surface);
+
 	static constexpr uint32_t INVALID = UINT32_MAX;
 	uint32_t graphics = INVALID;
 	uint32_t present = INVALID;
 
-	operator bool() {
+	bool valid() const {
 		return graphics != INVALID && present != INVALID;
+	}
+
+	operator bool() {
+		return valid();
 	}
 };
 
-struct SwapchainSupport {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> present_modes;
+struct SurfaceSupport {
+	SurfaceSupport(VkPhysicalDevice gpu, VkSurfaceKHR surface);
+
+	VkSurfaceCapabilitiesKHR capabilities{};
+	std::vector<VkSurfaceFormatKHR> formats{};
+	std::vector<VkPresentModeKHR> present_modes{};
+
+	VkSurfaceFormatKHR SelectFormat() const;
+	VkPresentModeKHR SelectPresentMode() const;
+	VkExtent2D SelectExtent() const;
 };
 
 class RenderDevice {
@@ -39,26 +51,21 @@ protected:
 protected: // tool
 	bool IsDeviceSuitable(const VkPhysicalDevice& gpu) const;
 	bool CheckDeviceExtensionSupport(const VkPhysicalDevice& gpu) const;
-	QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice& gpu) const;
-	SwapchainSupport QuerySwapChainSupport(const VkPhysicalDevice& gpu) const;
-    VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) const;
-    VkPresentModeKHR ChooseSurfacePresentMode(const std::vector<VkPresentModeKHR>& presentModes) const;
-    VkExtent2D ChooseSurfaceExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
 private:
-	VkInstance instance_;
-	VkDebugUtilsMessengerEXT debug_messenger_;
-	VkSurfaceKHR surface_;
-	VkPhysicalDevice gpu_;
-	VkDevice device_;
-	VkQueue graphics_queue_;
-	VkQueue present_queue_;
-    VkSwapchainKHR swapchain_;
-    std::unique_ptr<VkImage[]> color_images_;
-	std::unique_ptr<VkImageView[]> color_image_views_;
-    uint32_t color_image_count_;
-    VkFormat color_image_format_;
-    VkExtent2D color_image_extent_;
+	VkInstance instance_{};
+	VkDebugUtilsMessengerEXT debug_messenger_{};
+	VkSurfaceKHR surface_{};
+	VkPhysicalDevice gpu_{};
+	VkDevice device_{};
+	VkQueue graphics_queue_{};
+	VkQueue present_queue_{};
+    VkSwapchainKHR swapchain_{};
+    std::unique_ptr<VkImage[]> color_images_{};
+	std::unique_ptr<VkImageView[]> color_image_views_{};
+    uint32_t color_image_count_{};
+    VkFormat color_image_format_{};
+    VkExtent2D color_image_extent_{};
 };
 
 inline RenderDevice& GetDevice() {
