@@ -32,6 +32,7 @@ struct SurfaceSupport {
 	VkSurfaceFormatKHR SelectFormat() const;
 	VkPresentModeKHR SelectPresentMode() const;
 	VkExtent2D SelectExtent() const;
+	uint32_t SelectImageCount() const;
 };
 
 class RenderDevice {
@@ -49,8 +50,12 @@ protected:
 	void CreateImageViews();
 
 protected: // tool
-	bool IsDeviceSuitable(const VkPhysicalDevice& gpu) const;
+	bool CheckPhysicalDeviceSupport(const VkPhysicalDevice& gpu) const;
 	bool CheckDeviceExtensionSupport(const VkPhysicalDevice& gpu) const;
+	bool FindMemoryType(uint32_t& index,
+		uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+	void CreateImage(VkImage& image, VkDeviceMemory& memory,
+		VkImageCreateInfo& info, VkMemoryPropertyFlags properties);
 
 private:
 	VkInstance instance_{};
@@ -61,11 +66,11 @@ private:
 	VkQueue graphics_queue_{};
 	VkQueue present_queue_{};
     VkSwapchainKHR swapchain_{};
-    std::unique_ptr<VkImage[]> color_images_{};
-	std::unique_ptr<VkImageView[]> color_image_views_{};
-    uint32_t color_image_count_{};
-    VkFormat color_image_format_{};
-    VkExtent2D color_image_extent_{};
+    uint32_t swap_image_count_{};
+    std::unique_ptr<VkImage[]> swap_images_{};
+	std::unique_ptr<VkImageView[]> swap_image_views_{};
+    VkFormat swap_image_format_{};
+    VkExtent2D swap_image_extent_{};
 };
 
 inline RenderDevice& GetDevice() {

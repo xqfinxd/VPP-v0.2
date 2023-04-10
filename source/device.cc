@@ -153,6 +153,14 @@ VkExtent2D SurfaceSupport::SelectExtent() const {
     }
 }
 
+uint32_t SurfaceSupport::SelectImageCount() const {
+    uint32_t imageCount = capabilities.minImageCount + 1;
+    if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
+        imageCount = capabilities.maxImageCount;
+    }
+    return imageCount;
+}
+
 void RenderDevice::Init() {
     CreateInstance();
     SetupDebugMessenger();
@@ -164,8 +172,8 @@ void RenderDevice::Init() {
 }
 
 void RenderDevice::Quit() {
-    for (uint32_t i = 0; i < color_image_count_; i++) {
-        vkDestroyImageView(device_, color_image_views_[i], nullptr);
+    for (uint32_t i = 0; i < swap_image_count_; i++) {
+        vkDestroyImageView(device_, swap_image_views_[i], nullptr);
     }
     vkDestroySwapchainKHR(device_, swapchain_, nullptr);
     vkDestroyDevice(device_, nullptr);
@@ -226,7 +234,7 @@ void RenderDevice::PickGpu() {
     vkEnumeratePhysicalDevices(instance_, &deviceCount, devices.data());
 
     for (const auto& device : devices) {
-        if (IsDeviceSuitable(device)) {
+        if (CheckPhysicalDeviceSupport(device)) {
             gpu_ = device;
             break;
         }
@@ -279,17 +287,13 @@ void RenderDevice::CreateSwapchain() {
     VkSurfaceFormatKHR surfaceFormat = surfSupport.SelectFormat();
     VkPresentModeKHR presentMode = surfSupport.SelectPresentMode();
     VkExtent2D extent = surfSupport.SelectExtent();
-
-    color_image_count_ = surfSupport.capabilities.minImageCount + 1;
-    if (surfSupport.capabilities.maxImageCount > 0 && color_image_count_ > surfSupport.capabilities.maxImageCount) {
-        color_image_count_ = surfSupport.capabilities.maxImageCount;
-    }
+    uint32_t imageCount = surfSupport.SelectImageCount();
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = surface_;
 
-    createInfo.minImageCount = color_image_count_;
+    createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = extent;
@@ -311,28 +315,26 @@ void RenderDevice::CreateSwapchain() {
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
-
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
     assert(vkCreateSwapchainKHR(device_, &createInfo, nullptr, &swapchain_) == VK_SUCCESS);
 
-    vkGetSwapchainImagesKHR(device_, swapchain_, &color_image_count_, nullptr);
-    color_images_ = std::make_unique<VkImage[]>(color_image_count_);
-    vkGetSwapchainImagesKHR(device_, swapchain_, &color_image_count_, color_images_.get());
-
-    color_image_format_ = surfaceFormat.format;
-    color_image_extent_ = extent;
+    vkGetSwapchainImagesKHR(device_, swapchain_, &swap_image_count_, nullptr);
+    swap_images_ = std::make_unique<VkImage[]>(swap_image_count_);
+    vkGetSwapchainImagesKHR(device_, swapchain_, &swap_image_count_, swap_images_.get());
+    swap_image_format_ = surfaceFormat.format;
+    swap_image_extent_ = extent;
 }
 
 void RenderDevice::CreateImageViews() {
-    color_image_views_ = std::make_unique<VkImageView[]>(color_image_count_);
+    swap_image_views_ = std::make_unique<VkImageView[]>(swap_image_count_);
 
-    for (size_t i = 0; i < color_image_count_; i++) {
+    for (size_t i = 0; i < swap_image_count_; i++) {
         VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = color_images_[i];
+        createInfo.image = swap_images_[i];
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = color_image_format_;
+        createInfo.format = swap_image_format_;
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -343,11 +345,42 @@ void RenderDevice::CreateImageViews() {
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
 
-        assert(vkCreateImageView(device_, &createInfo, nullptr, &color_image_views_[i]) == VK_SUCCESS);
+        assert(vkCreateImageView(device_, &createInfo, nullptr, &swap_image_views_[i]) == VK_SUCCESS);
     }
 }
 
-bool RenderDevice::IsDeviceSuitable(const VkPhysicalDevice& gpu) const {
+bool RenderDevice::FindMemoryType(uint32_t& index,
+    uint32_t typeFilter, VkMemoryPropertyFlags properties) const {
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(gpu_, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            index = i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void RenderDevice::CreateImage(VkImage& image, VkDeviceMemory& imageMemory,
+    VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties) {
+    assert(vkCreateImage(device_, &imageInfo, nullptr, &image) == VK_SUCCESS);
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(device_, image, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    assert(FindMemoryType(allocInfo.memoryTypeIndex, memRequirements.memoryTypeBits, properties));
+
+    assert(vkAllocateMemory(device_, &allocInfo, nullptr, &imageMemory) == VK_SUCCESS);
+    assert(vkBindImageMemory(device_, image, imageMemory, 0) == VK_SUCCESS);
+}
+
+bool RenderDevice::CheckPhysicalDeviceSupport(const VkPhysicalDevice& gpu) const {
     QueueFamilyIndices indices(gpu, surface_);
 
     bool extensionsSupported = CheckDeviceExtensionSupport(gpu);
