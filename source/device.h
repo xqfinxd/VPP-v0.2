@@ -9,6 +9,7 @@
 #include "utility.h"
 
 struct QueueFamilyIndices {
+	QueueFamilyIndices() = default;
 	QueueFamilyIndices(VkPhysicalDevice gpu, VkSurfaceKHR surface);
 
 	static constexpr uint32_t INVALID = UINT32_MAX;
@@ -45,6 +46,15 @@ public:
 
 	bool FindMemoryType(uint32_t& index,
 		uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+	VkDevice device() const {
+		return device_;
+	}
+	VkQueue graphics_queue() const {
+		return graphics_queue_;
+	}
+	VkQueue present_queue() const {
+		return present_queue_;
+	}
 
 protected:
 	void CreateInstance();
@@ -61,6 +71,7 @@ private:
 	VkSurfaceKHR surface_{};
 	VkPhysicalDevice gpu_{};
 	VkDevice device_{};
+	QueueFamilyIndices indices_{};
 	VkQueue graphics_queue_{};
 	VkQueue present_queue_{};
 };
