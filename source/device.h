@@ -6,6 +6,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include "utility.h"
+
 struct QueueFamilyIndices {
 	QueueFamilyIndices(VkPhysicalDevice gpu, VkSurfaceKHR surface);
 
@@ -35,45 +37,30 @@ struct SurfaceSupport {
 	uint32_t SelectImageCount() const;
 };
 
-class RenderDevice {
+class Renderer
+	: public Singleton<Renderer> {
 public:
-	void Init();
-	void Quit();
+	Renderer();
+	~Renderer();
+
+	bool FindMemoryType(uint32_t& index,
+		uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
 protected:
 	void CreateInstance();
-	void SetupDebugMessenger();
 	void CreateSurface();
-	void PickGpu();
+	void SelectGpu();
 	void CreateDeviceAndQueue();
-    void CreateSwapchain();
-	void CreateImageViews();
 
 protected: // tool
 	bool CheckPhysicalDeviceSupport(const VkPhysicalDevice& gpu) const;
 	bool CheckDeviceExtensionSupport(const VkPhysicalDevice& gpu) const;
-	bool FindMemoryType(uint32_t& index,
-		uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
-	void CreateImage(VkImage& image, VkDeviceMemory& memory,
-		VkImageCreateInfo& info, VkMemoryPropertyFlags properties);
 
 private:
 	VkInstance instance_{};
-	VkDebugUtilsMessengerEXT debug_messenger_{};
 	VkSurfaceKHR surface_{};
 	VkPhysicalDevice gpu_{};
 	VkDevice device_{};
 	VkQueue graphics_queue_{};
 	VkQueue present_queue_{};
-    VkSwapchainKHR swapchain_{};
-    uint32_t swap_image_count_{};
-    std::unique_ptr<VkImage[]> swap_images_{};
-	std::unique_ptr<VkImageView[]> swap_image_views_{};
-    VkFormat swap_image_format_{};
-    VkExtent2D swap_image_extent_{};
 };
-
-inline RenderDevice& GetDevice() {
-	static RenderDevice kRenderDevice{};
-	return kRenderDevice;
-}

@@ -5,8 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <set>
-
-extern GLFWwindow* GetWindow();
+#include "window.h"
 
 static const std::vector<const char*> kValidationLayers = {
         "VK_LAYER_KHRONOS_validation"
@@ -24,41 +23,6 @@ static VkBool32 DebugCallback(
     std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
     return VK_FALSE;
-}
-
-static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    } else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
-
-static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        func(instance, debugMessenger, pAllocator);
-    }
-}
-
-static void SetDebugMessengerInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
-    createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = DebugCallback;
-}
-
-static std::vector<const char*> GetRequiredExtensions() {
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
-    return extensions;
 }
 
 QueueFamilyIndices::QueueFamilyIndices(VkPhysicalDevice gpu, VkSurfaceKHR surface) {
@@ -134,13 +98,7 @@ VkExtent2D SurfaceSupport::SelectExtent() const {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         return capabilities.currentExtent;
     } else {
-        int width, height;
-        glfwGetFramebufferSize(GetWindow(), &width, &height);
-
-        VkExtent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)
-        };
+        VkExtent2D actualExtent = MainWindow::Get()->GetSurfaceExtent();
 
         actualExtent.width = glm::clamp(actualExtent.width,
             capabilities.minImageExtent.width,
@@ -161,28 +119,20 @@ uint32_t SurfaceSupport::SelectImageCount() const {
     return imageCount;
 }
 
-void RenderDevice::Init() {
+Renderer::Renderer() {
     CreateInstance();
-    SetupDebugMessenger();
     CreateSurface();
-    PickGpu();
+    SelectGpu();
     CreateDeviceAndQueue();
-    CreateSwapchain();
-    CreateImageViews();
 }
 
-void RenderDevice::Quit() {
-    for (uint32_t i = 0; i < swap_image_count_; i++) {
-        vkDestroyImageView(device_, swap_image_views_[i], nullptr);
-    }
-    vkDestroySwapchainKHR(device_, swapchain_, nullptr);
+Renderer::~Renderer() {
     vkDestroyDevice(device_, nullptr);
-    DestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
     vkDestroySurfaceKHR(instance_, surface_, nullptr);
     vkDestroyInstance(instance_, nullptr);
 }
 
-void RenderDevice::CreateInstance() {
+void Renderer::CreateInstance() {
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "vklua";
@@ -195,40 +145,35 @@ void RenderDevice::CreateInstance() {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    auto extensions = GetRequiredExtensions();
+    auto extensions = MainWindow::Get()->GetExtensions();
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
-
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     createInfo.enabledLayerCount = static_cast<uint32_t>(kValidationLayers.size());
     createInfo.ppEnabledLayerNames = kValidationLayers.data();
-    SetDebugMessengerInfo(debugCreateInfo);
+
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
+    debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    debugCreateInfo.pfnUserCallback = DebugCallback;
+
     createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
     
-    assert(vkCreateInstance(&createInfo, nullptr, &instance_) == VK_SUCCESS);
+    auto res = vkCreateInstance(&createInfo, nullptr, &instance_);
+    assert(res == VK_SUCCESS);
 }
 
-void RenderDevice::SetupDebugMessenger() {
-    VkDebugUtilsMessengerCreateInfoEXT createInfo;
-    SetDebugMessengerInfo(createInfo);
-
-    assert(CreateDebugUtilsMessengerEXT(instance_, &createInfo, nullptr, &debug_messenger_) == VK_SUCCESS);
+void Renderer::CreateSurface() {
+    surface_ = MainWindow::Get()->GetSurface(instance_);
 }
 
-void RenderDevice::CreateSurface() {
-    auto window = GetWindow();
-    assert(window);
-    assert(glfwCreateWindowSurface(instance_, window, nullptr, &surface_) == VK_SUCCESS);
-}
-
-void RenderDevice::PickGpu() {
+void Renderer::SelectGpu() {
     gpu_ = VK_NULL_HANDLE;
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance_, &deviceCount, nullptr);
 
-    if (deviceCount == 0) {
-        throw std::runtime_error("failed to find GPUs with Vulkan support!");
-    }
+    assert(deviceCount);
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance_, &deviceCount, devices.data());
@@ -243,7 +188,7 @@ void RenderDevice::PickGpu() {
     assert(gpu_ != VK_NULL_HANDLE);
 }
 
-void RenderDevice::CreateDeviceAndQueue() {
+void Renderer::CreateDeviceAndQueue() {
     QueueFamilyIndices indices(gpu_, surface_);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -275,81 +220,14 @@ void RenderDevice::CreateDeviceAndQueue() {
     createInfo.enabledLayerCount = static_cast<uint32_t>(kValidationLayers.size());
     createInfo.ppEnabledLayerNames = kValidationLayers.data();
 
-    assert(vkCreateDevice(gpu_, &createInfo, nullptr, &device_) == VK_SUCCESS);
+    auto res = vkCreateDevice(gpu_, &createInfo, nullptr, &device_);
+    assert(res == VK_SUCCESS);
 
     vkGetDeviceQueue(device_, indices.graphics, 0, &graphics_queue_);
     vkGetDeviceQueue(device_, indices.present, 0, &present_queue_);
 }
 
-void RenderDevice::CreateSwapchain() {
-    SurfaceSupport surfSupport(gpu_, surface_);
-
-    VkSurfaceFormatKHR surfaceFormat = surfSupport.SelectFormat();
-    VkPresentModeKHR presentMode = surfSupport.SelectPresentMode();
-    VkExtent2D extent = surfSupport.SelectExtent();
-    uint32_t imageCount = surfSupport.SelectImageCount();
-
-    VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface_;
-
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    QueueFamilyIndices indices(gpu_, surface_);
-    uint32_t queueFamilyIndices[] = { indices.graphics, indices.present };
-
-    if (indices.graphics != indices.present) {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices;
-    } else {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    }
-
-    createInfo.preTransform = surfSupport.capabilities.currentTransform;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = presentMode;
-    createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-    assert(vkCreateSwapchainKHR(device_, &createInfo, nullptr, &swapchain_) == VK_SUCCESS);
-
-    vkGetSwapchainImagesKHR(device_, swapchain_, &swap_image_count_, nullptr);
-    swap_images_ = std::make_unique<VkImage[]>(swap_image_count_);
-    vkGetSwapchainImagesKHR(device_, swapchain_, &swap_image_count_, swap_images_.get());
-    swap_image_format_ = surfaceFormat.format;
-    swap_image_extent_ = extent;
-}
-
-void RenderDevice::CreateImageViews() {
-    swap_image_views_ = std::make_unique<VkImageView[]>(swap_image_count_);
-
-    for (size_t i = 0; i < swap_image_count_; i++) {
-        VkImageViewCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = swap_images_[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = swap_image_format_;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
-        assert(vkCreateImageView(device_, &createInfo, nullptr, &swap_image_views_[i]) == VK_SUCCESS);
-    }
-}
-
-bool RenderDevice::FindMemoryType(uint32_t& index,
+bool Renderer::FindMemoryType(uint32_t& index,
     uint32_t typeFilter, VkMemoryPropertyFlags properties) const {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(gpu_, &memProperties);
@@ -364,23 +242,7 @@ bool RenderDevice::FindMemoryType(uint32_t& index,
     return false;
 }
 
-void RenderDevice::CreateImage(VkImage& image, VkDeviceMemory& imageMemory,
-    VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties) {
-    assert(vkCreateImage(device_, &imageInfo, nullptr, &image) == VK_SUCCESS);
-
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device_, image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    assert(FindMemoryType(allocInfo.memoryTypeIndex, memRequirements.memoryTypeBits, properties));
-
-    assert(vkAllocateMemory(device_, &allocInfo, nullptr, &imageMemory) == VK_SUCCESS);
-    assert(vkBindImageMemory(device_, image, imageMemory, 0) == VK_SUCCESS);
-}
-
-bool RenderDevice::CheckPhysicalDeviceSupport(const VkPhysicalDevice& gpu) const {
+bool Renderer::CheckPhysicalDeviceSupport(const VkPhysicalDevice& gpu) const {
     QueueFamilyIndices indices(gpu, surface_);
 
     bool extensionsSupported = CheckDeviceExtensionSupport(gpu);
@@ -394,7 +256,7 @@ bool RenderDevice::CheckPhysicalDeviceSupport(const VkPhysicalDevice& gpu) const
     return indices && extensionsSupported && swapchainAdequate;
 }
 
-bool RenderDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice& gpu) const {
+bool Renderer::CheckDeviceExtensionSupport(const VkPhysicalDevice& gpu) const {
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(gpu, nullptr, &extensionCount, nullptr);
 

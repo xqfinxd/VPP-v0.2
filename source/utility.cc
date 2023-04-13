@@ -1,8 +1,7 @@
 #pragma once
 
-#include "lua_ext.h"
+#include "utility.h"
 #include <cassert>
-#include <utility>
 
 StackRestore::StackRestore(lua_State* L, int count)
     : state_(L), count_(count) {

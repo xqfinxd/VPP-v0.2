@@ -18,18 +18,30 @@
     <ClCompile Include="..\source\main.cc">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\lua_ext.cc">
+    <ClCompile Include="..\source\device.cc">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\device.cc">
+    <ClCompile Include="..\source\utility.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\window.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\config.cc">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\source\lua_ext.h">
+    <ClInclude Include="..\source\device.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\source\device.h">
+    <ClInclude Include="..\source\utility.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\window.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\config.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

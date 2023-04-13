@@ -3,46 +3,25 @@
 #include <cassert>
 #include <memory>
 
-#include "lua_ext.h"
+#include "utility.h"
 #include "device.h"
-
-struct WindowDeleter {
-    void operator()(GLFWwindow* win) {
-        if (win) {
-            glfwDestroyWindow(win);
-        }
-    }
-};
-static std::unique_ptr<GLFWwindow, WindowDeleter> kUniqueWindow = nullptr;
-extern GLFWwindow* GetWindow() { 
-    if (kUniqueWindow)
-        return kUniqueWindow.get();
-    return nullptr;
-}
-
-static void InitGlfw() {
-    assert(GLFW_TRUE == glfwInit() && "GLFW init failure!");
-    assert(GLFW_TRUE == glfwVulkanSupported() && "Vulkan is not available!");
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    kUniqueWindow = std::unique_ptr<GLFWwindow, WindowDeleter>{
-        glfwCreateWindow(1080, 810, "vk", NULL, NULL)
-    };
-}
+#include "window.h"
+#include "config.h"
 
 static int InitModule(lua_State* L) {
     printf("vk module init...\n");
-    InitGlfw();
-    GetDevice().Init();
-    auto window = GetWindow();
-    while (window && !glfwWindowShouldClose(window)) {
-
-        glfwPollEvents();
-    }
+    const char* fn = lua_tostring(L, 1);
+    Config::Get()->LoadConfig(fn);
+    MainWindow::Get();
+    Renderer::Get();
+    MainWindow::Get()->Run();
     return 0;
 }
 
 static int QuitModule(lua_State* L) {
-    GetDevice().Quit();
+    Renderer::Destroy();
+    MainWindow::Destroy();
+    Config::Destroy();
     printf("vk module quit...\n");
     return 0;
 }
