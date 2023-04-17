@@ -3,75 +3,114 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <set>
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include "utility.h"
 
-struct QueueFamilyIndices {
-	QueueFamilyIndices() = default;
-	QueueFamilyIndices(VkPhysicalDevice gpu, VkSurfaceKHR surface);
+using LayerType = const char*;
+using ExtensionType = const char*;
 
-	static constexpr uint32_t INVALID = UINT32_MAX;
-	uint32_t graphics = INVALID;
-	uint32_t present = INVALID;
+struct QueueIndices {
+    QueueIndices() = default;
+    QueueIndices(const vk::PhysicalDevice& gpu, const vk::SurfaceKHR& surface);
 
-	bool valid() const {
-		return graphics != INVALID && present != INVALID;
-	}
+    static constexpr uint32_t INVALID = UINT32_MAX;
+    uint32_t graphics = INVALID;
+    uint32_t present = INVALID;
 
-	operator bool() {
-		return valid();
-	}
+    bool valid() const {
+        return graphics != INVALID && present != INVALID;
+    }
+
+    operator bool() {
+        return valid();
+    }
 };
 
 struct SurfaceSupport {
-	SurfaceSupport(VkPhysicalDevice gpu, VkSurfaceKHR surface);
+    SurfaceSupport() = default;
+    SurfaceSupport(const vk::PhysicalDevice& gpu, const vk::SurfaceKHR& surface);
 
-	VkSurfaceCapabilitiesKHR capabilities{};
-	std::vector<VkSurfaceFormatKHR> formats{};
-	std::vector<VkPresentModeKHR> present_modes{};
+    vk::SurfaceCapabilitiesKHR capabilities{};
+    std::vector<vk::SurfaceFormatKHR> formats{};
+    std::vector<vk::PresentModeKHR> presentModes{};
 
-	VkSurfaceFormatKHR SelectFormat() const;
-	VkPresentModeKHR SelectPresentMode() const;
-	VkExtent2D SelectExtent() const;
-	uint32_t SelectImageCount() const;
+    vk::SurfaceFormatKHR selectFormat() const;
+    vk::PresentModeKHR selectPresentMode() const;
+    vk::Extent2D selectExtent() const;
+    uint32_t selectImageCount() const;
+    vk::CompositeAlphaFlagBitsKHR selectAlpha() const;
+};
+
+struct SwapImage {
+    vk::Image image;
+    vk::ImageView view;
+};
+
+struct DepthImage {
+    vk::Image image;
+    vk::ImageView view;
+    vk::DeviceMemory memory;
+};
+
+struct RenderSyncObj {
+    vk::Fence fences;
+    vk::Semaphore imageAcquired;
+    vk::Semaphore drawComplete;
+};
+
+struct DeviceQueues {
+    vk::Queue graphics;
+    vk::Queue present;
 };
 
 class Renderer
-	: public Singleton<Renderer> {
+    : public Singleton<Renderer> {
 public:
-	Renderer();
-	~Renderer();
+    Renderer();
+    ~Renderer();
 
-	bool FindMemoryType(uint32_t& index,
-		uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
-	VkDevice device() const {
-		return device_;
-	}
-	VkQueue graphics_queue() const {
-		return graphics_queue_;
-	}
-	VkQueue present_queue() const {
-		return present_queue_;
-	}
+    void initInstance();
+    void initSurface();
+    bool checkDeviceExtension(const vk::PhysicalDevice& candidateGpu,
+        const std::vector<ExtensionType>& exts) const;
+    bool checkPhysicalDevice(const vk::PhysicalDevice& gpu) const;
+    void initGpu();
+    void initQueueIndices();
+    void initDevice();
+    void initQueue();
+    void initSwapchain();
+    void initSwapImages();
+    void initDepthImage();
+    void initRenderPass();
+    void initFramebuffer();
 
-protected:
-	void CreateInstance();
-	void CreateSurface();
-	void SelectGpu();
-	void CreateDeviceAndQueue();
-
-protected: // tool
-	bool CheckPhysicalDeviceSupport(const VkPhysicalDevice& gpu) const;
-	bool CheckDeviceExtensionSupport(const VkPhysicalDevice& gpu) const;
+    bool getMemoryType(
+        uint32_t memType,
+        vk::MemoryPropertyFlags mask,
+        uint32_t& typeIndex
+    ) const;
 
 private:
-	VkInstance instance_{};
-	VkSurfaceKHR surface_{};
-	VkPhysicalDevice gpu_{};
-	VkDevice device_{};
-	QueueFamilyIndices indices_{};
-	VkQueue graphics_queue_{};
-	VkQueue present_queue_{};
+    bool prepared = false;
+
+    vk::Instance instance;
+    vk::PhysicalDevice gpu;
+    vk::SurfaceKHR surface;
+    QueueIndices indices;
+    vk::Device device;
+    DeviceQueues queues;
+    vk::SwapchainKHR swapchain;
+    uint32_t swapImageCount;
+    std::unique_ptr<SwapImage[]> swapImages{};
+    DepthImage depthImage{};
+    vk::RenderPass renderPass;
+    std::unique_ptr<vk::Framebuffer[]> framebuffers;
+
+    uint32_t frameIndex = 0;
+    uint32_t currentBuffer = 0;
+
+    std::vector<RenderSyncObj> syncObjs{};
 };

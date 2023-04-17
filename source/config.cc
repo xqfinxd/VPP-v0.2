@@ -6,7 +6,6 @@
 #include <cassert>
 
 namespace helper {
-
 static bool AllowChar(char c) {
     if (c == '.')
         return true;
@@ -60,7 +59,6 @@ static bool IsInteger(const std::string& str) {
     }
     return true;
 }
-
 }  // namespace helper
 
 void Config::LoadConfig(const char* fn) {
@@ -126,7 +124,7 @@ int Config::FindKey(const char* key) {
             lua_pop(state_, stackNum);
             return 0;
         }
-            
+
         if (helper::IsInteger(e)) {
             auto len = luaL_len(state_, -1);
             auto idx = std::stoi(e.c_str());
