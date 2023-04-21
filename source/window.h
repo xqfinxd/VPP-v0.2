@@ -1,23 +1,24 @@
 #pragma once
+
 #include <mutex>
 #include <vector>
 #include <vulkan/vulkan.hpp>
-#include <GLFW/glfw3.h>
 
-#include "utility.h"
 #include "device.h"
+#include "utility.h"
 
-class MainWindow
-    : public Singleton<MainWindow> {
-public:
-    MainWindow();
-    ~MainWindow();
+struct GLFWwindow;
 
-    vk::Extent2D GetSurfaceExtent() const;
-    vk::SurfaceKHR GetSurface(VkInstance instance) const;
-    std::vector<ExtensionType> GetExtensions() const;
-    void Run();
+class MainWindow : public Singleton<MainWindow> {
+ public:
+  MainWindow();
+  ~MainWindow();
 
-protected:
-    GLFWwindow* window_;
+  vk::Extent2D GetSurfaceExtent() const;
+  vk::SurfaceKHR GetSurface(VkInstance instance) const;
+  std::vector<ExtensionType> GetExtensions() const;
+  void Run();
+
+ protected:
+  GLFWwindow* window_;
 };

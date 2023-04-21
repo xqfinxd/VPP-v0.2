@@ -1,55 +1,53 @@
 #include "window.h"
+
 #include <cassert>
+#include <GLFW/glfw3.h>
+
 #include "config.h"
 #include "device.h"
 
 vk::Extent2D MainWindow::GetSurfaceExtent() const {
-    int w = 0, h = 0;
-    glfwGetFramebufferSize(window_, &w, &h);
-    return VkExtent2D{ (uint32_t)w, (uint32_t)h };
+  int w = 0, h = 0;
+  glfwGetFramebufferSize(window_, &w, &h);
+  return VkExtent2D{(uint32_t)w, (uint32_t)h};
 }
 
 vk::SurfaceKHR MainWindow::GetSurface(VkInstance instance) const {
-    VkSurfaceKHR surface;
-    auto res = glfwCreateWindowSurface(instance, window_, nullptr, &surface);
-    assert(res == VK_SUCCESS);
-    return vk::SurfaceKHR(surface);
+  VkSurfaceKHR surface;
+  auto res = glfwCreateWindowSurface(instance, window_, nullptr, &surface);
+  assert(res == VK_SUCCESS);
+  return vk::SurfaceKHR(surface);
 }
 
 std::vector<ExtensionType> MainWindow::GetExtensions() const {
-    std::vector<const char*> extensions{};
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    extensions.assign(glfwExtensions, glfwExtensions + glfwExtensionCount);
+  std::vector<const char*> extensions{};
+  uint32_t glfwExtensionCount = 0;
+  const char** glfwExtensions =
+      glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+  extensions.assign(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    return extensions;
+  return extensions;
 }
 
 void MainWindow::Run() {
-    if (!window_)
-        return;
-    while (!glfwWindowShouldClose(window_)) {
-        glfwPollEvents();
-    }
+  if (!window_) return;
+  while (!glfwWindowShouldClose(window_)) {
+    glfwPollEvents();
+  }
 }
 
 MainWindow::MainWindow() {
-    int res = GLFW_TRUE;
-    res = glfwInit();
-    assert(GLFW_TRUE == res);
-    res = glfwVulkanSupported();
-    assert(GLFW_TRUE == res);
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    auto* pCfg = Config::Get();
-    window_ = glfwCreateWindow(
-        (int)pCfg->Integer("window.width"),
-        (int)pCfg->Integer("window.height"),
-        pCfg->String("window.title"),
-        NULL, NULL
-    );
-    assert(window_);
+  int res = GLFW_TRUE;
+  res = glfwInit();
+  assert(GLFW_TRUE == res);
+  res = glfwVulkanSupported();
+  assert(GLFW_TRUE == res);
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  auto* pCfg = Config::Get();
+  window_ = glfwCreateWindow((int)pCfg->Integer("window.width"),
+                             (int)pCfg->Integer("window.height"),
+                             pCfg->String("window.title"), NULL, NULL);
+  assert(window_);
 }
 
-MainWindow::~MainWindow() {
-    glfwDestroyWindow(window_);
-}
+MainWindow::~MainWindow() { glfwDestroyWindow(window_); }
