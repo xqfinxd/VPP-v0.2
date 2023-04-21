@@ -93,7 +93,7 @@ vk::Extent2D SurfaceSupport::selectExtent() const {
   if (capabilities.currentExtent.width != UINT32_MAX) {
     return capabilities.currentExtent;
   } else {
-    auto actualExtent = MainWindow::Get()->GetSurfaceExtent();
+    auto actualExtent = MainWindow::Get()->getSurfExtent();
 
     actualExtent.width =
         glm::clamp(actualExtent.width, capabilities.minImageExtent.width,
@@ -169,7 +169,7 @@ void Renderer::initInstance() {
                    .setPEngineName("None")
                    .setEngineVersion(0);
 
-  auto extensions = MainWindow::Get()->GetExtensions();
+  auto extensions = MainWindow::Get()->getExtensions();
   extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
   using MsgSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT;
@@ -195,7 +195,7 @@ void Renderer::initInstance() {
 
 void Renderer::initSurface() {
   assert(instance);
-  surface = MainWindow::Get()->GetSurface(instance);
+  surface = MainWindow::Get()->getSurface(instance);
 }
 
 bool Renderer::checkDeviceExtension(

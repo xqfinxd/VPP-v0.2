@@ -57,47 +57,47 @@ static bool IsInteger(const std::string& str) {
 }
 }  // namespace helper
 
-void Config::LoadConfig(const char* fn) {
-  state_ = luaL_newstate();
+void Config::loadConfig(const char* fn) {
+  state = luaL_newstate();
   int code = LUA_OK;
-  code = luaL_loadfile(state_, fn);
+  code = luaL_loadfile(state, fn);
   assert(code == LUA_OK);
-  code = lua_pcall(state_, 0, 1, 0);
+  code = lua_pcall(state, 0, 1, 0);
   assert(code == LUA_OK);
-  assert(lua_istable(state_, -1));
-  ref_index_ = luaL_ref(state_, LUA_REGISTRYINDEX);
+  assert(lua_istable(state, -1));
+  refIndex = luaL_ref(state, LUA_REGISTRYINDEX);
 }
 
-const char* Config::String(const char* key) {
-  int stackNum = FindKey(key);
-  assert(stackNum && lua_isstring(state_, -1));
-  StackRestore restore{state_, stackNum};
-  return lua_tostring(state_, -1);
+const char* Config::toString(const char* key) {
+  int stackNum = findKey(key);
+  assert(stackNum && lua_isstring(state, -1));
+  StackRestore restore{state, stackNum};
+  return lua_tostring(state, -1);
 }
 
-lua_Integer Config::Integer(const char* key) {
-  int stackNum = FindKey(key);
-  assert(stackNum && lua_isinteger(state_, -1));
-  StackRestore restore{state_, stackNum};
-  return lua_tointeger(state_, -1);
+lua_Integer Config::toInteger(const char* key) {
+  int stackNum = findKey(key);
+  assert(stackNum && lua_isinteger(state, -1));
+  StackRestore restore{state, stackNum};
+  return lua_tointeger(state, -1);
 }
 
-lua_Number Config::Float(const char* key) {
-  int stackNum = FindKey(key);
-  assert(stackNum && lua_isnumber(state_, -1));
-  StackRestore restore{state_, stackNum};
-  return lua_tonumber(state_, -1);
+lua_Number Config::toNumber(const char* key) {
+  int stackNum = findKey(key);
+  assert(stackNum && lua_isnumber(state, -1));
+  StackRestore restore{state, stackNum};
+  return lua_tonumber(state, -1);
 }
 
-size_t Config::Len(const char* key) {
-  int stackNum = FindKey(key);
-  assert(stackNum && lua_istable(state_, -1));
-  StackRestore restore{state_, stackNum};
-  return luaL_len(state_, -1);
+size_t Config::length(const char* key) {
+  int stackNum = findKey(key);
+  assert(stackNum && lua_istable(state, -1));
+  StackRestore restore{state, stackNum};
+  return luaL_len(state, -1);
 }
 
-int Config::FindKey(const char* key) {
-  assert(state_ && ref_index_ != LUA_NOREF);
+int Config::findKey(const char* key) {
+  assert(state && refIndex != LUA_NOREF);
 
   std::string fmtString{};
   {
@@ -112,23 +112,23 @@ int Config::FindKey(const char* key) {
   std::vector<std::string> keys{};
   helper::SpiltStr(keys, fmtString, '.');
 
-  lua_geti(state_, LUA_REGISTRYINDEX, ref_index_);
+  lua_geti(state, LUA_REGISTRYINDEX, refIndex);
   int stackNum = 1;
   for (const auto& e : keys) {
-    if (!lua_istable(state_, -1)) {
-      lua_pop(state_, stackNum);
+    if (!lua_istable(state, -1)) {
+      lua_pop(state, stackNum);
       return 0;
     }
 
     if (helper::IsInteger(e)) {
-      auto len = luaL_len(state_, -1);
+      auto len = luaL_len(state, -1);
       auto idx = std::stoi(e.c_str());
       if (abs(idx) >= 1 && abs(idx) <= len) {
-        lua_geti(state_, -1, idx);
+        lua_geti(state, -1, idx);
         stackNum++;
       }
     } else {
-      lua_getfield(state_, -1, e.c_str());
+      lua_getfield(state, -1, e.c_str());
       stackNum++;
     }
   }

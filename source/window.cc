@@ -6,20 +6,20 @@
 #include "config.h"
 #include "device.h"
 
-vk::Extent2D MainWindow::GetSurfaceExtent() const {
+vk::Extent2D MainWindow::getSurfExtent() const {
   int w = 0, h = 0;
-  glfwGetFramebufferSize(window_, &w, &h);
+  glfwGetFramebufferSize(window, &w, &h);
   return VkExtent2D{(uint32_t)w, (uint32_t)h};
 }
 
-vk::SurfaceKHR MainWindow::GetSurface(VkInstance instance) const {
+vk::SurfaceKHR MainWindow::getSurface(VkInstance instance) const {
   VkSurfaceKHR surface;
-  auto res = glfwCreateWindowSurface(instance, window_, nullptr, &surface);
+  auto res = glfwCreateWindowSurface(instance, window, nullptr, &surface);
   assert(res == VK_SUCCESS);
   return vk::SurfaceKHR(surface);
 }
 
-std::vector<ExtensionType> MainWindow::GetExtensions() const {
+std::vector<ExtensionType> MainWindow::getExtensions() const {
   std::vector<const char*> extensions{};
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions =
@@ -29,9 +29,9 @@ std::vector<ExtensionType> MainWindow::GetExtensions() const {
   return extensions;
 }
 
-void MainWindow::Run() {
-  if (!window_) return;
-  while (!glfwWindowShouldClose(window_)) {
+void MainWindow::run() {
+  if (!window) return;
+  while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
   }
 }
@@ -44,10 +44,10 @@ MainWindow::MainWindow() {
   assert(GLFW_TRUE == res);
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   auto* pCfg = Config::Get();
-  window_ = glfwCreateWindow((int)pCfg->Integer("window.width"),
-                             (int)pCfg->Integer("window.height"),
-                             pCfg->String("window.title"), NULL, NULL);
-  assert(window_);
+  window = glfwCreateWindow((int)pCfg->toInteger("window.width"),
+                             (int)pCfg->toInteger("window.height"),
+                             pCfg->toString("window.title"), NULL, NULL);
+  assert(window);
 }
 
-MainWindow::~MainWindow() { glfwDestroyWindow(window_); }
+MainWindow::~MainWindow() { glfwDestroyWindow(window); }

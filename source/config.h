@@ -9,16 +9,16 @@ class Config : public Singleton<Config> {
   Config() = default;
   ~Config() = default;
 
-  void LoadConfig(const char* fn);
+  void loadConfig(const char* fn);
 
-  const char* String(const char* key);
-  lua_Integer Integer(const char* key);
-  lua_Number Float(const char* key);
-  size_t Len(const char* key);
+  const char* toString(const char* key);
+  lua_Integer toInteger(const char* key);
+  lua_Number toNumber(const char* key);
+  size_t length(const char* key);
 
  private:
-  lua_State* state_ = nullptr;
-  int ref_index_ = LUA_NOREF;
+  lua_State* state = nullptr;
+  int refIndex = LUA_NOREF;
 
-  int FindKey(const char* key);
+  int findKey(const char* key);
 };

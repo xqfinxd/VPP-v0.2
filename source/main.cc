@@ -12,10 +12,10 @@
 static int InitModule(lua_State* L) {
   printf("vk module init...\n");
   const char* fn = lua_tostring(L, 1);
-  Config::Get()->LoadConfig(fn);
+  Config::Get()->loadConfig(fn);
   MainWindow::Get();
   Renderer::Get();
-  MainWindow::Get()->Run();
+  MainWindow::Get()->run();
   return 0;
 }
 

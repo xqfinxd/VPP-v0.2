@@ -14,11 +14,11 @@ class MainWindow : public Singleton<MainWindow> {
   MainWindow();
   ~MainWindow();
 
-  vk::Extent2D GetSurfaceExtent() const;
-  vk::SurfaceKHR GetSurface(VkInstance instance) const;
-  std::vector<ExtensionType> GetExtensions() const;
-  void Run();
+  vk::Extent2D getSurfExtent() const;
+  vk::SurfaceKHR getSurface(VkInstance instance) const;
+  std::vector<ExtensionType> getExtensions() const;
+  void run();
 
  protected:
-  GLFWwindow* window_;
+  GLFWwindow* window;
 };

@@ -4,13 +4,13 @@
 
 #include <cassert>
 
-StackRestore::StackRestore(lua_State* L, int count) : state_(L), count_(count) {
+StackRestore::StackRestore(lua_State* L, int count) : state(L), popCount(count) {
   assert(L);
 }
 
-StackRestore::StackRestore(lua_State* L) : state_(L) {
+StackRestore::StackRestore(lua_State* L) : state(L) {
   assert(L);
-  count_ = lua_gettop(state_);
+  popCount = lua_gettop(state);
 }
 
-StackRestore::~StackRestore() { lua_pop(state_, count_); }
+StackRestore::~StackRestore() { lua_pop(state, popCount); }

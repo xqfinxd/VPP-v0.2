@@ -13,35 +13,35 @@ class StackRestore {
   StackRestore(StackRestore&&) = delete;
 
  private:
-  lua_State* state_ = nullptr;
-  int count_ = 0;
+  lua_State* state = nullptr;
+  int popCount = 0;
 };
 
 template <typename T>
 class Singleton {
  public:
   static T* Get() {
-    if (!instance_) {
-      std::unique_lock<std::mutex> lock(mutex_);
-      if (!instance_) {
-        instance_ = new (std::nothrow) T;
+    if (!singleInstance) {
+      std::unique_lock<std::mutex> lock(lockMutex);
+      if (!singleInstance) {
+        singleInstance = new (std::nothrow) T;
       }
     }
-    return instance_;
+    return singleInstance;
   }
 
-  static void Destroy() { delete instance_; }
+  static void Destroy() { delete singleInstance; }
 
  protected:
   Singleton() {}
 
  private:
-  static T* instance_;
-  static std::mutex mutex_;
+  static T* singleInstance;
+  static std::mutex lockMutex;
 };
 
 template <typename T>
-T* Singleton<T>::instance_ = nullptr;
+T* Singleton<T>::singleInstance = nullptr;
 
 template <typename T>
-std::mutex Singleton<T>::mutex_{};
+std::mutex Singleton<T>::lockMutex{};
