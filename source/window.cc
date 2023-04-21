@@ -1,21 +1,22 @@
 #include "window.h"
 #include <cassert>
 #include "config.h"
+#include "device.h"
 
-VkExtent2D MainWindow::GetSurfaceExtent() const {
+vk::Extent2D MainWindow::GetSurfaceExtent() const {
     int w = 0, h = 0;
     glfwGetFramebufferSize(window_, &w, &h);
     return VkExtent2D{ (uint32_t)w, (uint32_t)h };
 }
 
-VkSurfaceKHR MainWindow::GetSurface(VkInstance instance) const {
+vk::SurfaceKHR MainWindow::GetSurface(VkInstance instance) const {
     VkSurfaceKHR surface;
     auto res = glfwCreateWindowSurface(instance, window_, nullptr, &surface);
     assert(res == VK_SUCCESS);
-    return surface;
+    return vk::SurfaceKHR(surface);
 }
 
-std::vector<const char*> MainWindow::GetExtensions() const {
+std::vector<ExtensionType> MainWindow::GetExtensions() const {
     std::vector<const char*> extensions{};
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -28,7 +29,6 @@ void MainWindow::Run() {
     if (!window_)
         return;
     while (!glfwWindowShouldClose(window_)) {
-
         glfwPollEvents();
     }
 }

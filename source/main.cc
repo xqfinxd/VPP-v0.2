@@ -1,7 +1,8 @@
-﻿#include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
-#include <cassert>
+﻿#include <cassert>
 #include <memory>
+
+#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 
 #include "utility.h"
 #include "device.h"
@@ -33,10 +34,10 @@ static const luaL_Reg kLuaApi[] = {
 };
 
 extern "C" {
-
     __declspec(dllexport) int luaopen_vk(lua_State* L) {
         luaL_newlib(L, kLuaApi);
+        lua_pushvalue(L, -1);
+        lua_setglobal(L, "vk");
         return 1;
     }
-
 }
