@@ -12,8 +12,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lua_lib", "lua_lib\lua_lib.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vk", "vk\vk.vcxproj", "{B6D3E0C5-A4CC-4D35-992E-05D7BF1BBD3F}"
 	ProjectSection(ProjectDependencies) = postProject
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0} = {56BA38AB-A586-4629-B72F-EC215C4B4EA0}
 		{DE60E8A9-5580-4BDE-B65B-22DCDB451C1A} = {DE60E8A9-5580-4BDE-B65B-22DCDB451C1A}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shader", "shader\shader.vcxproj", "{56BA38AB-A586-4629-B72F-EC215C4B4EA0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +50,14 @@ Global
 		{B6D3E0C5-A4CC-4D35-992E-05D7BF1BBD3F}.Release|x64.Build.0 = Release|x64
 		{B6D3E0C5-A4CC-4D35-992E-05D7BF1BBD3F}.Release|x86.ActiveCfg = Release|Win32
 		{B6D3E0C5-A4CC-4D35-992E-05D7BF1BBD3F}.Release|x86.Build.0 = Release|Win32
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0}.Debug|x64.ActiveCfg = Debug|x64
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0}.Debug|x64.Build.0 = Debug|x64
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0}.Debug|x86.ActiveCfg = Debug|x64
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0}.Debug|x86.Build.0 = Debug|x64
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0}.Release|x64.ActiveCfg = Release|x64
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0}.Release|x64.Build.0 = Release|x64
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0}.Release|x86.ActiveCfg = Release|x64
+		{56BA38AB-A586-4629-B72F-EC215C4B4EA0}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
