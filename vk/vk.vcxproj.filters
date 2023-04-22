@@ -30,6 +30,9 @@
     <ClCompile Include="..\source\config.cc">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\shader.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\source\device.h">
@@ -42,6 +45,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\source\config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\shader.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

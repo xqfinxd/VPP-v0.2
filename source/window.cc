@@ -1,7 +1,7 @@
 #include "window.h"
 
-#include <cassert>
 #include <GLFW/glfw3.h>
+#include <cassert>
 
 #include "config.h"
 #include "device.h"
@@ -30,7 +30,8 @@ std::vector<ExtensionType> MainWindow::getExtensions() const {
 }
 
 void MainWindow::run() {
-  if (!window) return;
+  if (!window)
+    return;
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
   }
@@ -43,11 +44,13 @@ MainWindow::MainWindow() {
   res = glfwVulkanSupported();
   assert(GLFW_TRUE == res);
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  auto* pCfg = Config::Get();
-  window = glfwCreateWindow((int)pCfg->toInteger("window.width"),
-                             (int)pCfg->toInteger("window.height"),
-                             pCfg->toString("window.title"), NULL, NULL);
+  auto section = cfg::Find("window");
+  window = glfwCreateWindow((int)section->getInteger("width"),
+                            (int)section->getInteger("height"),
+                            section->getString("title").c_str(), NULL, NULL);
   assert(window);
 }
 
-MainWindow::~MainWindow() { glfwDestroyWindow(window); }
+MainWindow::~MainWindow() {
+  glfwDestroyWindow(window);
+}

@@ -6,35 +6,23 @@
 
 #include "config.h"
 #include "device.h"
+#include "shader.h"
 #include "utility.h"
 #include "window.h"
 
-static int InitModule(lua_State* L) {
-  printf("vk module init...\n");
-  const char* fn = lua_tostring(L, 1);
-  Config::Get()->loadConfig(fn);
-  MainWindow::Get();
-  Renderer::Get();
-  MainWindow::Get()->run();
-  return 0;
-}
+int main(int argc, char** argv) {
+  cfg::Load("script/config.lua");
 
-static int QuitModule(lua_State* L) {
-  Renderer::Destroy();
-  MainWindow::Destroy();
-  Config::Destroy();
-  printf("vk module quit...\n");
-  return 0;
-}
+  MainWindow mainWindow{};
+  Renderer renderer{};
+  mainWindow.run();
+  auto ptr = ShaderObject::createFromFiles(
+      renderer.getDevice(),
+      {
+          {vk::ShaderStageFlagBits::eVertex, "texture.vert"},
+          {vk::ShaderStageFlagBits::eFragment, "texture.frag"},
+      });
+  ptr->destroy(renderer.getDevice());
 
-static const luaL_Reg kLuaApi[] = {
-    {"init", InitModule}, {"quit", QuitModule}, {NULL, NULL}};
-
-extern "C" {
-__declspec(dllexport) int luaopen_vk(lua_State* L) {
-  luaL_newlib(L, kLuaApi);
-  lua_pushvalue(L, -1);
-  lua_setglobal(L, "vk");
-  return 1;
-}
+  cfg::Unload();
 }

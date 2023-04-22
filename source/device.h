@@ -84,6 +84,10 @@ class Renderer : public Singleton<Renderer> {
   bool getMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
                      uint32_t& typeIndex) const;
 
+  vk::Device& getDevice() {
+      return device;
+  }
+
  private:
   bool prepared = false;
 

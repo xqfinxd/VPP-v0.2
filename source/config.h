@@ -1,24 +1,22 @@
 #pragma once
 
-#include <lua.hpp>
+#include <memory>
+#include <string>
 
-#include "utility.h"
+namespace cfg {
 
-class Config : public Singleton<Config> {
+class ISection {
  public:
-  Config() = default;
-  ~Config() = default;
-
-  void loadConfig(const char* fn);
-
-  const char* toString(const char* key);
-  lua_Integer toInteger(const char* key);
-  lua_Number toNumber(const char* key);
-  size_t length(const char* key);
-
- private:
-  lua_State* state = nullptr;
-  int refIndex = LUA_NOREF;
-
-  int findKey(const char* key);
+  virtual std::string getString(const char* name) const = 0;
+  virtual double getNumber(const char* name) const = 0;
+  virtual int64_t getInteger(const char* name) const = 0;
+  virtual ~ISection() {}
 };
+
+using Section = std::unique_ptr<ISection>;
+
+void Load(const char* fn);
+void Unload();
+Section Find(const char* name);
+
+}  // namespace cfg

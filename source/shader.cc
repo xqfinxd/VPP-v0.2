@@ -6,6 +6,24 @@
 #include <fstream>
 #include <iostream>
 
+#ifdef _DEBUG
+#pragma comment(lib, "MachineIndependentd.lib")
+#pragma comment(lib, "SPIRVd.lib")
+#pragma comment(lib, "OGLCompilerd.lib")
+#pragma comment(lib, "OSDependentd.lib")
+#pragma comment(lib, "SPIRV-Tools-optd.lib")
+#pragma comment(lib, "GenericCodeGend.lib")
+#pragma comment(lib, "SPIRV-Toolsd.lib")
+#else
+#pragma comment(lib, "MachineIndependent.lib")
+#pragma comment(lib, "SPIRV.lib")
+#pragma comment(lib, "OGLCompiler.lib")
+#pragma comment(lib, "OSDependent.lib")
+#pragma comment(lib, "SPIRV-Tools-opt.lib")
+#pragma comment(lib, "GenericCodeGen.lib")
+#pragma comment(lib, "SPIRV-Tools.lib")
+#endif  // DEBUG
+
 namespace config {
 
 const int kGlslVersion = 400;
@@ -120,7 +138,8 @@ namespace helper {
 
 bool loadFile(const char* fn, std::string& ctx) {
   std::ifstream file(fn);  // 打开文件
-  if (!file) return false;
+  if (!file)
+    return false;
   file.seekg(0, file.end);
   size_t length = file.tellg();
   ctx.resize(length + 1);
@@ -178,9 +197,7 @@ vk::ShaderStageFlags stageCast(uint32_t mask) {
       {EShLangMissNVMask, vk::ShaderStageFlagBits::eMissNV},
       {EShLangCallableMask, vk::ShaderStageFlagBits::eCallableKHR},
       {EShLangCallableNVMask, vk::ShaderStageFlagBits::eCallableNV},
-      {EShLangTaskMask, vk::ShaderStageFlagBits::eTaskEXT},
       {EShLangTaskNVMask, vk::ShaderStageFlagBits::eTaskNV},
-      {EShLangMeshMask, vk::ShaderStageFlagBits::eMeshEXT},
       {EShLangMeshNVMask, vk::ShaderStageFlagBits::eMeshNV},
   };
   for (const auto& e : table) {
@@ -211,9 +228,7 @@ bool stageCast(EShLanguage flag, vk::ShaderStageFlagBits& outStage) {
       {EShLangMissNV, vk::ShaderStageFlagBits::eMissNV},
       {EShLangCallable, vk::ShaderStageFlagBits::eCallableKHR},
       {EShLangCallableNV, vk::ShaderStageFlagBits::eCallableNV},
-      {EShLangTask, vk::ShaderStageFlagBits::eTaskEXT},
       {EShLangTaskNV, vk::ShaderStageFlagBits::eTaskNV},
-      {EShLangMesh, vk::ShaderStageFlagBits::eMeshEXT},
       {EShLangMeshNV, vk::ShaderStageFlagBits::eMeshNV},
   };
   auto iter = table.find(flag);
@@ -244,9 +259,7 @@ EShLanguage stageCast(vk::ShaderStageFlagBits flag) {
       {vk::ShaderStageFlagBits::eMissNV, EShLangMissNV},
       {vk::ShaderStageFlagBits::eCallableKHR, EShLangCallable},
       {vk::ShaderStageFlagBits::eCallableNV, EShLangCallableNV},
-      {vk::ShaderStageFlagBits::eTaskEXT, EShLangTask},
       {vk::ShaderStageFlagBits::eTaskNV, EShLangTaskNV},
-      {vk::ShaderStageFlagBits::eMeshEXT, EShLangMesh},
       {vk::ShaderStageFlagBits::eMeshNV, EShLangMeshNV},
   };
   auto iter = table.find(flag);
@@ -544,7 +557,7 @@ std::unique_ptr<ShaderObject> ShaderObject::createFromFiles(
     }
     ShaderAnalyzer analyzer(tmpShaderFiles);
     bool success = analyzer.getObject(device, *shaderObject.get());
-    if (success) {
+    if (!success) {
       shaderObject->destroy(device);
       return nullptr;
     }

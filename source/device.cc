@@ -50,12 +50,15 @@ QueueIndices::QueueIndices(const vk::PhysicalDevice& gpu,
 
   uint32_t i = 0;
   for (const auto& queueFamily : queueFamilies) {
-    if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) graphics = i;
+    if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
+      graphics = i;
 
     auto presentSupport = gpu.getSurfaceSupportKHR(i, surface);
-    if (presentSupport) present = i;
+    if (presentSupport)
+      present = i;
 
-    if (valid()) break;
+    if (valid())
+      break;
 
     i++;
   }
@@ -93,7 +96,7 @@ vk::Extent2D SurfaceSupport::selectExtent() const {
   if (capabilities.currentExtent.width != UINT32_MAX) {
     return capabilities.currentExtent;
   } else {
-    auto actualExtent = MainWindow::Get()->getSurfExtent();
+    auto actualExtent = MainWindow::getMe().getSurfExtent();
 
     actualExtent.width =
         glm::clamp(actualExtent.width, capabilities.minImageExtent.width,
@@ -124,7 +127,8 @@ vk::CompositeAlphaFlagBitsKHR SurfaceSupport::selectAlpha() const {
       vk::CompositeAlphaFlagBitsKHR::eInherit,
   };
   for (const auto& e : allAlphas) {
-    if (capabilities.supportedCompositeAlpha & e) return e;
+    if (capabilities.supportedCompositeAlpha & e)
+      return e;
   }
   return alpha;
 }
@@ -169,7 +173,7 @@ void Renderer::initInstance() {
                    .setPEngineName("None")
                    .setEngineVersion(0);
 
-  auto extensions = MainWindow::Get()->getExtensions();
+  auto extensions = MainWindow::getMe().getExtensions();
   extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
   using MsgSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT;
@@ -195,7 +199,7 @@ void Renderer::initInstance() {
 
 void Renderer::initSurface() {
   assert(instance);
-  surface = MainWindow::Get()->getSurface(instance);
+  surface = MainWindow::getMe().getSurface(instance);
 }
 
 bool Renderer::checkDeviceExtension(

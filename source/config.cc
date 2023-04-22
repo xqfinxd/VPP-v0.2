@@ -2,136 +2,111 @@
 
 #include "config.h"
 
-#include <cassert>
-#include <string>
+#include "utility.h"
+
+#include <stdexcept>
 #include <vector>
 
-namespace helper {
-static bool AllowChar(char c) {
-  if (c == '.') return true;
-  if (c >= 'a' && c <= 'z') return true;
-  if (c >= 'A' && c <= 'Z') return true;
-  if (c >= '0' && c <= '9') return true;
-  if (c == '_' || c == '-') return true;
+#include <lua.hpp>
 
-  return false;
-}
+#pragma comment(lib, "lua_lib.lib")
 
-static std::string TrimStr(const std::string& src, char ch, bool left,
-                           bool right) {
-  size_t start = 0;
-  if (left) start = src.find_first_not_of('.');
-  size_t tail = 0;
-  if (right) {
-    auto end = src.find_last_not_of('.');
-    if (end != src.npos)
-      return src.substr(start, end - start + 1);
-    else
-      return src.substr(start);
-  } else {
-    return src.substr(start);
+using SharedState = std::shared_ptr<lua_State>;
+
+class SectionImpl : public cfg::ISection {
+  friend class Config;
+
+ private:
+  SharedState state = nullptr;
+  int refIndex = LUA_NOREF;
+
+ public:
+  std::string getString(const char* name) const {
+    lua_geti(state.get(), LUA_REGISTRYINDEX, refIndex);
+    lua_getfield(state.get(), -1, name);
+    if (!lua_isstring(state.get(), -1)) {
+      throw std::runtime_error(CFmt("[%s] is not string", name));
+    }
+    std::string value = lua_tostring(state.get(), -1);
+    lua_pop(state.get(), 2);
+    return value;
   }
-  return src;
-}
-
-static void SpiltStr(std::vector<std::string>& out, const std::string& src,
-                     char delm) {
-  size_t start = 0;
-  size_t pos = src.find('.');
-  while (pos != src.npos) {
-    auto substr = src.substr(start, pos - start);
-    if (!substr.empty()) out.emplace_back(substr);
-    start = pos + 1;
-    pos = src.find('.', start);
+  double getNumber(const char* name) const {
+    lua_geti(state.get(), LUA_REGISTRYINDEX, refIndex);
+    lua_getfield(state.get(), -1, name);
+    if (!lua_isnumber(state.get(), -1)) {
+      throw std::runtime_error(CFmt("[%s] is not double", name));
+    }
+    double value = lua_tonumber(state.get(), -1);
+    lua_pop(state.get(), 2);
+    return value;
   }
-  out.emplace_back(src.substr(start));
-}
+  int64_t getInteger(const char* name) const {
+    lua_geti(state.get(), LUA_REGISTRYINDEX, refIndex);
+    lua_getfield(state.get(), -1, name);
+    if (!lua_isinteger(state.get(), -1)) {
+      throw std::runtime_error(CFmt("[%s] is not integer", name));
+    }
+    int64_t value = lua_tointeger(state.get(), -1);
+    lua_pop(state.get(), 2);
+    return value;
+  }
 
-static bool IsInteger(const std::string& str) {
-  for (char ch : str) {
-    if (ch < '0' || ch > '9') {
-      return false;
+  ~SectionImpl() {}
+};
+
+class Config {
+ public:
+  Config(const char* fn) {
+    state = SharedState(luaL_newstate(), [](lua_State* L) { lua_close(L); });
+    if (!state) {
+      throw std::runtime_error("fail to create lua_State");
+    }
+    auto script = ReadFile(fn);
+    if (script.empty()) {
+      throw std::runtime_error(CFmt("fail to read [%s]", fn));
+    }
+    if (LUA_OK != luaL_dostring(state.get(), script.c_str())) {
+      throw std::runtime_error(CFmt("fail to run [%s]", fn));
     }
   }
-  return true;
-}
-}  // namespace helper
+  ~Config() {}
 
-void Config::loadConfig(const char* fn) {
-  state = luaL_newstate();
-  int code = LUA_OK;
-  code = luaL_loadfile(state, fn);
-  assert(code == LUA_OK);
-  code = lua_pcall(state, 0, 1, 0);
-  assert(code == LUA_OK);
-  assert(lua_istable(state, -1));
-  refIndex = luaL_ref(state, LUA_REGISTRYINDEX);
-}
-
-const char* Config::toString(const char* key) {
-  int stackNum = findKey(key);
-  assert(stackNum && lua_isstring(state, -1));
-  StackRestore restore{state, stackNum};
-  return lua_tostring(state, -1);
-}
-
-lua_Integer Config::toInteger(const char* key) {
-  int stackNum = findKey(key);
-  assert(stackNum && lua_isinteger(state, -1));
-  StackRestore restore{state, stackNum};
-  return lua_tointeger(state, -1);
-}
-
-lua_Number Config::toNumber(const char* key) {
-  int stackNum = findKey(key);
-  assert(stackNum && lua_isnumber(state, -1));
-  StackRestore restore{state, stackNum};
-  return lua_tonumber(state, -1);
-}
-
-size_t Config::length(const char* key) {
-  int stackNum = findKey(key);
-  assert(stackNum && lua_istable(state, -1));
-  StackRestore restore{state, stackNum};
-  return luaL_len(state, -1);
-}
-
-int Config::findKey(const char* key) {
-  assert(state && refIndex != LUA_NOREF);
-
-  std::string fmtString{};
-  {
-    auto len = strlen(key);
-    fmtString.reserve(len);
-    for (size_t i = 0; i < len; i++) {
-      if (helper::AllowChar(key[i])) fmtString.push_back(key[i]);
+  cfg::Section find(const char* name) const {
+    lua_getglobal(state.get(), name);
+    if (!lua_istable(state.get(), -1)) {
+      throw std::runtime_error(CFmt("fail to find [%s]", name));
     }
-    fmtString = helper::TrimStr(fmtString, '.', true, true);
+    auto section = new SectionImpl();
+    section->refIndex = luaL_ref(state.get(), LUA_REGISTRYINDEX);
+    section->state = state;
+    return cfg::Section(section);
   }
 
-  std::vector<std::string> keys{};
-  helper::SpiltStr(keys, fmtString, '.');
+ private:
+  SharedState state = nullptr;
+};
 
-  lua_geti(state, LUA_REGISTRYINDEX, refIndex);
-  int stackNum = 1;
-  for (const auto& e : keys) {
-    if (!lua_istable(state, -1)) {
-      lua_pop(state, stackNum);
-      return 0;
-    }
+namespace cfg {
 
-    if (helper::IsInteger(e)) {
-      auto len = luaL_len(state, -1);
-      auto idx = std::stoi(e.c_str());
-      if (abs(idx) >= 1 && abs(idx) <= len) {
-        lua_geti(state, -1, idx);
-        stackNum++;
-      }
-    } else {
-      lua_getfield(state, -1, e.c_str());
-      stackNum++;
-    }
+static Config* sConfig = nullptr;
+void Load(const char* fn) {
+  if (!sConfig) {
+    sConfig = new Config(fn);
   }
-
-  return stackNum;
 }
+
+void Unload() {
+  if (sConfig) {
+    delete sConfig;
+  }
+}
+
+Section Find(const char* name) {
+  if (!sConfig) {
+    throw std::runtime_error("the config has not been loaded");
+  }
+  return sConfig->find(name);
+}
+
+}  // namespace cfg
