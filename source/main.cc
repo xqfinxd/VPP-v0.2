@@ -22,7 +22,9 @@ int main(int argc, char** argv) {
           {vk::ShaderStageFlagBits::eVertex, "texture.vert"},
           {vk::ShaderStageFlagBits::eFragment, "texture.frag"},
       });
-  ptr->destroy(renderer.getDevice());
+  if (ptr) {
+    ptr->destroy(renderer.getDevice());
+  }
 
   cfg::Unload();
 }

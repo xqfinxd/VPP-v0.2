@@ -24,9 +24,7 @@ class SectionImpl : public cfg::ISection {
   std::string getString(const char* name) const {
     lua_geti(state.get(), LUA_REGISTRYINDEX, refIndex);
     lua_getfield(state.get(), -1, name);
-    if (!lua_isstring(state.get(), -1)) {
-      throw std::runtime_error(CFmt("[%s] is not string", name));
-    }
+    IFNO_THROW(lua_isstring(state.get(), -1), CFmt("[%s] is not string", name));
     std::string value = lua_tostring(state.get(), -1);
     lua_pop(state.get(), 2);
     return value;
@@ -34,9 +32,7 @@ class SectionImpl : public cfg::ISection {
   double getNumber(const char* name) const {
     lua_geti(state.get(), LUA_REGISTRYINDEX, refIndex);
     lua_getfield(state.get(), -1, name);
-    if (!lua_isnumber(state.get(), -1)) {
-      throw std::runtime_error(CFmt("[%s] is not double", name));
-    }
+    IFNO_THROW(lua_isnumber(state.get(), -1), CFmt("[%s] is not double", name));
     double value = lua_tonumber(state.get(), -1);
     lua_pop(state.get(), 2);
     return value;
@@ -44,9 +40,8 @@ class SectionImpl : public cfg::ISection {
   int64_t getInteger(const char* name) const {
     lua_geti(state.get(), LUA_REGISTRYINDEX, refIndex);
     lua_getfield(state.get(), -1, name);
-    if (!lua_isinteger(state.get(), -1)) {
-      throw std::runtime_error(CFmt("[%s] is not integer", name));
-    }
+    IFNO_THROW(lua_isinteger(state.get(), -1),
+               CFmt("[%s] is not integer", name));
     int64_t value = lua_tointeger(state.get(), -1);
     lua_pop(state.get(), 2);
     return value;
@@ -59,24 +54,17 @@ class Config {
  public:
   Config(const char* fn) {
     state = SharedState(luaL_newstate(), [](lua_State* L) { lua_close(L); });
-    if (!state) {
-      throw std::runtime_error("fail to create lua_State");
-    }
+    IFNO_THROW(state, "fail to create lua_State");
     auto script = ReadFile(fn);
-    if (script.empty()) {
-      throw std::runtime_error(CFmt("fail to read [%s]", fn));
-    }
-    if (LUA_OK != luaL_dostring(state.get(), script.c_str())) {
-      throw std::runtime_error(CFmt("fail to run [%s]", fn));
-    }
+    IFNO_THROW(!script.empty(), CFmt("fail to read [%s]", fn));
+    auto result = luaL_dostring(state.get(), script.c_str());
+    IFNO_THROW(LUA_OK == result, CFmt("fail to run [%s]", fn));
   }
   ~Config() {}
 
   cfg::Section find(const char* name) const {
     lua_getglobal(state.get(), name);
-    if (!lua_istable(state.get(), -1)) {
-      throw std::runtime_error(CFmt("fail to find [%s]", name));
-    }
+    IFNO_THROW(lua_istable(state.get(), -1), CFmt("fail to find [%s]", name));
     auto section = new SectionImpl();
     section->refIndex = luaL_ref(state.get(), LUA_REGISTRYINDEX);
     section->state = state;
@@ -103,10 +91,9 @@ void Unload() {
 }
 
 Section Find(const char* name) {
-  if (!sConfig) {
-    throw std::runtime_error("the config has not been loaded");
-  }
-  return sConfig->find(name);
+  if (sConfig)
+    return sConfig->find(name);
+  return nullptr;
 }
 
 }  // namespace cfg

@@ -8,9 +8,6 @@
 
 #include "utility.h"
 
-using LayerType = const char*;
-using ExtensionType = const char*;
-
 struct QueueIndices {
   QueueIndices() = default;
   QueueIndices(const vk::PhysicalDevice& gpu, const vk::SurfaceKHR& surface);
@@ -40,25 +37,25 @@ struct SurfaceSupport {
 };
 
 struct SwapImage {
-  vk::Image image;
-  vk::ImageView view;
+  vk::Image image{};
+  vk::ImageView view{};
 };
 
 struct DepthImage {
-  vk::Image image;
-  vk::ImageView view;
-  vk::DeviceMemory memory;
+  vk::Image image{};
+  vk::ImageView view{};
+  vk::DeviceMemory memory{};
 };
 
 struct RenderSyncObj {
-  vk::Fence fences;
-  vk::Semaphore imageAcquired;
-  vk::Semaphore drawComplete;
+  vk::Fence fences{};
+  vk::Semaphore imageAcquired{};
+  vk::Semaphore drawComplete{};
 };
 
 struct DeviceQueues {
-  vk::Queue graphics;
-  vk::Queue present;
+  vk::Queue graphics{};
+  vk::Queue present{};
 };
 
 class Renderer : public Singleton<Renderer> {
@@ -66,10 +63,11 @@ class Renderer : public Singleton<Renderer> {
   Renderer();
   ~Renderer();
 
+  vk::Device& getDevice() { return device; }
+
+ private:
   void initInstance();
   void initSurface();
-  bool checkDeviceExtension(const vk::PhysicalDevice& candidateGpu,
-                            const std::vector<ExtensionType>& exts) const;
   bool checkPhysicalDevice(const vk::PhysicalDevice& gpu) const;
   void initGpu();
   void initQueueIndices();
@@ -83,10 +81,6 @@ class Renderer : public Singleton<Renderer> {
 
   bool getMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
                      uint32_t& typeIndex) const;
-
-  vk::Device& getDevice() {
-      return device;
-  }
 
  private:
   bool prepared = false;

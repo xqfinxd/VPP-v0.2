@@ -1,7 +1,6 @@
 #include "window.h"
 
 #include <GLFW/glfw3.h>
-#include <cassert>
 
 #include "config.h"
 #include "device.h"
@@ -12,14 +11,15 @@ vk::Extent2D MainWindow::getSurfExtent() const {
   return VkExtent2D{(uint32_t)w, (uint32_t)h};
 }
 
-vk::SurfaceKHR MainWindow::getSurface(VkInstance instance) const {
+vk::SurfaceKHR MainWindow::getSurface(vk::Instance instance) const {
   VkSurfaceKHR surface;
-  auto res = glfwCreateWindowSurface(instance, window, nullptr, &surface);
-  assert(res == VK_SUCCESS);
+  auto res =
+      glfwCreateWindowSurface((VkInstance)instance, window, nullptr, &surface);
+  IFNO_THROW(res == VK_SUCCESS, "fail to create surface");
   return vk::SurfaceKHR(surface);
 }
 
-std::vector<ExtensionType> MainWindow::getExtensions() const {
+std::vector<const char*> MainWindow::getExtensions() const {
   std::vector<const char*> extensions{};
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions =
@@ -30,8 +30,6 @@ std::vector<ExtensionType> MainWindow::getExtensions() const {
 }
 
 void MainWindow::run() {
-  if (!window)
-    return;
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
   }
@@ -40,17 +38,21 @@ void MainWindow::run() {
 MainWindow::MainWindow() {
   int res = GLFW_TRUE;
   res = glfwInit();
-  assert(GLFW_TRUE == res);
+  IFNO_THROW(GLFW_TRUE == res, "fail to init glfw");
   res = glfwVulkanSupported();
-  assert(GLFW_TRUE == res);
+  IFNO_THROW(GLFW_TRUE == res, "vulkan is not supported");
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  auto section = cfg::Find("window");
-  window = glfwCreateWindow((int)section->getInteger("width"),
-                            (int)section->getInteger("height"),
-                            section->getString("title").c_str(), NULL, NULL);
-  assert(window);
+  if (auto section = cfg::Find("window")) {
+    window = glfwCreateWindow(
+        (int)section->getInteger("width"), (int)section->getInteger("height"),
+        section->getString("title").c_str(), nullptr, nullptr);
+  }
+
+  IFNO_THROW(window, "fail to create window");
 }
 
 MainWindow::~MainWindow() {
-  glfwDestroyWindow(window);
+  if (window) {
+    glfwDestroyWindow(window);
+  }
 }

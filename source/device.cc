@@ -4,7 +4,6 @@
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
-#include <cassert>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <set>
@@ -13,10 +12,10 @@
 
 #include "window.h"
 
-static const std::vector<LayerType> kValidationLayers = {
+static const std::vector<const char*> kValidationLayers = {
     "VK_LAYER_KHRONOS_validation"};
 
-static const std::vector<ExtensionType> kDeviceExtensions = {
+static const std::vector<const char*> kDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 static VkBool32 DebugCallback(
@@ -194,32 +193,24 @@ void Renderer::initInstance() {
                     .setPNext(&debugCI);
 
   result = vk::createInstance(&instCI, nullptr, &instance);
-  assert(result == vk::Result::eSuccess);
+  IFNO_THROW(result == vk::Result::eSuccess, "fail to create instance");
 }
 
 void Renderer::initSurface() {
-  assert(instance);
   surface = MainWindow::getMe().getSurface(instance);
-}
-
-bool Renderer::checkDeviceExtension(
-    const vk::PhysicalDevice& candidateGpu,
-    const std::vector<ExtensionType>& exts) const {
-  auto availableExtensions = candidateGpu.enumerateDeviceExtensionProperties();
-
-  std::set<std::string> requiredExtensions(exts.begin(), exts.end());
-
-  for (const auto& extension : availableExtensions) {
-    requiredExtensions.erase(extension.extensionName);
-  }
-
-  return requiredExtensions.empty();
+  IFNO_THROW(surface, "fail to create surface");
 }
 
 bool Renderer::checkPhysicalDevice(const vk::PhysicalDevice& gpu) const {
   QueueIndices gpuIndices(gpu, surface);
 
-  bool extensionsSupported = checkDeviceExtension(gpu, kDeviceExtensions);
+  auto availableExtensions = gpu.enumerateDeviceExtensionProperties();
+  std::set<std::string> requiredExtensions(kDeviceExtensions.begin(),
+                                           kDeviceExtensions.end());
+  for (const auto& extension : availableExtensions) {
+    requiredExtensions.erase(extension.extensionName);
+  }
+  bool extensionsSupported = requiredExtensions.empty();
 
   bool swapchainAdequate = false;
   if (extensionsSupported) {
@@ -232,8 +223,6 @@ bool Renderer::checkPhysicalDevice(const vk::PhysicalDevice& gpu) const {
 }
 
 void Renderer::initGpu() {
-  assert(instance);
-
   auto availableGPUs = instance.enumeratePhysicalDevices();
   bool found = false;
   for (const auto& e : availableGPUs) {
@@ -243,19 +232,15 @@ void Renderer::initGpu() {
       break;
     }
   }
-  assert(found);
+  IFNO_THROW(found, "fail to find suitable gpu");
 }
 
 void Renderer::initQueueIndices() {
-  assert(gpu);
-  assert(surface);
-
   indices = QueueIndices(gpu, surface);
+  IFNO_THROW(indices.valid(), "fail to find suitable queue indices");
 }
 
 void Renderer::initDevice() {
-  assert(gpu);
-
   vk::Result result;
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos{};
@@ -279,7 +264,7 @@ void Renderer::initDevice() {
           .setPEnabledFeatures(nullptr);
 
   result = gpu.createDevice(&deviceCI, nullptr, &device);
-  assert(result == vk::Result::eSuccess);
+  IFNO_THROW(result == vk::Result::eSuccess, "fail to create device");
 }
 
 void Renderer::initQueue() {
@@ -288,10 +273,6 @@ void Renderer::initQueue() {
 }
 
 void Renderer::initSwapchain() {
-  assert(gpu);
-  assert(surface);
-  assert(device);
-
   vk::Result result;
 
   SurfaceSupport surfSupport(gpu, surface);
@@ -326,18 +307,14 @@ void Renderer::initSwapchain() {
   swapchainCI.setQueueFamilyIndices(swapIndices);
 
   result = device.createSwapchainKHR(&swapchainCI, nullptr, &swapchain);
-  assert(result == vk::Result::eSuccess);
+  IFNO_THROW(result == vk::Result::eSuccess, "fail to create swapchains");
 }
 
 void Renderer::initSwapImages() {
-  assert(device);
-  assert(swapchain);
-  assert(surface);
-
   vk::Result result;
 
   auto images = device.getSwapchainImagesKHR(swapchain);
-  assert(images.size() > 0);
+  IFNO_THROW(images.size() > 0, "fail to get image from swapchain");
   swapImageCount = (uint32_t)images.size();
 
   SurfaceSupport surfSupport(gpu, surface);
@@ -359,16 +336,14 @@ void Renderer::initSwapImages() {
             .setSubresourceRange(resRange);
     imageViewCI.setImage(images[i]);
     result = device.createImageView(&imageViewCI, nullptr, &swapImages[i].view);
-    assert(result == vk::Result::eSuccess);
+    IFNO_THROW(result == vk::Result::eSuccess,
+               "fail to create swap image view");
 
     swapImages[i].image = images[i];
   }
 }
 
 void Renderer::initDepthImage() {
-  assert(gpu);
-  assert(device);
-
   vk::Result result;
   SurfaceSupport surfSupport(gpu, surface);
   auto extent = surfSupport.selectExtent();
@@ -392,7 +367,7 @@ void Renderer::initDepthImage() {
   }
   imageCI.setQueueFamilyIndices(depthIndices);
   result = device.createImage(&imageCI, nullptr, &depthImage.image);
-  assert(result == vk::Result::eSuccess);
+  IFNO_THROW(result == vk::Result::eSuccess, "fail to create depth image");
 
   vk::MemoryAllocateInfo memoryAI;
   vk::MemoryRequirements memReq;
@@ -401,9 +376,9 @@ void Renderer::initDepthImage() {
   auto pass = getMemoryType(memReq.memoryTypeBits,
                             vk::MemoryPropertyFlagBits::eDeviceLocal,
                             memoryAI.memoryTypeIndex);
-  assert(pass);
+  IFNO_THROW(pass, "fail to get memory type");
   result = device.allocateMemory(&memoryAI, nullptr, &depthImage.memory);
-  assert(result == vk::Result::eSuccess);
+  IFNO_THROW(result == vk::Result::eSuccess, "fail to allocate memory");
 
   device.bindImageMemory(depthImage.image, depthImage.memory, 0);
   auto imageViewCI = vk::ImageViewCreateInfo()
@@ -414,12 +389,10 @@ void Renderer::initDepthImage() {
                              vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1))
                          .setPNext(nullptr);
   result = device.createImageView(&imageViewCI, nullptr, &depthImage.view);
-  assert(result == vk::Result::eSuccess);
+  IFNO_THROW(result == vk::Result::eSuccess, "fail to create depth image view");
 }
 
 void Renderer::initRenderPass() {
-  assert(device);
-
   vk::Result result;
 
   SurfaceSupport surfSupport(gpu, surface);
@@ -470,13 +443,10 @@ void Renderer::initRenderPass() {
                           .setPDependencies(nullptr);
 
   result = device.createRenderPass(&renderPassCI, nullptr, &renderPass);
-  assert(result == vk::Result::eSuccess);
+  IFNO_THROW(result == vk::Result::eSuccess, "fail to create render pass");
 }
 
 void Renderer::initFramebuffer() {
-  assert(device);
-  assert(swapchain);
-
   SurfaceSupport surfSupport(gpu, surface);
   auto extent = surfSupport.selectExtent();
   framebuffers = std::make_unique<vk::Framebuffer[]>(swapImageCount);
@@ -496,12 +466,15 @@ void Renderer::initFramebuffer() {
     attachments[0] = swapImages[i].view;
     auto result =
         device.createFramebuffer(&frameBufferCI, nullptr, &framebuffers[i]);
-    assert(result == vk::Result::eSuccess);
+    IFNO_THROW(result == vk::Result::eSuccess, "fail to create frame buffer");
   }
 }
 
 bool Renderer::getMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
                              uint32_t& typeIndex) const {
+  if (!gpu) {
+    return false;
+  }
   auto props = gpu.getMemoryProperties();
   for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
     if ((memType & 1) == 1) {

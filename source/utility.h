@@ -34,3 +34,9 @@ class Singleton {
 
 template <typename T>
 T* Singleton<T>::msSingleton = nullptr;
+
+#define IFNO_THROW(cond, msg)      \
+  if (!(cond)) {                      \
+    throw std::runtime_error(msg); \
+  }                                \
+  void(0)
