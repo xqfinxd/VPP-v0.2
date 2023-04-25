@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\buffer.cc" />
     <ClCompile Include="..\source\config.cc" />
     <ClCompile Include="..\source\device.cc" />
     <ClCompile Include="..\source\main.cc" />
@@ -27,6 +28,7 @@
     <ClCompile Include="..\source\window.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\source\buffer.h" />
     <ClInclude Include="..\source\config.h" />
     <ClInclude Include="..\source\device.h" />
     <ClInclude Include="..\source\shader.h" />

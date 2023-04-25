@@ -64,6 +64,8 @@ class Renderer : public Singleton<Renderer> {
   ~Renderer();
 
   vk::Device& getDevice() { return device; }
+  bool getMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
+                     uint32_t& typeIndex) const;
 
  private:
   void initInstance();
@@ -78,9 +80,6 @@ class Renderer : public Singleton<Renderer> {
   void initDepthImage();
   void initRenderPass();
   void initFramebuffer();
-
-  bool getMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
-                     uint32_t& typeIndex) const;
 
  private:
   bool prepared = false;
