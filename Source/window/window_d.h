@@ -7,7 +7,7 @@
 
 struct Window_D {
     bool init();
-    void quit();
+    ~Window_D();
 
     bool runningFlag = false;
     uint32_t frameDuration = 0;

@@ -29,7 +29,7 @@ bool Window_D::init() {
     return true;
 }
 
-void Window_D::quit() {
+Window_D::~Window_D() {
     if (window) {
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -92,6 +92,4 @@ void Window::run() {
             SDL_Delay(getImpl()->frameDuration - tickDelta);
         }
     }
-
-    getImpl()->quit();
 }
