@@ -14,10 +14,6 @@ class VPP_API Window
     : public Singleton<Window>
     , public ImplBase<Window_D> {
 public:
-    struct Size {
-        int width = 0, height = 0;
-    };
-
     Window();
     ~Window();
 
@@ -26,6 +22,5 @@ public:
     void setTitle(const char* title);
     void close();
 
-    Size getArea();
     void run();
 };

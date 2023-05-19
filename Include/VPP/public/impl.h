@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "public/config.h"
+#include "config.h"
 
 template class VPP_API std::shared_ptr<void>;
 
@@ -14,10 +14,11 @@ public:
     T* getImpl() {
         return static_cast<T*>(impl_.get());
     }
-    std::shared_ptr<T> shareImpl() {
-        return std::static_pointer_cast<T>(impl_);
-    }
 
+    std::shared_ptr<T> shareImpl() {
+        return static_cast<T*>(impl_.get());
+    }
+    
 protected:
     void initImpl() {
         impl_ = std::shared_ptr<void>(new T);

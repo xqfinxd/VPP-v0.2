@@ -22,11 +22,8 @@
     <ClCompile Include="..\Source\main.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Render\Render.vcxproj">
-      <Project>{e5081b57-0fd7-4772-9835-a667e4883e68}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\Window\Window.vcxproj">
-      <Project>{861a7c74-b271-4004-b254-05b46c435cf6}</Project>
+    <ProjectReference Include="..\VPP\VPP.vcxproj">
+      <Project>{fd89be7c-6ede-4d60-b72f-cb62c0b2fee6}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -115,7 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,7 +127,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

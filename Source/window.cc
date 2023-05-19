@@ -1,6 +1,6 @@
-#include "window/window_d.h"
-#include "window/window.h"
-#include "public/console.h"
+#include "window.h"
+#include "console.h"
+#include "window_d.h"
 
 #include <iostream>
 
@@ -13,13 +13,9 @@ bool Window_D::init() {
         std::cerr << Console::clear << std::endl;
         return false;
     }
-    window = SDL_CreateWindow(
-        title.c_str(),
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        size.x, size.y,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN
-    );
+    window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED,
+                              SDL_WINDOWPOS_CENTERED, size.x, size.y,
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
     if (!window) {
         std::cerr << Console::error << "Error:";
         std::cerr << Console::log << SDL_GetError();
@@ -40,9 +36,7 @@ Window::Window() {
     initImpl();
 }
 
-Window::~Window() {
-    
-}
+Window::~Window() {}
 
 void Window::setSize(int width, int height) {
     getImpl()->size.x = width;
@@ -63,12 +57,6 @@ void Window::close() {
     getImpl()->runningFlag = false;
 }
 
-Window::Size Window::getArea() {
-    Size sz{ 0,0 };
-    SDL_Vulkan_GetDrawableSize(getImpl()->window, &sz.width, &sz.height);
-    return sz;
-}
-
 void Window::run() {
     if (!getImpl()->init()) {
         return;
@@ -84,7 +72,6 @@ void Window::run() {
                 getImpl()->runningFlag = false;
             }
         }
-
 
         auto tickEnd = SDL_GetTicks();
         auto tickDelta = tickEnd - tickStart;

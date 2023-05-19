@@ -1,4 +1,4 @@
-﻿#include "window/window.h"
+﻿#include "VPP/window.h"
 
 int main(int argc, char** argv) {
     Window win{};
