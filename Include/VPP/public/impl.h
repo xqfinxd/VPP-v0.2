@@ -16,7 +16,7 @@ public:
     }
 
     std::shared_ptr<T> shareImpl() {
-        return static_cast<T*>(impl_.get());
+        return std::static_pointer_cast<T>(impl_);
     }
     
 protected:
