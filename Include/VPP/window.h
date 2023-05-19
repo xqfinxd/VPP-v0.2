@@ -1,18 +1,17 @@
 #pragma once
 
+#include <functional>
 #include <iostream>
-#include <vector>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "public/config.h"
-#include "public/singleton.h"
 #include "public/impl.h"
+#include "public/singleton.h"
 
 struct Window_D;
-class VPP_API Window
-    : public Singleton<Window>
-    , public ImplBase<Window_D> {
+class VPP_API Window : public Singleton<Window>, public ImplBase<Window_D> {
 public:
     Window();
     ~Window();
@@ -22,5 +21,7 @@ public:
     void setTitle(const char* title);
     void close();
 
-    void run();
+    void run(std::function<void(Window&)> start,
+             std::function<void(Window&)> loop,
+             std::function<void(Window&)> end);
 };

@@ -57,9 +57,15 @@ void Window::close() {
     getImpl()->runningFlag = false;
 }
 
-void Window::run() {
+void Window::run(std::function<void(Window&)> start,
+                 std::function<void(Window&)> loop,
+                 std::function<void(Window&)> end) {
     if (!getImpl()->init()) {
         return;
+    }
+
+    if (start) {
+        start(*this);
     }
 
     getImpl()->runningFlag = true;
@@ -78,5 +84,13 @@ void Window::run() {
         if (tickDelta < getImpl()->frameDuration) {
             SDL_Delay(getImpl()->frameDuration - tickDelta);
         }
+
+        if (loop) {
+            loop(*this);
+        }
+    }
+
+    if (end) {
+        end(*this);
     }
 }

@@ -106,13 +106,17 @@ vk::Result GpuAux::createSwapchain(const vk::Device& device,
     auto imageCount = getNumOfImage();
     auto alpha = getAlpha();
 
-    info.setMinImageCount(imageCount);
-    info.setImageFormat(format.format);
-    info.setImageColorSpace(format.colorSpace);
-    info.setPresentMode(presentMode);
-    info.setImageExtent(extent);
-    info.setPreTransform(capabilities.currentTransform);
-    info.setCompositeAlpha(alpha);
+    info.setMinImageCount(imageCount)
+        .setImageFormat(format.format)
+        .setImageColorSpace(format.colorSpace)
+        .setImageExtent(extent)
+        .setImageArrayLayers(1)
+        .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
+        .setPreTransform(capabilities.currentTransform)
+        .setCompositeAlpha(alpha)
+        .setPresentMode(presentMode)
+        .setClipped(true)
+        .setSurface(surface);
 
     auto swapIndices = indices.pack();
     ;
