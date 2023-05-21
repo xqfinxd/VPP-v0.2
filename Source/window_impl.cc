@@ -1,12 +1,24 @@
-#include "window.h"
+#include "window_impl.h"
 #include "console.h"
-#include "window_d.h"
 
 #include <iostream>
 
 #include <SDL2/SDL_vulkan.h>
 
-bool Window_D::init() {
+namespace VPP {
+
+namespace impl {
+
+Window::~Window() {
+    if (window) {
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+    }
+}
+
+Window::Window() {}
+
+bool Window::Init() {
     if (0 != SDL_Init(SDL_INIT_EVERYTHING)) {
         std::cerr << Console::error << "Error:";
         std::cerr << Console::log << SDL_GetError();
@@ -25,72 +37,52 @@ bool Window_D::init() {
     return true;
 }
 
-Window_D::~Window_D() {
-    if (window) {
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-    }
+void Window::Close() {
+    runningFlag = false;
 }
-
-Window::Window() {
-    initImpl();
-}
-
-Window::~Window() {}
 
 void Window::setSize(int width, int height) {
-    getImpl()->size.x = width;
-    getImpl()->size.y = height;
+    size.x = width;
+    size.y = height;
 }
 
 void Window::setFps(int fps) {
     if (fps) {
-        getImpl()->frameDuration = 1000 / fps;
+        frameDuration = 1000 / fps;
     }
 }
 
 void Window::setTitle(const char* title) {
-    getImpl()->title = title;
+    title = title;
 }
 
-void Window::close() {
-    getImpl()->runningFlag = false;
-}
-
-void Window::run(std::function<void(Window&)> start,
-                 std::function<void(Window&)> loop,
-                 std::function<void(Window&)> end) {
-    if (!getImpl()->init()) {
+void Window::Run() {
+    if (!window) {
         return;
     }
 
-    if (start) {
-        start(*this);
+    if (!frameDuration) {
+        return;
     }
 
-    getImpl()->runningFlag = true;
-    while (getImpl()->runningFlag) {
+    runningFlag = true;
+    while (runningFlag) {
         auto tickStart = SDL_GetTicks();
 
         SDL_Event frameEvent{};
         while (SDL_PollEvent(&frameEvent)) {
             if (SDL_QUIT == frameEvent.type) {
-                getImpl()->runningFlag = false;
+                runningFlag = false;
             }
         }
 
         auto tickEnd = SDL_GetTicks();
         auto tickDelta = tickEnd - tickStart;
-        if (tickDelta < getImpl()->frameDuration) {
-            SDL_Delay(getImpl()->frameDuration - tickDelta);
+        if (tickDelta < frameDuration) {
+            SDL_Delay(frameDuration - tickDelta);
         }
-
-        if (loop) {
-            loop(*this);
-        }
-    }
-
-    if (end) {
-        end(*this);
     }
 }
+
+}  // namespace impl
+}  // namespace VPP

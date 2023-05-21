@@ -18,6 +18,7 @@ AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: true
+AlignConsecutiveDeclarations: true
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: false

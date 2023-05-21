@@ -1,11 +1,6 @@
-﻿#include "VPP/device.h"
-#include "VPP/window.h"
+﻿#include "VPP/application.h"
 
 int main(int argc, char** argv) {
-    Window win{};
-    Renderer renderer{};
-    win.setSize(1080, 600);
-    win.setFps(60);
-    win.setTitle("Sample");
-    win.run([&renderer](Window& win) { renderer.bindWindow(win); }, {}, {});
+    VPP::Application app{};
+    app.Run();
 }

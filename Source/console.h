@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 namespace Console {
 inline std::ostream& clear(std::ostream& o) {
     o << "\033[0m";

@@ -1,5 +1,4 @@
-#include "device.h"
-#include "device_d.h"
+#include "renderer_impl.h"
 
 #include <iostream>
 #include <set>
@@ -7,7 +6,6 @@
 #include <SDL2/SDL_vulkan.h>
 
 #include "console.h"
-#include "window_d.h"
 
 namespace helper {
 std::vector<uint32_t> QueueIndices::pack() const {
