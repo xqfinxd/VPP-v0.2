@@ -11,6 +11,10 @@ public:
 
     void Run();
 
+    virtual void OnStart();
+    virtual void OnLoop();
+    virtual void OnEnd();
+
 private:
 };
 
