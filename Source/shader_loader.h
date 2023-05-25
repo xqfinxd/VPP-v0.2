@@ -20,10 +20,10 @@ struct ShaderObject {
   std::map<vk::ShaderStageFlagBits, vk::ShaderModule> shaderModules{};
 
   void setSetCount(uint32_t count);
-  void destroy(vk::Device& device);
+  void destroy(const vk::Device& device);
 
   static std::unique_ptr<ShaderObject> createFromFiles(
-      vk::Device& device, std::map<vk::ShaderStageFlagBits, const char*> files);
+      const vk::Device& device, std::map<vk::ShaderStageFlagBits, const char*> files);
 };
 
 }  // namespace impl

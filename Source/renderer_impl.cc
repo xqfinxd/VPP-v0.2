@@ -173,7 +173,7 @@ void Renderer::SetupRenderer() {
                      .setPEngineName("None")
                      .setEngineVersion(0);
 
-    auto& wnd = Window::getMe();
+    auto& wnd = Window::GetMe();
     auto  extensions = GetWindowExtensions(wnd.window_);
     extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
@@ -199,7 +199,7 @@ void Renderer::SetupRenderer() {
   }
   {  // surface
     VkSurfaceKHR cSurf;
-    auto&        wnd = Window::getMe();
+    auto&        wnd = Window::GetMe();
     SDL_Vulkan_CreateSurface(wnd.window_, instance_, &cSurf);
     surface_ = cSurf;
     assert(surface_);

@@ -5,26 +5,26 @@
 template <typename T>
 class Singleton {
 public:
-    static T& getMe() {
-        assert(msSingleton);
-        return *msSingleton;
+    static T& GetMe() {
+        assert(s_Singleton_);
+        return *s_Singleton_;
     }
-    static T* getSingleton() { return msSingleton; }
+    static T* GetSingleton() { return s_Singleton_; }
 
 protected:
     Singleton() {
-        assert(!msSingleton);
+        assert(!s_Singleton_);
         intptr_t offset = (intptr_t)(T*)1 - (intptr_t)(Singleton<T>*)(T*)1;
-        msSingleton = (T*)((intptr_t)this + offset);
+        s_Singleton_ = (T*)((intptr_t)this + offset);
     }
     ~Singleton() {
-        assert(msSingleton);
-        msSingleton = nullptr;
+        assert(s_Singleton_);
+        s_Singleton_ = nullptr;
     }
 
 private:
-    static T* msSingleton;
+    static T* s_Singleton_;
 };
 
 template <typename T>
-T* Singleton<T>::msSingleton = nullptr;
+T* Singleton<T>::s_Singleton_ = nullptr;

@@ -6,6 +6,24 @@
 #include <fstream>
 #include <iostream>
 
+#ifdef _DEBUG
+#pragma comment(lib, "MachineIndependentd.lib")
+#pragma comment(lib, "SPIRVd.lib")
+#pragma comment(lib, "OGLCompilerd.lib")
+#pragma comment(lib, "OSDependentd.lib")
+#pragma comment(lib, "SPIRV-Tools-optd.lib")
+#pragma comment(lib, "GenericCodeGend.lib")
+#pragma comment(lib, "SPIRV-Toolsd.lib")
+#else
+#pragma comment(lib, "MachineIndependent.lib")
+#pragma comment(lib, "SPIRV.lib")
+#pragma comment(lib, "OGLCompiler.lib")
+#pragma comment(lib, "OSDependent.lib")
+#pragma comment(lib, "SPIRV-Tools-opt.lib")
+#pragma comment(lib, "GenericCodeGen.lib")
+#pragma comment(lib, "SPIRV-Tools.lib")
+#endif
+
 namespace VPP {
 
 namespace impl {
@@ -421,7 +439,7 @@ class ShaderAnalyzer {
     glslang::FinalizeProcess();
   }
 
-  bool getObject(vk::Device& device, ShaderObject& object) const {
+  bool getObject(const vk::Device& device, ShaderObject& object) const {
     vk::Result result = vk::Result::eSuccess;
 
     Converter cvt{};
@@ -511,7 +529,7 @@ void ShaderObject::setSetCount(uint32_t count) {
   setNums = std::make_unique<uint32_t[]>(setCount);
 }
 
-void ShaderObject::destroy(vk::Device& device) {
+void ShaderObject::destroy(const vk::Device& device) {
   if (pipeLayout) {
     device.destroy(pipeLayout);
   }
@@ -532,7 +550,7 @@ void ShaderObject::destroy(vk::Device& device) {
 }
 
 std::unique_ptr<ShaderObject> ShaderObject::createFromFiles(
-    vk::Device& device, std::map<vk::ShaderStageFlagBits, const char*> files) {
+    const vk::Device& device, std::map<vk::ShaderStageFlagBits, const char*> files) {
   auto shaderObject = std::make_unique<ShaderObject>();
   try {
     std::map<EShLanguage, const char*> tmpShaderFiles{};
