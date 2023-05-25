@@ -5,17 +5,17 @@
 namespace VPP {
 
 class VPP_API Application {
-public:
-    Application();
-    ~Application();
+ public:
+  Application();
+  ~Application();
 
-    void Run();
+  void Run();
 
-    virtual void OnStart();
-    virtual void OnLoop();
-    virtual void OnEnd();
+  virtual void OnStart();
+  virtual void OnLoop();
+  virtual void OnEnd();
 
-private:
+ private:
 };
 
 }  // namespace VPP

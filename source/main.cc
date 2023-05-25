@@ -3,22 +3,16 @@
 #include "VPP/application.h"
 
 class MyApp : public VPP::Application {
-public:
-    MyApp() {
-    
-    }
-    ~MyApp() {
-    
-    }
+ public:
+  MyApp() {}
+  ~MyApp() {}
 
-    void OnLoop() override {
-        
-    }
+  void OnLoop() override {}
 
-private:
+ private:
 };
 
 int main(int argc, char** argv) {
-    MyApp app{};
-    app.Run();
+  MyApp app{};
+  app.Run();
 }

@@ -2,50 +2,46 @@
 
 #include <iostream>
 
-#include "window_impl.h"
 #include "renderer_impl.h"
+#include "shader_loader.h"
+#include "window_impl.h"
 
 namespace VPP {
 
-Application::Application() {
-}
+static std::unique_ptr<impl::ShaderObject> g_Shader{};
 
-Application::~Application() {
-}
+Application::Application() {}
+
+Application::~Application() {}
 
 void Application::Run() {
-    impl::Window window;
-    impl::Renderer renderer{};
-    window.setTitle("VPP");
-    window.setSize(1280, 720);
-    window.setFps(60);
-    bool initialized = window.Init();
-    assert(initialized);
-    renderer.Setup();
-    renderer.SetupContext();
+  impl::Window   window;
+  impl::Renderer renderer{};
+  window.set_title("VPP");
+  window.set_size(1280, 720);
+  window.set_fps(60);
+  bool initialized = window.Init();
+  assert(initialized);
+  renderer.Setup();
 
-    OnStart();
+  OnStart();
 
+  impl::WindowFrame frameData{};
+  while (window.running()) {
+    window.StartFrame(frameData);
 
-    impl::WindowFrame frameData{};
-    while (window.Running()) {
-        window.StartFrame(frameData);
+    OnLoop();
 
-        OnLoop();
+    window.EndFrame(frameData);
+  }
 
-        window.EndFrame(frameData);
-    }
-
-    OnEnd();
+  OnEnd();
 }
 
-void Application::OnStart() {
-}
+void Application::OnStart() {}
 
-void Application::OnLoop() {
-}
+void Application::OnLoop() {}
 
-void Application::OnEnd() {
-}
+void Application::OnEnd() {}
 
 }  // namespace VPP
