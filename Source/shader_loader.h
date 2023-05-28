@@ -1,30 +1,28 @@
 #pragma once
 
 #include <map>
-#include <memory>
 #include <vector>
 #include <vulkan/vulkan.hpp>
-#include "public/singleton.h"
 
 namespace VPP {
 
 namespace impl {
 
-struct ShaderObject {
-  vk::PipelineLayout                                  pipeLayout{};
-  uint32_t                                            setCount = 0;
-  std::unique_ptr<vk::DescriptorSetLayout[]>          setLayouts{};
-  std::unique_ptr<vk::DescriptorSet[]>                setObjects{};
-  std::unique_ptr<uint32_t[]>                         setNums{};
-  vk::DescriptorPool                                  pool{};
-  std::map<vk::ShaderStageFlagBits, vk::ShaderModule> shaderModules{};
-
-  void setSetCount(uint32_t count);
-  void destroy(const vk::Device& device);
-
-  static std::unique_ptr<ShaderObject> createFromFiles(
-      const vk::Device& device, std::map<vk::ShaderStageFlagBits, const char*> files);
+typedef vk::DescriptorSetLayoutBinding LayoutBinding;
+typedef vk::PushConstantRange          PushConstant;
+typedef std::vector<uint32_t>          SpvData;
+struct LayoutSet {
+  uint32_t                                    set_num{};
+  std::vector<vk::DescriptorSetLayoutBinding> bindings{};
 };
+
+struct ShaderData {
+  std::vector<LayoutSet>                     layout_sets{};
+  std::vector<PushConstant>                  push_constants{};
+  std::map<vk::ShaderStageFlagBits, SpvData> spvs{};
+};
+
+ShaderData LoadShader(std::map<vk::ShaderStageFlagBits, const char*> files);
 
 }  // namespace impl
 

@@ -19,14 +19,14 @@ Window::Window() {}
 
 bool Window::Init() {
   if (0 != SDL_Init(SDL_INIT_EVERYTHING)) {
-    fprintf(stderr, "[SDL2] Error: %s\n", SDL_GetError());
+    std::cerr << "[SDL2] Error: " << SDL_GetError() << std::endl;
     return false;
   }
   window_ = SDL_CreateWindow(title_.c_str(), SDL_WINDOWPOS_CENTERED,
                              SDL_WINDOWPOS_CENTERED, size_.x, size_.y,
                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
   if (!window_) {
-    fprintf(stderr, "[SDL2] Error: %s\n", SDL_GetError());
+    std::cerr << "[SDL2] Error: " << SDL_GetError() << std::endl;
     return false;
   }
   running_flag_ = true;

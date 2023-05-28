@@ -8,8 +8,6 @@
 
 namespace VPP {
 
-static std::unique_ptr<impl::ShaderObject> g_Shader{};
-
 Application::Application() {}
 
 Application::~Application() {}
@@ -38,14 +36,7 @@ void Application::Run() {
   OnEnd();
 }
 
-void Application::OnStart() {
-  g_Shader = impl::ShaderObject::createFromFiles(
-      impl::Renderer::GetMe().device(),
-      {
-          {vk::ShaderStageFlagBits::eVertex, "skybox.vert"},
-          {vk::ShaderStageFlagBits::eFragment, "skybox.frag"},
-      });
-}
+void Application::OnStart() {}
 
 void Application::OnLoop() {}
 

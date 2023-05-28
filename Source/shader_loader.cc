@@ -39,7 +39,7 @@ const glslang::EShTargetLanguageVersion kTargetLanguageVersion =
 const EShMessages kMessages =
     (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules | EShMsgAST);
 
-void initResources(TBuiltInResource& res) {
+void InitResources(TBuiltInResource& res) {
   res.maxLights = 32;
   res.maxClipPlanes = 6;
   res.maxTextureUnits = 32;
@@ -134,7 +134,7 @@ void initResources(TBuiltInResource& res) {
   res.limits.generalConstantMatrixVectorIndexing = 1;
 }
 
-bool loadFile(const char* fn, std::string& ctx) {
+bool LoadFile(const char* fn, std::string& ctx) {
   std::ifstream file(fn);  // 打开文件
   if (!file)
     return false;
@@ -147,19 +147,19 @@ bool loadFile(const char* fn, std::string& ctx) {
   return true;
 }
 
-bool compileShader(glslang::TShader* shader, const char* filename,
+bool CompileShader(glslang::TShader* shader, const char* filename,
                    EShLanguage stage) {
   if (filename == nullptr) {
     return false;
   }
   TBuiltInResource resource;
-  initResources(resource);
+  InitResources(resource);
   std::string content{};
-  if (!loadFile(filename, content)) {
+  if (!LoadFile(filename, content)) {
     return false;
   }
-  const char* const tempStrs[] = {content.c_str()};
-  shader->setStrings(tempStrs, 1);
+  const char* const strs[] = {content.c_str()};
+  shader->setStrings(strs, 1);
   shader->setEntryPoint("main");
   shader->setEnvInput(kSourceLanguage, static_cast<EShLanguage>(stage), kClient,
                       kGlslVersion);
@@ -172,7 +172,7 @@ bool compileShader(glslang::TShader* shader, const char* filename,
   return true;
 }
 
-vk::ShaderStageFlags stageCast(uint32_t mask) {
+vk::ShaderStageFlags GetStages(uint32_t mask) {
   vk::ShaderStageFlags                              flags{};
   const std::map<uint32_t, vk::ShaderStageFlagBits> table{
       {EShLangVertexMask, vk::ShaderStageFlagBits::eVertex},
@@ -207,7 +207,7 @@ vk::ShaderStageFlags stageCast(uint32_t mask) {
   return flags;
 }
 
-bool stageCast(EShLanguage flag, vk::ShaderStageFlagBits& outStage) {
+vk::ShaderStageFlagBits GetStage(EShLanguage flag) {
   const std::map<EShLanguage, vk::ShaderStageFlagBits> table{
       {EShLangVertex, vk::ShaderStageFlagBits::eVertex},
       {EShLangTessControl, vk::ShaderStageFlagBits::eTessellationControl},
@@ -232,15 +232,11 @@ bool stageCast(EShLanguage flag, vk::ShaderStageFlagBits& outStage) {
       {EShLangMesh, vk::ShaderStageFlagBits::eMeshEXT},
       {EShLangMeshNV, vk::ShaderStageFlagBits::eMeshNV},
   };
-  auto iter = table.find(flag);
-  if (iter == table.end()) {
-    return false;
-  }
-  outStage = iter->second;
-  return true;
+  
+  return table.at(flag);
 }
 
-EShLanguage stageCast(vk::ShaderStageFlagBits flag) {
+EShLanguage GetStage(vk::ShaderStageFlagBits flag) {
   const std::map<vk::ShaderStageFlagBits, EShLanguage> table{
       {vk::ShaderStageFlagBits::eVertex, EShLangVertex},
       {vk::ShaderStageFlagBits::eTessellationControl, EShLangTessControl},
@@ -265,14 +261,11 @@ EShLanguage stageCast(vk::ShaderStageFlagBits flag) {
       {vk::ShaderStageFlagBits::eMeshEXT, EShLangMesh},
       {vk::ShaderStageFlagBits::eMeshNV, EShLangMeshNV},
   };
-  auto iter = table.find(flag);
-  if (iter == table.end()) {
-    throw std::exception("error stage");
-  }
-  return iter->second;
+
+  return table.at(flag);
 }
 
-bool getType(const glslang::TType& ttype, vk::DescriptorType& type) {
+bool GetType(const glslang::TType& ttype, vk::DescriptorType& type) {
   const auto& qualifier = ttype.getQualifier();
   if (ttype.getBasicType() == glslang::EbtSampler) {
     const auto& sampler = ttype.getSampler();
@@ -308,267 +301,83 @@ bool getType(const glslang::TType& ttype, vk::DescriptorType& type) {
   return false;
 }
 
-struct Converter {
-  typedef std::vector<vk::DescriptorSetLayoutBinding> Bindings;
-  std::map<uint32_t, Bindings>                        setLayouts{};
-  std::vector<vk::PushConstantRange>                  pushConstants{};
-
-  void clear() {
-    setLayouts.clear();
-    pushConstants.clear();
-  }
-
-  vk::PushConstantRange toPushConstant(const glslang::TObjectReflection& obj) {
+vk::PushConstantRange ToPushConstant(const glslang::TObjectReflection& obj) {
     auto pushCons = vk::PushConstantRange();
     pushCons.setSize(obj.size);
-    pushCons.setStageFlags(stageCast(obj.stages));
+    pushCons.setStageFlags(GetStages(obj.stages));
     if (obj.offset > 0) {
-      pushCons.setOffset(obj.offset);
+        pushCons.setOffset(obj.offset);
     }
     return pushCons;
-  }
+}
 
-  vk::DescriptorSetLayoutBinding toDescriptor(
-      const glslang::TObjectReflection& obj) {
-    vk::DescriptorSetLayoutBinding binding{};
-    auto                           ttype = obj.getType();
-    if (!getType(*ttype, binding.descriptorType)) {
-      throw std::exception("error descriptor type");
+bool ToBinding(const glslang::TObjectReflection& obj,
+    vk::DescriptorSetLayoutBinding& binding) {
+    auto ttype = obj.getType();
+    if (!GetType(*ttype, binding.descriptorType)) {
+        return false;
     }
     binding.setBinding(ttype->getQualifier().layoutBinding);
     binding.setDescriptorCount(1);
-    binding.setStageFlags(stageCast(obj.stages));
-    return binding;
-  }
-
-  void push(uint32_t setnum, vk::DescriptorSetLayoutBinding binding) {
-    auto& vec = setLayouts[setnum];
-    for (auto& e : vec) {
-      if (e.binding == binding.binding) {
-        if (e.stageFlags == binding.stageFlags &&
-            e.descriptorType == binding.descriptorType) {
-          e.descriptorCount += binding.descriptorCount;
-          return;
-        } else {
-          throw std::exception("error descriptor info");
-        }
-      }
-    }
-    vec.push_back(binding);
-  }
-
-  void push(vk::PushConstantRange range) {
-    for (auto& e : pushConstants) {
-      if (e.stageFlags == range.stageFlags) {
-        throw std::exception("error push constant");
-      }
-    }
-    pushConstants.push_back(range);
-  }
-
-  void query(const glslang::TProgram& program) {
-    for (int32_t i = 0; i < program.getNumUniformVariables(); i++) {
-      auto& obj = program.getUniform(i);
-      auto  ttype = obj.getType();
-      if (ttype->getBasicType() == glslang::EbtSampler) {
-        auto setNum = ttype->getQualifier().layoutSet;
-        push(setNum, toDescriptor(obj));
-      }
-    }
-
-    for (int i = 0; i < program.getNumUniformBlocks(); i++) {
-      auto& obj = program.getUniformBlock(i);
-      auto  ttype = obj.getType();
-      if (ttype->getQualifier().isPushConstant()) {
-        push(toPushConstant(obj));
-        continue;
-      }
-      auto setNum = ttype->getQualifier().layoutSet;
-      push(setNum, toDescriptor(obj));
-    }
-
-    for (int i = 0; i < program.getNumBufferBlocks(); i++) {
-      auto& obj = program.getBufferBlock(i);
-      auto  ttype = obj.getType();
-      auto  setNum = ttype->getQualifier().layoutSet;
-      push(setNum, toDescriptor(obj));
-    }
-
-    for (int i = 0; i < program.getNumPipeInputs(); i++) {
-      auto obj = program.getPipeInput(i);
-      auto ttype = obj.getType();
-      auto qua = ttype->getQualifier();
-      qua.storage;
-    }
-  }
-};
-
-struct PushPoolSize {
-  typedef std::vector<vk::DescriptorPoolSize> Target;
-  PushPoolSize(Target& target) : poolSizes(&target) {}
-  Target* poolSizes = nullptr;
-  void    operator()(const vk::DescriptorSetLayoutBinding& binding) {
-    poolSizes->push_back(vk::DescriptorPoolSize()
-                                .setDescriptorCount(binding.descriptorCount)
-                                .setType(binding.descriptorType));
-  }
-};
+    binding.setStageFlags(GetStages(obj.stages));
+    return true;
+}
 
 class ShaderAnalyzer {
  public:
   ShaderAnalyzer(std::map<EShLanguage, const char*> shaders) {
     glslang::InitializeProcess();
-
-    program = ProgramHandle(new glslang::TProgram);
+    program_ = new glslang::TProgram();
     for (const auto& e : shaders) {
-      auto& handle = shaderTable[e.first];
-      handle.reset(new glslang::TShader(e.first));
-      if (compileShader(handle.get(), e.second, e.first)) {
-        program->addShader(handle.get());
-      } else {
-        throw std::exception("error compile shader");
+      auto* shader = new glslang::TShader(e.first);
+      if (CompileShader(shader, e.second, e.first)) {
+        program_->addShader(shader);
+        shaders_[e.first] = shader;
       }
     }
 
-    if (program->link(kMessages) && program->buildReflection()) {
-    } else {
-      throw std::exception("error link shader");
+    if (program_->link(kMessages)) {
+      program_->buildReflection();
     }
   }
   ~ShaderAnalyzer() {
+    for (auto& e : shaders_) {
+        delete e.second;
+        e.second = nullptr;
+    }
+    delete program_;
     glslang::FinalizeProcess();
   }
 
-  bool getObject(const vk::Device& device, ShaderObject& object) const {
-    vk::Result result = vk::Result::eSuccess;
-
-    Converter cvt{};
-    cvt.query(*program.get());
-
-    object.setSetCount((uint32_t)cvt.setLayouts.size());
-    size_t                              index = 0;
-    std::vector<vk::DescriptorPoolSize> poolSizes{};
-
-    for (const auto& e : cvt.setLayouts) {
-      auto setLayoutCI =
-          vk::DescriptorSetLayoutCreateInfo().setBindings(e.second);
-      result = device.createDescriptorSetLayout(&setLayoutCI, nullptr,
-                                                &object.setLayouts[index]);
-      if (result != vk::Result::eSuccess) {
-        return false;
+  void Query(ShaderData& data) {
+      for (int32_t i = 0; i < program_->getNumUniformVariables(); i++) {
+          auto& obj = program_->getUniform(i);
+          auto  ttype = obj.getType();
       }
 
-      std::for_each(e.second.begin(), e.second.end(), PushPoolSize(poolSizes));
-
-      object.setNums[index] = e.first;
-      index++;
-    }
-
-    auto poolCI =
-        vk::DescriptorPoolCreateInfo().setPoolSizes(poolSizes).setMaxSets(
-            object.setCount);
-    result = device.createDescriptorPool(&poolCI, nullptr, &object.pool);
-    if (result != vk::Result::eSuccess) {
-      return false;
-    }
-
-    auto setAI = vk::DescriptorSetAllocateInfo()
-                     .setDescriptorPool(object.pool)
-                     .setDescriptorSetCount(object.setCount)
-                     .setPSetLayouts(object.setLayouts.get());
-    result = device.allocateDescriptorSets(&setAI, object.setObjects.get());
-    if (result != vk::Result::eSuccess) {
-      return false;
-    }
-
-    auto pipLayoutCI = vk::PipelineLayoutCreateInfo()
-                           .setSetLayoutCount(object.setCount)
-                           .setPSetLayouts(object.setLayouts.get())
-                           .setPushConstantRanges(cvt.pushConstants);
-    result =
-        device.createPipelineLayout(&pipLayoutCI, nullptr, &object.pipeLayout);
-    if (result != vk::Result::eSuccess) {
-      return false;
-    }
-
-    for (const auto& shader : shaderTable) {
-      auto intermediate = shader.second->getIntermediate();
-      if (!intermediate) {
-        return false;
+      for (int i = 0; i < program_->getNumUniformBlocks(); i++) {
+          auto& obj = program_->getUniformBlock(i);
+          auto  ttype = obj.getType();
       }
 
-      vk::ShaderStageFlagBits stage;
-      bool                    hasStage = stageCast(shader.first, stage);
-      if (!hasStage) {
-        return false;
+      for (int i = 0; i < program_->getNumBufferBlocks(); i++) {
+          auto& obj = program_->getBufferBlock(i);
+          auto  ttype = obj.getType();
       }
 
-      auto&                 shaderModule = object.shaderModules[stage];
-      std::vector<uint32_t> spv{};
-      glslang::GlslangToSpv(*intermediate, spv);
-      auto shaderCI = vk::ShaderModuleCreateInfo().setCode(spv);
-      result = device.createShaderModule(&shaderCI, nullptr, &shaderModule);
-      if (result != vk::Result::eSuccess) {
-        return false;
+      for (int i = 0; i < program_->getNumPipeInputs(); i++) {
+          auto obj = program_->getPipeInput(i);
+          auto ttype = obj.getType();
       }
-    }
-    return true;
   }
 
  private:
-  using ShaderHandle = std::unique_ptr<glslang::TShader>;
-  using ProgramHandle = std::unique_ptr<glslang::TProgram>;
-  std::map<EShLanguage, ShaderHandle> shaderTable{};
-  ProgramHandle                       program{};
+  std::map<EShLanguage, glslang::TShader*> shaders_{};
+  glslang::TProgram*                       program_{};
 };
 
-void ShaderObject::setSetCount(uint32_t count) {
-  setCount = count;
-  setLayouts = std::make_unique<vk::DescriptorSetLayout[]>(setCount);
-  setObjects = std::make_unique<vk::DescriptorSet[]>(setCount);
-  setNums = std::make_unique<uint32_t[]>(setCount);
-}
+ShaderData LoadShader(std::map<vk::ShaderStageFlagBits, const char*> files) {
 
-void ShaderObject::destroy(const vk::Device& device) {
-  if (pipeLayout) {
-    device.destroy(pipeLayout);
-  }
-  if (pool) {
-    device.destroy(pool);
-  }
-
-  for (auto& e : shaderModules) {
-    if (e.second) {
-      device.destroy(e.second);
-    }
-  }
-  for (size_t i = 0; i < setCount; i++) {
-    if (setLayouts[i]) {
-      device.destroy(setLayouts[i]);
-    }
-  }
-}
-
-std::unique_ptr<ShaderObject> ShaderObject::createFromFiles(
-    const vk::Device& device, std::map<vk::ShaderStageFlagBits, const char*> files) {
-  auto shaderObject = std::make_unique<ShaderObject>();
-  try {
-    std::map<EShLanguage, const char*> tmpShaderFiles{};
-    for (const auto& e : files) {
-      tmpShaderFiles[stageCast(e.first)] = e.second;
-    }
-    ShaderAnalyzer analyzer(tmpShaderFiles);
-    bool           success = analyzer.getObject(device, *shaderObject.get());
-    if (success) {
-      shaderObject->destroy(device);
-      return nullptr;
-    }
-  } catch (std::exception e) {
-    shaderObject->destroy(device);
-    return nullptr;
-  }
-
-  return shaderObject;
 }
 
 }  // namespace impl
