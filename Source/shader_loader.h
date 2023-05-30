@@ -1,7 +1,7 @@
 #pragma once
 
-#include <map>
 #include <vector>
+#include <memory>
 #include <vulkan/vulkan.hpp>
 
 namespace VPP {
@@ -19,10 +19,21 @@ struct LayoutSet {
 struct ShaderData {
   std::vector<LayoutSet>                     layout_sets{};
   std::vector<PushConstant>                  push_constants{};
+  std::vector<uint32_t>                      input_locations{};
   std::map<vk::ShaderStageFlagBits, SpvData> spvs{};
+
+  void Clear() {
+      layout_sets.clear();
+      push_constants.clear();
+      spvs.clear();
+  }
+
+  bool Empty() const {
+      return spvs.empty();
+  }
 };
 
-ShaderData LoadShader(std::map<vk::ShaderStageFlagBits, const char*> files);
+ShaderData LoadShader(std::vector<const char*> files);
 
 }  // namespace impl
 
