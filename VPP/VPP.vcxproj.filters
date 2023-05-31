@@ -24,6 +24,9 @@
     <ClCompile Include="..\Source\renderer_impl.cc">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\Source\shader_impl.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\VPP\application.h">
@@ -33,6 +36,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\Source\renderer_impl.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\shader_impl.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

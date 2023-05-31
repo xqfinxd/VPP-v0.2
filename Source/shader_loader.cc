@@ -1,11 +1,12 @@
 #include "shader_loader.h"
-#include "shader_data.h"
 
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
 #include <fstream>
 #include <iostream>
+
+#include "shader_data.h"
 
 #ifdef _DEBUG
 #pragma comment(lib, "MachineIndependentd.lib")
@@ -467,7 +468,7 @@ class ShaderReader {
 };
 
 void ShaderData::AddBinding(uint32_t                         setNum,
-                              vk::DescriptorSetLayoutBinding&& binding) {
+                            vk::DescriptorSetLayoutBinding&& binding) {
   bool addSet = true;
   for (auto& ls : layout_sets) {
     if (ls.set_num != setNum) {

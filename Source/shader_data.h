@@ -1,7 +1,5 @@
 #pragma once
 
-#include <map>
-#include <memory>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
@@ -20,7 +18,7 @@ class ShaderData {
   struct SpvData {
     using Stage = vk::ShaderStageFlagBits;
     using Data = std::vector<uint32_t>;
-    Stage stage;
+    Stage stage = (Stage)~0;
     Data  data{};
   };
 
@@ -30,11 +28,26 @@ class ShaderData {
   void Clear() {
     layout_sets.clear();
     push_constants.clear();
+    locations.clear();
     spv_datas.clear();
   }
 
   bool Empty() const {
     return spv_datas.empty();
+  }
+
+  void Swap(ShaderData& other) {
+    layout_sets.swap(other.layout_sets);
+    push_constants.swap(other.push_constants);
+    locations.swap(other.locations);
+    spv_datas.swap(other.spv_datas);
+  }
+
+  void Copy(const ShaderData& other) {
+    layout_sets = other.layout_sets;
+    push_constants = other.push_constants;
+    locations = other.locations;
+    spv_datas = other.spv_datas;
   }
 
   void AddBinding(uint32_t setNum, vk::DescriptorSetLayoutBinding&& binding);
