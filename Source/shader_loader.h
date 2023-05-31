@@ -1,39 +1,23 @@
 #pragma once
 
 #include <vector>
-#include <memory>
-#include <vulkan/vulkan.hpp>
+
+#ifdef SHADER_EXPORTS
+#define SHADER_API __declspec(dllexport)
+#else
+#define SHADER_API __declspec(dllimport)
+#endif  // SHADER_EXPORT
 
 namespace VPP {
 
 namespace impl {
 
-typedef vk::DescriptorSetLayoutBinding LayoutBinding;
-typedef vk::PushConstantRange          PushConstant;
-typedef std::vector<uint32_t>          SpvData;
-struct LayoutSet {
-  uint32_t                                    set_num{};
-  std::vector<vk::DescriptorSetLayoutBinding> bindings{};
-};
+class ShaderData;
+class ShaderReader;
 
-struct ShaderData {
-  std::vector<LayoutSet>                     layout_sets{};
-  std::vector<PushConstant>                  push_constants{};
-  std::vector<uint32_t>                      input_locations{};
-  std::map<vk::ShaderStageFlagBits, SpvData> spvs{};
-
-  void Clear() {
-      layout_sets.clear();
-      push_constants.clear();
-      spvs.clear();
-  }
-
-  bool Empty() const {
-      return spvs.empty();
-  }
-};
-
-ShaderData LoadShader(std::vector<const char*> files);
+SHADER_API ShaderReader* LoadShader(std::vector<const char*> files);
+SHADER_API void          DestroyShader(ShaderReader* loader);
+SHADER_API ShaderData*   GetShaderData(ShaderReader* loader);
 
 }  // namespace impl
 

@@ -127,11 +127,11 @@ static VkBool32 DebugCallback(
     VkDebugUtilsMessageTypeFlagsEXT             type,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void*                                       pUserData) {
+  if (level == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+    return VK_TRUE;
+  }
   std::cerr << "[vulkan] ";
   switch (level) {
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-      std::cerr << "Info: ";
-      break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
       std::cerr << "Warn: ";
       break;

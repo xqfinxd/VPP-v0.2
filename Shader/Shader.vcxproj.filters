@@ -15,13 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Source\shader_loader.cc">
-      <Filter>Source</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="..\Source\shader_data.h">
+      <Filter>Header</Filter>
+    </ClInclude>
     <ClInclude Include="..\Source\shader_loader.h">
       <Filter>Header</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Source\shader_loader.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
