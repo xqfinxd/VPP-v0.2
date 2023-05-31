@@ -26,29 +26,42 @@ class ShaderData {
 
  public:
   void Clear() {
-    layout_sets.clear();
-    push_constants.clear();
-    locations.clear();
-    spv_datas.clear();
+    layout_sets_.clear();
+    push_constants_.clear();
+    locations_.clear();
+    spv_datas_.clear();
   }
 
   bool Empty() const {
-    return spv_datas.empty();
+    return spv_datas_.empty();
   }
 
   void Swap(ShaderData& other) {
-    layout_sets.swap(other.layout_sets);
-    push_constants.swap(other.push_constants);
-    locations.swap(other.locations);
-    spv_datas.swap(other.spv_datas);
+    layout_sets_.swap(other.layout_sets_);
+    push_constants_.swap(other.push_constants_);
+    locations_.swap(other.locations_);
+    spv_datas_.swap(other.spv_datas_);
   }
 
   void Copy(const ShaderData& other) {
-    layout_sets = other.layout_sets;
-    push_constants = other.push_constants;
-    locations = other.locations;
-    spv_datas = other.spv_datas;
+    layout_sets_ = other.layout_sets_;
+    push_constants_ = other.push_constants_;
+    locations_ = other.locations_;
+    spv_datas_ = other.spv_datas_;
   }
+
+  const std::vector<LayoutSet>& layout_sets() const {
+    return layout_sets_;
+  }
+  const std::vector<PushConstant>& push_constants() const {
+    return push_constants_;
+  };
+  const std::vector<uint32_t>& locations() const {
+    return locations_;
+  };
+  const std::vector<SpvData>& spv_datas() const {
+    return spv_datas_;
+  };
 
   void AddBinding(uint32_t setNum, vk::DescriptorSetLayoutBinding&& binding);
   void AddPushConstant(vk::PushConstantRange&& pushConst);
@@ -56,10 +69,10 @@ class ShaderData {
   void AddSpvData(vk::ShaderStageFlagBits stage, std::vector<uint32_t>&& data);
 
  private:
-  std::vector<LayoutSet>    layout_sets{};
-  std::vector<PushConstant> push_constants{};
-  std::vector<uint32_t>     locations{};
-  std::vector<SpvData>      spv_datas{};
+  std::vector<LayoutSet>    layout_sets_{};
+  std::vector<PushConstant> push_constants_{};
+  std::vector<uint32_t>     locations_{};
+  std::vector<SpvData>      spv_datas_{};
 };
 
 }  // namespace impl

@@ -19,9 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Shader\Shader.vcxproj">
-      <Project>{9d7d70bf-541a-4df9-80c0-fe298d59fb14}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\VPP\VPP.vcxproj">
       <Project>{fd89be7c-6ede-4d60-b72f-cb62c0b2fee6}</Project>
     </ProjectReference>

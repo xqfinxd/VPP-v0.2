@@ -30,6 +30,11 @@
     <ClInclude Include="..\Source\shader_impl.h" />
     <ClInclude Include="..\Source\window_impl.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shader\Shader.vcxproj">
+      <Project>{9d7d70bf-541a-4df9-80c0-fe298d59fb14}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

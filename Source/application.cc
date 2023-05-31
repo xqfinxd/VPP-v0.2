@@ -5,6 +5,7 @@
 #include "renderer_impl.h"
 #include "shader_loader.h"
 #include "window_impl.h"
+#include "shader_impl.h"
 
 namespace VPP {
 
@@ -21,6 +22,9 @@ void Application::Run() {
   bool initialized = window.Init();
   assert(initialized);
   renderer.Setup();
+
+  impl::Shader textureShader{};
+  textureShader.Load({ "texture.vert", "texture.frag" });
 
   OnStart();
 

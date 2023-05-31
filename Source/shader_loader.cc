@@ -470,7 +470,7 @@ class ShaderReader {
 void ShaderData::AddBinding(uint32_t                         setNum,
                             vk::DescriptorSetLayoutBinding&& binding) {
   bool addSet = true;
-  for (auto& ls : layout_sets) {
+  for (auto& ls : layout_sets_) {
     if (ls.set_num != setNum) {
       continue;
     }
@@ -491,27 +491,27 @@ void ShaderData::AddBinding(uint32_t                         setNum,
   }
 
   if (addSet) {
-    layout_sets.emplace_back();
-    layout_sets.back().set_num = setNum;
-    layout_sets.back().bindings.push_back(binding);
+    layout_sets_.emplace_back();
+    layout_sets_.back().set_num = setNum;
+    layout_sets_.back().bindings.push_back(binding);
   }
 }
 
 void ShaderData::AddPushConstant(vk::PushConstantRange&& pushConst) {
-  push_constants.push_back(pushConst);
+  push_constants_.push_back(pushConst);
 }
 
 void ShaderData::AddLocation(uint32_t location) {
-  if (!std::count(locations.begin(), locations.end(), location)) {
-    locations.push_back(location);
+  if (!std::count(locations_.begin(), locations_.end(), location)) {
+    locations_.push_back(location);
   }
 }
 
 void ShaderData::AddSpvData(vk::ShaderStageFlagBits stage,
                             std::vector<uint32_t>&& data) {
-  spv_datas.emplace_back();
-  spv_datas.back().stage = stage;
-  spv_datas.back().data.swap(data);
+  spv_datas_.emplace_back();
+  spv_datas_.back().stage = stage;
+  spv_datas_.back().data.swap(data);
 }
 
 ShaderReader* LoadShader(std::vector<const char*> files) {
