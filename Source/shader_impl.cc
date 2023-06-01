@@ -82,7 +82,7 @@ void Shader::Load(std::vector<const char*> files) {
 
     auto poolCI =
         vk::DescriptorPoolCreateInfo().setPoolSizes(poolSizes).setMaxSets(
-            layoutSets.size());
+            (uint32_t)layoutSets.size());
     desc_pool_ = device.createDescriptorPool(poolCI);
 
     if (desc_pool_) {
