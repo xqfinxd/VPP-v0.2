@@ -21,6 +21,8 @@
   <ItemGroup>
     <ClCompile Include="..\Source\application.cc" />
     <ClCompile Include="..\Source\buffer_impl.cc" />
+    <ClCompile Include="..\Source\swapchain_impl.cc" />
+    <ClCompile Include="..\Source\image_impl.cc" />
     <ClCompile Include="..\Source\renderer_impl.cc" />
     <ClCompile Include="..\Source\shader_impl.cc" />
     <ClCompile Include="..\Source\window_impl.cc" />
@@ -28,6 +30,8 @@
   <ItemGroup>
     <ClInclude Include="..\Include\VPP\application.h" />
     <ClInclude Include="..\Source\buffer_impl.h" />
+    <ClInclude Include="..\Source\swapchain_impl.h" />
+    <ClInclude Include="..\Source\image_impl.h" />
     <ClInclude Include="..\Source\renderer_impl.h" />
     <ClInclude Include="..\Source\shader_impl.h" />
     <ClInclude Include="..\Source\window_impl.h" />

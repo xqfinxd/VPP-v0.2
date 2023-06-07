@@ -30,6 +30,12 @@
     <ClCompile Include="..\Source\buffer_impl.cc">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\Source\image_impl.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\swapchain_impl.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\VPP\application.h">
@@ -45,6 +51,12 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\Source\buffer_impl.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\image_impl.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\swapchain_impl.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

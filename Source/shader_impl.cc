@@ -11,7 +11,7 @@ namespace impl {
 Shader::Shader() {}
 
 Shader::~Shader() {
-  auto& device = Renderer::GetMe().device();
+  auto& device = Renderer::GetMe().device;
 
   for (auto& shader : shader_infos_) {
     if (shader.shader) {
@@ -44,7 +44,7 @@ void Shader::Load(std::vector<const char*> files) {
     return;
   }
 
-  auto& device = Renderer::GetMe().device();
+  auto& device = Renderer::GetMe().device;
 
   {  // descriptor set layout
     auto& layoutSets = data->layout_sets();
