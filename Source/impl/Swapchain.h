@@ -26,12 +26,16 @@ class Swapchain {
   Swapchain(Renderer* renderer);
   ~Swapchain();
 
-  void ReCreate();
+  void ReCreate(Renderer* renderer);
 
   InitializeInfo info{};
 
   Renderer*            renderer;
   vk::SwapchainKHR     swapchain{};
+
+  vk::SurfaceCapabilitiesKHR capabilities{};
+  vk::SurfaceFormatKHR       surface_format{};
+  vk::PresentModeKHR         present_mode{};
   uint32_t             swapchain_image_count{};
   Array<vk::Image>     swapchain_images{};
   Array<vk::ImageView> swapchain_imageviews{};

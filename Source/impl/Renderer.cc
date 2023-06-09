@@ -56,23 +56,23 @@ Renderer::Renderer(Window& window) {
 }
 
 Renderer::~Renderer() {
-  if (device) {
-    device.destroy();
+  if (device_) {
+    device_.destroy();
   }
-  if (instance) {
-    if (surface) {
-      instance.destroy(surface);
+  if (instance_) {
+    if (surface_) {
+      instance_.destroy(surface_);
     }
-    instance.destroy();
+    instance_.destroy();
   }
 }
 
 bool Renderer::FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
                               uint32_t& typeIndex) const {
-  if (!gpu) {
+  if (!gpu_) {
     return false;
   }
-  auto props = gpu.getMemoryProperties();
+  auto props = gpu_.getMemoryProperties();
   for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
     if ((memType & 1) == 1) {
       if ((props.memoryTypes[i].propertyFlags & mask) == mask) {
@@ -86,6 +86,51 @@ bool Renderer::FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
   return false;
 }
 
+vk::SurfaceCapabilitiesKHR Renderer::GetCapabilities() const {
+  return gpu_.getSurfaceCapabilitiesKHR(surface_);
+}
+
+std::vector<vk::PresentModeKHR> Renderer::GetPresentModes() const {
+  return gpu_.getSurfacePresentModesKHR(surface_);
+}
+
+std::vector<vk::SurfaceFormatKHR> Renderer::GetFormats() const {
+  return gpu_.getSurfaceFormatsKHR(surface_);
+}
+
+vk::SwapchainKHR Renderer::CreateSwapchain(vk::SwapchainKHR     oldSwapchain,
+                                           vk::SurfaceFormatKHR format,
+                                           vk::PresentModeKHR   presentMode) {
+  vk::Result result = vk::Result::eSuccess;
+
+  auto caps = GetCapabilities();
+
+  auto swapCI = vk::SwapchainCreateInfoKHR()
+                    .setImageArrayLayers(1)
+                    .setClipped(true)
+                    .setSurface(surface_)
+                    .setMinImageCount(caps.minImageCount)
+                    .setImageFormat(format.format)
+                    .setImageColorSpace(format.colorSpace)
+                    .setImageExtent(caps.currentExtent)
+                    .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
+                    .setPreTransform(caps.currentTransform)
+                    .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
+                    .setPresentMode(presentMode);
+
+  if (indices_.IsSame()) {
+    swapCI.setImageSharingMode(vk::SharingMode::eExclusive);
+  } else {
+    swapCI.setImageSharingMode(vk::SharingMode::eConcurrent);
+  }
+  auto indicesData = indices_.Pack();
+  swapCI.setQueueFamilyIndices(indicesData);
+
+  swapCI.setOldSwapchain(oldSwapchain);
+
+  return device_.createSwapchainKHR(swapCI);
+}
+
 void Renderer::CreateInstance(SDL_Window* window) {
   vk::Result result = vk::Result::eSuccess;
 
@@ -97,7 +142,7 @@ void Renderer::CreateInstance(SDL_Window* window) {
                    .setPEngineName("None")
                    .setEngineVersion(0);
 
-  auto  extensions = GetWindowExtensions(window);
+  auto extensions = GetWindowExtensions(window);
   extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
   std::vector<const char*> enabledLayers{};
@@ -122,61 +167,61 @@ void Renderer::CreateInstance(SDL_Window* window) {
                     .setPApplicationInfo(&appCI)
                     .setPNext(&debugCI);
 
-  result = vk::createInstance(&instCI, nullptr, &instance);
+  result = vk::createInstance(&instCI, nullptr, &instance_);
   assert(result == vk::Result::eSuccess);
 }
 
 void Renderer::CreateSurface(SDL_Window* window) {
   VkSurfaceKHR cSurf;
-  SDL_Vulkan_CreateSurface(window, instance, &cSurf);
-  surface = cSurf;
-  assert(surface);
+  SDL_Vulkan_CreateSurface(window, instance_, &cSurf);
+  surface_ = cSurf;
+  assert(surface_);
 }
 
 void Renderer::SetGpuAndIndices() {
-  auto availableGPUs = instance.enumeratePhysicalDevices();
+  auto availableGPUs = instance_.enumeratePhysicalDevices();
   bool found = false;
 
   for (const auto& curGpu : availableGPUs) {
     auto properties = curGpu.getProperties();
     auto features = curGpu.getFeatures();
     if (properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
-      gpu = curGpu;
+      gpu_ = curGpu;
       found = true;
       break;
     }
   }
   assert(found);
 
-  auto     queueProperties = gpu.getQueueFamilyProperties();
+  auto     queueProperties = gpu_.getQueueFamilyProperties();
   uint32_t indexCount = (uint32_t)queueProperties.size();
 
   std::vector<vk::Bool32> supportsPresent(indexCount);
   for (uint32_t i = 0; i < indexCount; i++) {
-    gpu.getSurfaceSupportKHR(i, surface, &supportsPresent[i]);
+    gpu_.getSurfaceSupportKHR(i, surface_, &supportsPresent[i]);
   }
 
   for (uint32_t i = 0; i < indexCount; ++i) {
     if (queueProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) {
-      indices.graphics = i;
+      indices_.graphics = i;
     }
 
     if (supportsPresent[i] == VK_TRUE) {
-      indices.present = i;
+      indices_.present = i;
     }
 
-    if (indices.HasValue()) {
+    if (indices_.HasValue()) {
       break;
     }
   }
-  assert(indices.HasValue());
+  assert(indices_.HasValue());
 }
 
 void Renderer::CreateDevice() {
   vk::Result result = vk::Result::eSuccess;
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos{};
-  std::set<uint32_t> queueFamilies = {indices.graphics, indices.present};
+  std::set<uint32_t> queueFamilies = {indices_.graphics, indices_.present};
 
   float queuePriority = 1.0f;
   for (uint32_t queueFamily : queueFamilies) {
@@ -202,13 +247,13 @@ void Renderer::CreateDevice() {
           .setPEnabledLayerNames(enabledLayers)
           .setPEnabledFeatures(nullptr);
 
-  result = gpu.createDevice(&deviceCI, nullptr, &device);
+  result = gpu_.createDevice(&deviceCI, nullptr, &device_);
   assert(result == vk::Result::eSuccess);
 }
 
 void Renderer::GetQueues() {
-  queues.graphics = device.getQueue(indices.graphics, 0);
-  queues.present = device.getQueue(indices.present, 0);
+  graphics_queues_ = device_.getQueue(indices_.graphics, 0);
+  present_queues_ = device_.getQueue(indices_.present, 0);
 }
 }  // namespace impl
 }  // namespace VPP

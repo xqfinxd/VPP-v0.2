@@ -17,7 +17,7 @@ Swapchain::~Swapchain() {
   Destroy(false);
 }
 
-void Swapchain::ReCreate() {
+void Swapchain::ReCreate(Renderer* renderer) {
   Destroy(true);
   UpdateInfo();
   CreateSwapchain(swapchain);
@@ -41,7 +41,7 @@ void Swapchain::Create() {
 }
 
 void Swapchain::Destroy(bool excludeSwapchain) {
-  auto& device = renderer->device;
+  auto& device = renderer->device();
 
   for (uint32_t i = 0; i < swapchain_image_count; ++i) {
     if (device_idle[i]) {
@@ -90,51 +90,32 @@ void Swapchain::Destroy(bool excludeSwapchain) {
 }
 
 void Swapchain::UpdateInfo() {
-  auto capabilities = renderer->gpu.getSurfaceCapabilitiesKHR(renderer->surface);
+  auto capabilities = renderer->GetCapabilities();
   info.width = capabilities.currentExtent.width;
   info.height = capabilities.currentExtent.height;
   info.min_image_count = capabilities.minImageCount;
-  auto presentModes = renderer->gpu.getSurfacePresentModesKHR(renderer->surface);
+  auto presentModes = renderer->GetPresentModes();
   info.present_mode = presentModes[0];
-  auto surfaceFormats = renderer->gpu.getSurfaceFormatsKHR(renderer->surface);
+  auto surfaceFormats = renderer->GetFormats();
   info.surface_format = surfaceFormats[0];
 }
 
 void Swapchain::CreateSwapchain(vk::SwapchainKHR oldSwapchain) {
+  capabilities = renderer->GetCapabilities();
+  surface_format = renderer->GetFormats()[0];
+  present_mode = renderer->GetPresentModes()[0];
+
+  swapchain =
+      renderer->CreateSwapchain(swapchain, surface_format, present_mode);
+  assert(swapchain);
+
   vk::Result result = vk::Result::eSuccess;
 
-  auto swapCI = vk::SwapchainCreateInfoKHR()
-                    .setImageArrayLayers(1)
-                    .setClipped(true)
-                    .setSurface(renderer->surface)
-                    .setMinImageCount(info.min_image_count)
-                    .setImageFormat(info.surface_format.format)
-                    .setImageColorSpace(info.surface_format.colorSpace)
-                    .setImageExtent(vk::Extent2D(info.width, info.height))
-                    .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
-                    .setPreTransform(vk::SurfaceTransformFlagBitsKHR::eIdentity)
-                    .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
-                    .setPresentMode(info.present_mode);
-
-  if (renderer->indices.IsSame()) {
-    swapCI.setImageSharingMode(vk::SharingMode::eExclusive);
-  } else {
-    swapCI.setImageSharingMode(vk::SharingMode::eConcurrent);
-  }
-  auto indicesData = renderer->indices.Pack();
-  swapCI.setQueueFamilyIndices(indicesData);
-
-  swapCI.setOldSwapchain(oldSwapchain);
-
-  result =
-      renderer->device.createSwapchainKHR(&swapCI, nullptr, &swapchain);
-  assert(result == vk::Result::eSuccess);
-
-  result = renderer->device.getSwapchainImagesKHR(
+  result = renderer->device().getSwapchainImagesKHR(
       swapchain, &swapchain_image_count, nullptr);
   assert(result == vk::Result::eSuccess);
   swapchain_images = NewArray<vk::Image>(swapchain_image_count);
-  result = renderer->device.getSwapchainImagesKHR(
+  result = renderer->device().getSwapchainImagesKHR(
       swapchain, &swapchain_image_count, swapchain_images.get());
   assert(result == vk::Result::eSuccess);
 }
@@ -159,7 +140,7 @@ void Swapchain::CreateSwapchainImageViews() {
             .setPNext(nullptr)
             .setSubresourceRange(resRange);
     imageViewCI.setImage(swapchain_images[i]);
-    result = renderer->device.createImageView(&imageViewCI, nullptr,
+    result = renderer->device().createImageView(&imageViewCI, nullptr,
                                                     &swapchain_imageviews[i]);
     assert(result == vk::Result::eSuccess);
   }
@@ -178,30 +159,30 @@ void Swapchain::CreateDepthbuffer() {
                      .setTiling(vk::ImageTiling::eOptimal)
                      .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
                      .setInitialLayout(vk::ImageLayout::eUndefined);
-  if (renderer->indices.IsSame()) {
+  if (renderer->indices().IsSame()) {
     imageCI.setSharingMode(vk::SharingMode::eExclusive);
   } else {
     imageCI.setSharingMode(vk::SharingMode::eConcurrent);
   }
-  auto indicesData = renderer->indices.Pack();
+  auto indicesData = renderer->indices().Pack();
   imageCI.setQueueFamilyIndices(indicesData);
   result =
-      renderer->device.createImage(&imageCI, nullptr, &depthbuffer.image);
+      renderer->device().createImage(&imageCI, nullptr, &depthbuffer.image);
   assert(result == vk::Result::eSuccess);
 
   vk::MemoryAllocateInfo memoryAI;
   vk::MemoryRequirements memReq;
-  renderer->device.getImageMemoryRequirements(depthbuffer.image, &memReq);
+  renderer->device().getImageMemoryRequirements(depthbuffer.image, &memReq);
   memoryAI.setAllocationSize(memReq.size);
   auto pass = renderer->FindMemoryType(
       memReq.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal,
       memoryAI.memoryTypeIndex);
   assert(pass);
-  result = renderer->device.allocateMemory(&memoryAI, nullptr,
+  result = renderer->device().allocateMemory(&memoryAI, nullptr,
                                                  &depthbuffer.memory);
   assert(result == vk::Result::eSuccess);
 
-  renderer->device.bindImageMemory(depthbuffer.image, depthbuffer.memory,
+  renderer->device().bindImageMemory(depthbuffer.image, depthbuffer.memory,
                                          0);
   auto imageViewCI = vk::ImageViewCreateInfo()
                          .setImage(depthbuffer.image)
@@ -210,7 +191,7 @@ void Swapchain::CreateDepthbuffer() {
                          .setSubresourceRange(vk::ImageSubresourceRange(
                              vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1))
                          .setPNext(nullptr);
-  result = renderer->device.createImageView(&imageViewCI, nullptr,
+  result = renderer->device().createImageView(&imageViewCI, nullptr,
                                                   &depthbuffer.view);
   assert(result == vk::Result::eSuccess);
 }
@@ -262,7 +243,7 @@ void Swapchain::CreateRenderPass() {
                           .setDependencyCount(0)
                           .setPDependencies(nullptr);
 
-  result = renderer->device.createRenderPass(&renderPassCI, nullptr,
+  result = renderer->device().createRenderPass(&renderPassCI, nullptr,
                                                    &render_pass);
   assert(result == vk::Result::eSuccess);
 }
@@ -283,7 +264,7 @@ void Swapchain::CreateFramebuffers() {
 
   for (uint32_t i = 0; i < swapchain_image_count; i++) {
     attachments[0] = swapchain_imageviews[i];
-    auto result = renderer->device.createFramebuffer(
+    auto result = renderer->device().createFramebuffer(
         &frameBufferCI, nullptr, &framebuffers[i]);
     assert(result == vk::Result::eSuccess);
   }
@@ -293,8 +274,8 @@ void Swapchain::CreateCommandBuffers() {
   vk::Result result;
 
   auto cmdPoolCI = vk::CommandPoolCreateInfo().setQueueFamilyIndex(
-      renderer->indices.graphics);
-  result = renderer->device.createCommandPool(&cmdPoolCI, nullptr,
+      renderer->indices().graphics);
+  result = renderer->device().createCommandPool(&cmdPoolCI, nullptr,
                                                     &command_pool);
   assert(result == vk::Result::eSuccess);
 
@@ -306,7 +287,7 @@ void Swapchain::CreateCommandBuffers() {
   commands = NewArray<vk::CommandBuffer>(swapchain_image_count);
   for (size_t i = 0; i < swapchain_image_count; i++) {
     result =
-        renderer->device.allocateCommandBuffers(&cmdAI, &commands[i]);
+        renderer->device().allocateCommandBuffers(&cmdAI, &commands[i]);
     assert(result == vk::Result::eSuccess);
   }
 }
@@ -326,14 +307,14 @@ void Swapchain::CreateSyncObject() {
 
   for (uint32_t i = 0; i < frame_count; i++) {
     result =
-        renderer->device.createFence(&fenceCI, nullptr, &device_idle[i]);
+        renderer->device().createFence(&fenceCI, nullptr, &device_idle[i]);
     assert(result == vk::Result::eSuccess);
 
-    result = renderer->device.createSemaphore(
+    result = renderer->device().createSemaphore(
         &semaphoreCreateInfo, nullptr, &image_acquired[i]);
     assert(result == vk::Result::eSuccess);
 
-    result = renderer->device.createSemaphore(
+    result = renderer->device().createSemaphore(
         &semaphoreCreateInfo, nullptr, &render_complete[i]);
     assert(result == vk::Result::eSuccess);
   }
