@@ -3,9 +3,7 @@
 #include "renderer_impl.h"
 
 namespace VPP {
-
 namespace impl {
-
 class Buffer {
  public:
   Buffer();
@@ -20,7 +18,5 @@ class Buffer {
   vk::Buffer           buffer_{};
   vk::DeviceMemory     memory_{};
 };
-
 }  // namespace impl
-
 }  // namespace VPP

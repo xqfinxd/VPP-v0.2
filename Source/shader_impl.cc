@@ -5,13 +5,11 @@
 #include "shader_loader.h"
 
 namespace VPP {
-
 namespace impl {
-
 Shader::Shader() {}
 
 Shader::~Shader() {
-  auto& device = Renderer::GetMe().device;
+  auto& device = Renderer::Ref().device;
 
   for (auto& shader : shader_infos_) {
     if (shader.shader) {
@@ -44,7 +42,7 @@ void Shader::Load(std::vector<const char*> files) {
     return;
   }
 
-  auto& device = Renderer::GetMe().device;
+  auto& device = Renderer::Ref().device;
 
   {  // descriptor set layout
     auto& layoutSets = data->layout_sets();
@@ -111,7 +109,5 @@ void Shader::Load(std::vector<const char*> files) {
 
   DestroyShader(loader);
 }
-
 }  // namespace impl
-
 }  // namespace VPP

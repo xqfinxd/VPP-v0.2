@@ -1,50 +1,38 @@
-#include "application.h"
+#include "Application.h"
 
 #include <iostream>
 
-#include "renderer_impl.h"
-#include "shader_loader.h"
-#include "window_impl.h"
-#include "shader_impl.h"
-#include "swapchain_impl.h"
+#include "impl/Window.h"
+#include "impl/Renderer.h"
 
 namespace VPP {
+
+static std::shared_ptr<impl::Window> g_Window{nullptr};
+impl::Renderer*                      renderer = nullptr;
 
 Application::Application() {}
 
 Application::~Application() {}
 
 void Application::Run() {
-  impl::Window   window{};
-  impl::Renderer renderer{};
-  impl::Swapchain swapchain{};
-
-  window.set_title("VPP");
-  window.set_size(1280, 720);
-  window.set_fps(60);
-
-  window.Init();
-  renderer.Init();
-  swapchain.Init();
-
-  /*impl::Shader textureShader{};
-  textureShader.Load({ "texture.vert", "texture.frag" });*/
+  g_Window = std::make_shared<impl::Window>();
+  renderer = new impl::Renderer(*g_Window.get());
 
   OnStart();
 
   impl::WindowFrame frameData{};
-  while (window.running()) {
-    window.StartFrame(frameData);
+  while (g_Window->running()) {
+    g_Window->StartFrame(frameData);
 
     OnLoop();
 
-    window.EndFrame(frameData);
+    g_Window->EndFrame(frameData);
   }
 
   OnEnd();
 
-  swapchain.Quit();
-  renderer.Quit();
+  delete renderer;
+  g_Window.reset();
 }
 
 void Application::OnStart() {}
@@ -52,5 +40,4 @@ void Application::OnStart() {}
 void Application::OnLoop() {}
 
 void Application::OnEnd() {}
-
 }  // namespace VPP

@@ -19,27 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Source\application.cc" />
-    <ClCompile Include="..\Source\buffer_impl.cc" />
-    <ClCompile Include="..\Source\swapchain_impl.cc" />
-    <ClCompile Include="..\Source\image_impl.cc" />
-    <ClCompile Include="..\Source\renderer_impl.cc" />
-    <ClCompile Include="..\Source\shader_impl.cc" />
-    <ClCompile Include="..\Source\window_impl.cc" />
+    <ClCompile Include="..\..\source\Application.cc" />
+    <ClCompile Include="..\..\Source\impl\Renderer.cc" />
+    <ClCompile Include="..\..\Source\impl\Swapchain.cc" />
+    <ClCompile Include="..\..\Source\impl\Window.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Include\VPP\application.h" />
-    <ClInclude Include="..\Source\buffer_impl.h" />
-    <ClInclude Include="..\Source\swapchain_impl.h" />
-    <ClInclude Include="..\Source\image_impl.h" />
-    <ClInclude Include="..\Source\renderer_impl.h" />
-    <ClInclude Include="..\Source\shader_impl.h" />
-    <ClInclude Include="..\Source\window_impl.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Shader\Shader.vcxproj">
-      <Project>{9d7d70bf-541a-4df9-80c0-fe298d59fb14}</Project>
-    </ProjectReference>
+    <ClInclude Include="..\..\include\VPP\Application.h" />
+    <ClInclude Include="..\..\Source\impl\Renderer.h" />
+    <ClInclude Include="..\..\Source\impl\Swapchain.h" />
+    <ClInclude Include="..\..\Source\impl\UniqueArray.hpp" />
+    <ClInclude Include="..\..\Source\impl\Window.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -136,14 +126,14 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Include\VPP;$(SolutionDir)ThirdParty\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Include\VPP;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;vulkan-1.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -157,7 +147,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Include\VPP;$(SolutionDir)ThirdParty\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Include\VPP;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -166,7 +156,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;vulkan-1.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

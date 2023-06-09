@@ -2,21 +2,19 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "public/singleton.h"
-#include "unique_array.h"
+#include "Renderer.h"
+#include "UniqueArray.hpp"
 
 namespace VPP {
-
 namespace impl {
-
-class Swapchain : public Singleton<Swapchain> {
+class Swapchain {
   struct Depthbuffer {
     vk::Image        image;
     vk::ImageView    view;
     vk::DeviceMemory memory;
   };
 
-  struct InitialzeInfo {
+  struct InitializeInfo {
     uint32_t             width{};
     uint32_t             height{};
     vk::SurfaceFormatKHR surface_format{};
@@ -25,10 +23,16 @@ class Swapchain : public Singleton<Swapchain> {
   };
 
  public:
-  InitialzeInfo info{};
+  Swapchain(Renderer* renderer);
+  ~Swapchain();
 
+  void ReCreate();
+
+  InitializeInfo info{};
+
+  Renderer*            renderer;
   vk::SwapchainKHR     swapchain{};
-  uint32_t             image_count{};
+  uint32_t             swapchain_image_count{};
   Array<vk::Image>     swapchain_images{};
   Array<vk::ImageView> swapchain_imageviews{};
   Depthbuffer          depthbuffer;
@@ -49,12 +53,12 @@ class Swapchain : public Singleton<Swapchain> {
   Array<vk::Semaphore> image_acquired{};
   Array<vk::Semaphore> render_complete{};
 
-  void Init();
-  void Quit();
-
  private:
-  void InitInfo();
-  void CreateSwapchain();
+  void Create();
+  void Destroy(bool excludeSwapchain);
+
+  void UpdateInfo();
+  void CreateSwapchain(vk::SwapchainKHR oldSwapchain);
   void CreateSwapchainImageViews();
   void CreateDepthbuffer();
   void CreateRenderPass();
@@ -62,7 +66,5 @@ class Swapchain : public Singleton<Swapchain> {
   void CreateCommandBuffers();
   void CreateSyncObject();
 };
-
 }  // namespace impl
-
 }  // namespace VPP

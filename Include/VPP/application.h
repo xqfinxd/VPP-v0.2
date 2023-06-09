@@ -1,9 +1,8 @@
 #pragma once
 
-#include "public/config.h"
+#include "VPP_API.h"
 
 namespace VPP {
-
 class VPP_API Application {
  public:
   Application();
@@ -11,11 +10,11 @@ class VPP_API Application {
 
   void Run();
 
+ protected:
   virtual void OnStart();
   virtual void OnLoop();
   virtual void OnEnd();
 
  private:
 };
-
 }  // namespace VPP

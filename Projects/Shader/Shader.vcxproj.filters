@@ -15,7 +15,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Source\main.cc">
+    <ClInclude Include="..\..\Source\impl\ShaderData.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\ShaderLoader.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Source\impl\ShaderLoader.cc">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

@@ -3,9 +3,7 @@
 #include "renderer_impl.h"
 
 namespace VPP {
-
 namespace impl {
-
 class Image {
  public:
   Image();
@@ -35,7 +33,5 @@ class Sampler {
  private:
   vk::Sampler sampler_{};
 };
-
 }  // namespace impl
-
 }  // namespace VPP

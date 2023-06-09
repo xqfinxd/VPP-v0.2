@@ -1,19 +1,14 @@
-#include "renderer_impl.h"
+#include "Renderer.h"
 
 #include <SDL2/SDL_vulkan.h>
 
 #include <iostream>
 #include <set>
 
-#include "window_impl.h"
+#include "Variables.h"
 
 namespace VPP {
-
 namespace impl {
-
-const std::vector<const char*> g_Extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-const std::vector<const char*> g_Layers = {"VK_LAYER_KHRONOS_validation"};
-
 static VkBool32 DebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT      level,
     VkDebugUtilsMessageTypeFlagsEXT             type,
@@ -39,29 +34,28 @@ static VkBool32 DebugCallback(
 }
 
 static std::vector<const char*> GetWindowExtensions(SDL_Window* window) {
-  SDL_bool                 result = SDL_TRUE;
   std::vector<const char*> extensions{};
-  uint32_t                 extCount = 0;
-  result = SDL_Vulkan_GetInstanceExtensions(window, &extCount, nullptr);
-  extensions.resize(extCount);
-  result =
-      SDL_Vulkan_GetInstanceExtensions(window, &extCount, extensions.data());
+
+  uint32_t extensionCount = 0;
+  if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr) ==
+      SDL_TRUE) {
+    extensions.resize(extensionCount);
+    SDL_Vulkan_GetInstanceExtensions(window, &extensionCount,
+                                     extensions.data());
+  }
+
   return extensions;
 }
 
-Renderer::Renderer() {}
-
-Renderer::~Renderer() {}
-
-void Renderer::Init() {
-  CreateInstance();
-  CreateSurface();
+Renderer::Renderer(Window& window) {
+  CreateInstance(window.window_);
+  CreateSurface(window.window_);
   SetGpuAndIndices();
   CreateDevice();
   GetQueues();
 }
 
-void Renderer::Quit() {
+Renderer::~Renderer() {
   if (device) {
     device.destroy();
   }
@@ -92,7 +86,7 @@ bool Renderer::FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
   return false;
 }
 
-void Renderer::CreateInstance() {
+void Renderer::CreateInstance(SDL_Window* window) {
   vk::Result result = vk::Result::eSuccess;
 
   auto appCI = vk::ApplicationInfo()
@@ -103,9 +97,13 @@ void Renderer::CreateInstance() {
                    .setPEngineName("None")
                    .setEngineVersion(0);
 
-  auto& wnd = Window::GetMe();
-  auto  extensions = GetWindowExtensions(wnd.window_);
+  auto  extensions = GetWindowExtensions(window);
   extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+  std::vector<const char*> enabledLayers{};
+  for (auto& layer : g_Vars.layers) {
+    enabledLayers.push_back(layer.c_str());
+  }
 
   using MsgSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT;
   using MsgType = vk::DebugUtilsMessageTypeFlagBitsEXT;
@@ -119,7 +117,7 @@ void Renderer::CreateInstance() {
           .setPfnUserCallback(DebugCallback);
 
   auto instCI = vk::InstanceCreateInfo()
-                    .setPEnabledLayerNames(g_Layers)
+                    .setPEnabledLayerNames(enabledLayers)
                     .setPEnabledExtensionNames(extensions)
                     .setPApplicationInfo(&appCI)
                     .setPNext(&debugCI);
@@ -128,10 +126,9 @@ void Renderer::CreateInstance() {
   assert(result == vk::Result::eSuccess);
 }
 
-void Renderer::CreateSurface() {
+void Renderer::CreateSurface(SDL_Window* window) {
   VkSurfaceKHR cSurf;
-  auto&        wnd = Window::GetMe();
-  SDL_Vulkan_CreateSurface(wnd.window_, instance, &cSurf);
+  SDL_Vulkan_CreateSurface(window, instance, &cSurf);
   surface = cSurf;
   assert(surface);
 }
@@ -190,12 +187,20 @@ void Renderer::CreateDevice() {
     queueCreateInfos.push_back(queueCreateInfo);
   }
 
-  vk::DeviceCreateInfo deviceCI = vk::DeviceCreateInfo()
-                                      .setQueueCreateInfoCount(1)
-                                      .setQueueCreateInfos(queueCreateInfos)
-                                      .setPEnabledExtensionNames(g_Extensions)
-                                      .setPEnabledLayerNames(g_Layers)
-                                      .setPEnabledFeatures(nullptr);
+  std::vector<const char*> enabledLayers{};
+  for (auto& layer : g_Vars.layers) {
+    enabledLayers.push_back(layer.c_str());
+  }
+
+  std::vector<const char*> enabledExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+  vk::DeviceCreateInfo deviceCI =
+      vk::DeviceCreateInfo()
+          .setQueueCreateInfoCount(1)
+          .setQueueCreateInfos(queueCreateInfos)
+          .setPEnabledExtensionNames(enabledExtensions)
+          .setPEnabledLayerNames(enabledLayers)
+          .setPEnabledFeatures(nullptr);
 
   result = gpu.createDevice(&deviceCI, nullptr, &device);
   assert(result == vk::Result::eSuccess);
@@ -205,7 +210,5 @@ void Renderer::GetQueues() {
   queues.graphics = device.getQueue(indices.graphics, 0);
   queues.present = device.getQueue(indices.present, 0);
 }
-
 }  // namespace impl
-
 }  // namespace VPP

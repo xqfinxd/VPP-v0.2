@@ -1,4 +1,4 @@
-#include "shader_loader.h"
+#include "ShaderLoader.h"
 
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
@@ -6,7 +6,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "shader_data.h"
+#include "ShaderData.h"
 
 #ifdef _DEBUG
 #pragma comment(lib, "MachineIndependentd.lib")
@@ -27,9 +27,7 @@
 #endif
 
 namespace VPP {
-
 namespace impl {
-
 const int                             kGlslVersion = 400;
 const glslang::EShSource              kSourceLanguage = glslang::EShSourceGlsl;
 const glslang::EShClient              kClient = glslang::EShClientVulkan;
@@ -339,13 +337,13 @@ vk::DescriptorSetLayoutBinding ToBinding(
   return binding;
 }
 
-class ShaderReader {
+class ShaderLoader {
  public:
-  ShaderReader() {
+  ShaderLoader() {
     glslang::InitializeProcess();
   }
 
-  ~ShaderReader() {
+  ~ShaderLoader() {
     if (program_) {
       delete program_;
     }
@@ -391,7 +389,7 @@ class ShaderReader {
     return false;
   }
 
-  void Query() {
+  void Query(ShaderData& data) const {
     for (int32_t i = 0; i < program_->getNumUniformVariables(); i++) {
       auto& obj = program_->getUniform(i);
       auto* ttype = obj.getType();
@@ -404,14 +402,14 @@ class ShaderReader {
         setNum = ttype->getQualifier().layoutSet;
       }
 
-      data_.AddBinding(setNum, ToBinding(obj));
+      data.AddBinding(setNum, ToBinding(obj));
     }
 
     for (int i = 0; i < program_->getNumUniformBlocks(); i++) {
       auto& obj = program_->getUniformBlock(i);
       auto* ttype = obj.getType();
       if (ttype->getQualifier().isPushConstant()) {
-        data_.AddPushConstant(ToPushConstant(obj));
+        data.AddPushConstant(ToPushConstant(obj));
         continue;
       }
 
@@ -420,7 +418,7 @@ class ShaderReader {
         setNum = ttype->getQualifier().layoutSet;
       }
 
-      data_.AddBinding(setNum, ToBinding(obj));
+      data.AddBinding(setNum, ToBinding(obj));
     }
 
     for (int i = 0; i < program_->getNumBufferBlocks(); i++) {
@@ -432,7 +430,7 @@ class ShaderReader {
         setNum = ttype->getQualifier().layoutSet;
       }
 
-      data_.AddBinding(setNum, ToBinding(obj));
+      data.AddBinding(setNum, ToBinding(obj));
     }
 
     for (int i = 0; i < program_->getNumPipeInputs(); i++) {
@@ -444,7 +442,7 @@ class ShaderReader {
         location = ttype->getQualifier().layoutLocation;
       }
 
-      data_.AddLocation(location);
+      data.AddLocation(location);
     }
 
     for (const auto& shader : shaders_) {
@@ -452,19 +450,14 @@ class ShaderReader {
       if (auto temp = program_->getIntermediate(stage)) {
         std::vector<uint32_t> spv{};
         glslang::GlslangToSpv(*temp, spv);
-        data_.AddSpvData(GetStage(stage), std::move(spv));
+        data.AddSpvData(GetStage(stage), std::move(spv));
       }
     }
-  }
-
-  ShaderData& data() {
-    return data_;
   }
 
  private:
   std::vector<glslang::TShader*> shaders_{};
   glslang::TProgram*             program_{};
-  ShaderData                     data_{};
 };
 
 void ShaderData::AddBinding(uint32_t                         setNum,
@@ -514,8 +507,8 @@ void ShaderData::AddSpvData(vk::ShaderStageFlagBits stage,
   spv_datas_.back().data.swap(data);
 }
 
-ShaderReader* LoadShader(std::vector<const char*> files) {
-  auto loader = std::make_unique<ShaderReader>();
+ShaderLoader* LoadShader(std::vector<const char*> files) {
+  auto loader = std::make_unique<ShaderLoader>();
 
   for (auto fn : files) {
     if (!loader->AddShader(fn)) {
@@ -527,24 +520,19 @@ ShaderReader* LoadShader(std::vector<const char*> files) {
     return nullptr;
   }
 
-  loader->Query();
-
   return loader.release();
 }
 
-void DestroyShader(ShaderReader* loader) {
+void DestroyShader(ShaderLoader* loader) {
   if (loader) {
     delete loader;
   }
 }
 
-ShaderData* GetShaderData(ShaderReader* loader) {
-  if (loader) {
-    return &loader->data();
+void GetShaderData(const ShaderLoader* loader, ShaderData* data) {
+  if (loader && data) {
+    loader->Query(*data);
   }
-  return nullptr;
 }
-
 }  // namespace impl
-
 }  // namespace VPP

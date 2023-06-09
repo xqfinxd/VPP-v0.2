@@ -1,19 +1,26 @@
-#include "swapchain_impl.h"
+#include "Swapchain.h"
 
 #include <SDL2/SDL_vulkan.h>
 
 #include <iostream>
 #include <set>
 
-#include "renderer_impl.h"
+#include "Variables.h"
 
 namespace VPP {
-
 namespace impl {
+Swapchain::Swapchain(Renderer* rnder):renderer(rnder) {
+  Create();
+}
 
-void Swapchain::Init() {
-  InitInfo();
-  CreateSwapchain();
+Swapchain::~Swapchain() {
+  Destroy(false);
+}
+
+void Swapchain::ReCreate() {
+  Destroy(true);
+  UpdateInfo();
+  CreateSwapchain(swapchain);
   CreateSwapchainImageViews();
   CreateDepthbuffer();
   CreateRenderPass();
@@ -22,64 +29,84 @@ void Swapchain::Init() {
   CreateSyncObject();
 }
 
-void Swapchain::Quit() {
-  auto& device = Renderer::GetMe().device;
-
-  for (uint32_t i = 0; i < image_count; ++i) {
-    if (device_idle[i])
-      device.destroy(device_idle[i]);
-
-    if (image_acquired[i])
-      device.destroy(image_acquired[i]);
-
-    if (render_complete[i])
-      device.destroy(render_complete[i]);
-
-    if (framebuffers[i])
-      device.destroy(framebuffers[i]);
-
-    if (swapchain_imageviews[i])
-      device.destroy(swapchain_imageviews[i]);
-  }
-  if (command_pool)
-    device.destroy(command_pool);
-
-  if (render_pass)
-    device.destroy(render_pass);
-
-  if (depthbuffer.image)
-    device.destroy(depthbuffer.image);
-
-  if (depthbuffer.view)
-    device.destroy(depthbuffer.view);
-
-  if (depthbuffer.memory)
-    device.free(depthbuffer.memory);
-
-  if (swapchain)
-    device.destroy(swapchain);
+void Swapchain::Create() {
+  UpdateInfo();
+  CreateSwapchain(VK_NULL_HANDLE);
+  CreateSwapchainImageViews();
+  CreateDepthbuffer();
+  CreateRenderPass();
+  CreateFramebuffers();
+  CreateCommandBuffers();
+  CreateSyncObject();
 }
 
-void Swapchain::InitInfo() {
-  auto& renderer = Renderer::GetMe();
+void Swapchain::Destroy(bool excludeSwapchain) {
+  auto& device = renderer->device;
 
-  auto capabilities = renderer.gpu.getSurfaceCapabilitiesKHR(renderer.surface);
+  for (uint32_t i = 0; i < swapchain_image_count; ++i) {
+    if (device_idle[i]) {
+      device.destroy(device_idle[i]);
+    }
+
+    if (image_acquired[i]) {
+      device.destroy(image_acquired[i]);
+    }
+
+    if (render_complete[i]) {
+      device.destroy(render_complete[i]);
+    }
+
+    if (framebuffers[i]) {
+      device.destroy(framebuffers[i]);
+    }
+
+    if (swapchain_imageviews[i]) {
+      device.destroy(swapchain_imageviews[i]);
+    }
+  }
+  if (command_pool) {
+    device.destroy(command_pool);
+  }
+
+  if (render_pass) {
+    device.destroy(render_pass);
+  }
+
+  if (depthbuffer.image) {
+    device.destroy(depthbuffer.image);
+  }
+
+  if (depthbuffer.view) {
+    device.destroy(depthbuffer.view);
+  }
+
+  if (depthbuffer.memory) {
+    device.free(depthbuffer.memory);
+  }
+
+  if (swapchain && !excludeSwapchain) {
+    device.destroy(swapchain);
+  }
+}
+
+void Swapchain::UpdateInfo() {
+  auto capabilities = renderer->gpu.getSurfaceCapabilitiesKHR(renderer->surface);
   info.width = capabilities.currentExtent.width;
   info.height = capabilities.currentExtent.height;
   info.min_image_count = capabilities.minImageCount;
-  auto presentModes = renderer.gpu.getSurfacePresentModesKHR(renderer.surface);
+  auto presentModes = renderer->gpu.getSurfacePresentModesKHR(renderer->surface);
   info.present_mode = presentModes[0];
-  auto surfaceFormats = renderer.gpu.getSurfaceFormatsKHR(renderer.surface);
+  auto surfaceFormats = renderer->gpu.getSurfaceFormatsKHR(renderer->surface);
   info.surface_format = surfaceFormats[0];
 }
 
-void Swapchain::CreateSwapchain() {
+void Swapchain::CreateSwapchain(vk::SwapchainKHR oldSwapchain) {
   vk::Result result = vk::Result::eSuccess;
 
   auto swapCI = vk::SwapchainCreateInfoKHR()
                     .setImageArrayLayers(1)
                     .setClipped(true)
-                    .setSurface(Renderer::GetMe().surface)
+                    .setSurface(renderer->surface)
                     .setMinImageCount(info.min_image_count)
                     .setImageFormat(info.surface_format.format)
                     .setImageColorSpace(info.surface_format.colorSpace)
@@ -89,24 +116,26 @@ void Swapchain::CreateSwapchain() {
                     .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
                     .setPresentMode(info.present_mode);
 
-  if (Renderer::GetMe().indices.IsSame()) {
+  if (renderer->indices.IsSame()) {
     swapCI.setImageSharingMode(vk::SharingMode::eExclusive);
   } else {
     swapCI.setImageSharingMode(vk::SharingMode::eConcurrent);
   }
-  auto indicesData = Renderer::GetMe().indices.Pack();
+  auto indicesData = renderer->indices.Pack();
   swapCI.setQueueFamilyIndices(indicesData);
 
+  swapCI.setOldSwapchain(oldSwapchain);
+
   result =
-      Renderer::GetMe().device.createSwapchainKHR(&swapCI, nullptr, &swapchain);
+      renderer->device.createSwapchainKHR(&swapCI, nullptr, &swapchain);
   assert(result == vk::Result::eSuccess);
 
-  result = Renderer::GetMe().device.getSwapchainImagesKHR(
-      swapchain, &image_count, nullptr);
+  result = renderer->device.getSwapchainImagesKHR(
+      swapchain, &swapchain_image_count, nullptr);
   assert(result == vk::Result::eSuccess);
-  swapchain_images = NewArray<vk::Image>(image_count);
-  result = Renderer::GetMe().device.getSwapchainImagesKHR(
-      swapchain, &image_count, swapchain_images.get());
+  swapchain_images = NewArray<vk::Image>(swapchain_image_count);
+  result = renderer->device.getSwapchainImagesKHR(
+      swapchain, &swapchain_image_count, swapchain_images.get());
   assert(result == vk::Result::eSuccess);
 }
 
@@ -120,9 +149,9 @@ void Swapchain::CreateSwapchainImageViews() {
                       .setLevelCount(1)
                       .setBaseMipLevel(0);
 
-  swapchain_imageviews = NewArray<vk::ImageView>(image_count);
+  swapchain_imageviews = NewArray<vk::ImageView>(swapchain_image_count);
 
-  for (uint32_t i = 0; i < image_count; i++) {
+  for (uint32_t i = 0; i < swapchain_image_count; i++) {
     vk::ImageViewCreateInfo imageViewCI =
         vk::ImageViewCreateInfo()
             .setViewType(vk::ImageViewType::e2D)
@@ -130,8 +159,8 @@ void Swapchain::CreateSwapchainImageViews() {
             .setPNext(nullptr)
             .setSubresourceRange(resRange);
     imageViewCI.setImage(swapchain_images[i]);
-    result = Renderer::GetMe().device.createImageView(&imageViewCI, nullptr,
-                                                      &swapchain_imageviews[i]);
+    result = renderer->device.createImageView(&imageViewCI, nullptr,
+                                                    &swapchain_imageviews[i]);
     assert(result == vk::Result::eSuccess);
   }
 }
@@ -149,32 +178,31 @@ void Swapchain::CreateDepthbuffer() {
                      .setTiling(vk::ImageTiling::eOptimal)
                      .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
                      .setInitialLayout(vk::ImageLayout::eUndefined);
-  if (Renderer::GetMe().indices.IsSame()) {
+  if (renderer->indices.IsSame()) {
     imageCI.setSharingMode(vk::SharingMode::eExclusive);
   } else {
     imageCI.setSharingMode(vk::SharingMode::eConcurrent);
   }
-  auto indicesData = Renderer::GetMe().indices.Pack();
+  auto indicesData = renderer->indices.Pack();
   imageCI.setQueueFamilyIndices(indicesData);
-  result = Renderer::GetMe().device.createImage(&imageCI, nullptr,
-                                                &depthbuffer.image);
+  result =
+      renderer->device.createImage(&imageCI, nullptr, &depthbuffer.image);
   assert(result == vk::Result::eSuccess);
 
   vk::MemoryAllocateInfo memoryAI;
   vk::MemoryRequirements memReq;
-  Renderer::GetMe().device.getImageMemoryRequirements(depthbuffer.image,
-                                                      &memReq);
+  renderer->device.getImageMemoryRequirements(depthbuffer.image, &memReq);
   memoryAI.setAllocationSize(memReq.size);
-  auto pass = Renderer::GetMe().FindMemoryType(
+  auto pass = renderer->FindMemoryType(
       memReq.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal,
       memoryAI.memoryTypeIndex);
   assert(pass);
-  result = Renderer::GetMe().device.allocateMemory(&memoryAI, nullptr,
-                                                   &depthbuffer.memory);
+  result = renderer->device.allocateMemory(&memoryAI, nullptr,
+                                                 &depthbuffer.memory);
   assert(result == vk::Result::eSuccess);
 
-  Renderer::GetMe().device.bindImageMemory(depthbuffer.image,
-                                           depthbuffer.memory, 0);
+  renderer->device.bindImageMemory(depthbuffer.image, depthbuffer.memory,
+                                         0);
   auto imageViewCI = vk::ImageViewCreateInfo()
                          .setImage(depthbuffer.image)
                          .setViewType(vk::ImageViewType::e2D)
@@ -182,8 +210,8 @@ void Swapchain::CreateDepthbuffer() {
                          .setSubresourceRange(vk::ImageSubresourceRange(
                              vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1))
                          .setPNext(nullptr);
-  result = Renderer::GetMe().device.createImageView(&imageViewCI, nullptr,
-                                                    &depthbuffer.view);
+  result = renderer->device.createImageView(&imageViewCI, nullptr,
+                                                  &depthbuffer.view);
   assert(result == vk::Result::eSuccess);
 }
 
@@ -234,13 +262,13 @@ void Swapchain::CreateRenderPass() {
                           .setDependencyCount(0)
                           .setPDependencies(nullptr);
 
-  result = Renderer::GetMe().device.createRenderPass(&renderPassCI, nullptr,
-                                                     &render_pass);
+  result = renderer->device.createRenderPass(&renderPassCI, nullptr,
+                                                   &render_pass);
   assert(result == vk::Result::eSuccess);
 }
 
 void Swapchain::CreateFramebuffers() {
-  framebuffers = NewArray<vk::Framebuffer>(image_count);
+  framebuffers = NewArray<vk::Framebuffer>(swapchain_image_count);
 
   vk::ImageView attachments[2];
   attachments[1] = depthbuffer.view;
@@ -253,9 +281,9 @@ void Swapchain::CreateFramebuffers() {
                            .setHeight(info.height)
                            .setLayers(1);
 
-  for (uint32_t i = 0; i < image_count; i++) {
+  for (uint32_t i = 0; i < swapchain_image_count; i++) {
     attachments[0] = swapchain_imageviews[i];
-    auto result = Renderer::GetMe().device.createFramebuffer(
+    auto result = renderer->device.createFramebuffer(
         &frameBufferCI, nullptr, &framebuffers[i]);
     assert(result == vk::Result::eSuccess);
   }
@@ -265,9 +293,9 @@ void Swapchain::CreateCommandBuffers() {
   vk::Result result;
 
   auto cmdPoolCI = vk::CommandPoolCreateInfo().setQueueFamilyIndex(
-      Renderer::GetMe().indices.graphics);
-  result = Renderer::GetMe().device.createCommandPool(&cmdPoolCI, nullptr,
-                                                      &command_pool);
+      renderer->indices.graphics);
+  result = renderer->device.createCommandPool(&cmdPoolCI, nullptr,
+                                                    &command_pool);
   assert(result == vk::Result::eSuccess);
 
   auto cmdAI = vk::CommandBufferAllocateInfo()
@@ -275,10 +303,10 @@ void Swapchain::CreateCommandBuffers() {
                    .setLevel(vk::CommandBufferLevel::ePrimary)
                    .setCommandBufferCount(1);
 
-  commands = NewArray<vk::CommandBuffer>(image_count);
-  for (size_t i = 0; i < image_count; i++) {
+  commands = NewArray<vk::CommandBuffer>(swapchain_image_count);
+  for (size_t i = 0; i < swapchain_image_count; i++) {
     result =
-        Renderer::GetMe().device.allocateCommandBuffers(&cmdAI, &commands[i]);
+        renderer->device.allocateCommandBuffers(&cmdAI, &commands[i]);
     assert(result == vk::Result::eSuccess);
   }
 }
@@ -286,7 +314,7 @@ void Swapchain::CreateCommandBuffers() {
 void Swapchain::CreateSyncObject() {
   vk::Result result;
 
-  constexpr uint32_t frame_count = 2;
+  const uint32_t frame_count = g_Vars.frame_lag;
 
   auto semaphoreCreateInfo = vk::SemaphoreCreateInfo();
   auto fenceCI =
@@ -297,21 +325,19 @@ void Swapchain::CreateSyncObject() {
   render_complete = NewArray<vk::Semaphore>(frame_count);
 
   for (uint32_t i = 0; i < frame_count; i++) {
-    result = Renderer::GetMe().device.createFence(&fenceCI, nullptr,
-                                                  &device_idle[i]);
+    result =
+        renderer->device.createFence(&fenceCI, nullptr, &device_idle[i]);
     assert(result == vk::Result::eSuccess);
 
-    result = Renderer::GetMe().device.createSemaphore(
+    result = renderer->device.createSemaphore(
         &semaphoreCreateInfo, nullptr, &image_acquired[i]);
     assert(result == vk::Result::eSuccess);
 
-    result = Renderer::GetMe().device.createSemaphore(
+    result = renderer->device.createSemaphore(
         &semaphoreCreateInfo, nullptr, &render_complete[i]);
     assert(result == vk::Result::eSuccess);
   }
   frame_index = 0;
 }
-
 }  // namespace impl
-
 }  // namespace VPP

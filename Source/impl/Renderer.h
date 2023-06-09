@@ -2,12 +2,10 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "public/singleton.h"
+#include "Window.h"
 
 namespace VPP {
-
 namespace impl {
-
 struct QueueIndices {
   uint32_t graphics = UINT32_MAX;
   uint32_t present = UINT32_MAX;
@@ -30,13 +28,10 @@ struct QueueIndices {
   }
 };
 
-class Renderer : public Singleton<Renderer> {
+class Renderer {
  public:
-  Renderer();
+  Renderer(Window& window);
   ~Renderer();
-
-  void Init();
-  void Quit();
 
   bool FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
                       uint32_t& typeIndex) const;
@@ -52,13 +47,11 @@ class Renderer : public Singleton<Renderer> {
   } queues{};
 
  private:
-  void CreateInstance();
-  void CreateSurface();
+  void CreateInstance(SDL_Window* window);
+  void CreateSurface(SDL_Window* window);
   void SetGpuAndIndices();
   void CreateDevice();
   void GetQueues();
 };
-
 }  // namespace impl
-
 }  // namespace VPP

@@ -15,16 +15,34 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Source\shader_data.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\shader_loader.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\Source\shader_loader.cc">
+    <ClCompile Include="..\..\source\Application.cc">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\impl\Window.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\impl\Renderer.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\impl\Swapchain.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\VPP\Application.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\Window.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\Renderer.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\Swapchain.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\UniqueArray.hpp">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

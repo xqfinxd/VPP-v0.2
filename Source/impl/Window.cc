@@ -1,13 +1,13 @@
-#include "window_impl.h"
+#include "Window.h"
 
 #include <SDL2/SDL_vulkan.h>
-
+#include <cassert>
 #include <iostream>
 
+#include "Variables.h"
+
 namespace VPP {
-
 namespace impl {
-
 Window::~Window() {
   if (window_) {
     SDL_DestroyWindow(window_);
@@ -15,22 +15,17 @@ Window::~Window() {
   }
 }
 
-Window::Window() {}
+Window::Window() {
+  bool initialized = SDL_Init(SDL_INIT_EVERYTHING);
+  assert(initialized == 0);
 
-bool Window::Init() {
-  if (0 != SDL_Init(SDL_INIT_EVERYTHING)) {
-    std::cerr << "[SDL2] Error: " << SDL_GetError() << std::endl;
-    return false;
-  }
-  window_ = SDL_CreateWindow(title_.c_str(), SDL_WINDOWPOS_CENTERED,
-                             SDL_WINDOWPOS_CENTERED, size_.x, size_.y,
+  auto& cfg = g_Vars;
+  window_ = SDL_CreateWindow(cfg.title.c_str(), SDL_WINDOWPOS_CENTERED,
+                             SDL_WINDOWPOS_CENTERED, cfg.width, cfg.height,
                              SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
-  if (!window_) {
-    std::cerr << "[SDL2] Error: " << SDL_GetError() << std::endl;
-    return false;
-  }
+  assert(window_);
   running_flag_ = true;
-  return true;
+  set_fps(cfg.fps);
 }
 
 void Window::Close() {
@@ -59,21 +54,10 @@ void Window::EndFrame(WindowFrame& frame) {
   }
 }
 
-void Window::set_size(int width, int height) {
-  size_.x = width;
-  size_.y = height;
-}
-
 void Window::set_fps(int fps) {
   if (fps) {
     frame_duration_ = 1000 / fps;
   }
 }
-
-void Window::set_title(const char* title) {
-  title = title;
-}
-
 }  // namespace impl
-
 }  // namespace VPP

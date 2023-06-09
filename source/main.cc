@@ -1,6 +1,6 @@
 ﻿#include <iostream>
 
-#include "VPP/application.h"
+#include "VPP/Application.h"
 
 class MyApp : public VPP::Application {
  public:
