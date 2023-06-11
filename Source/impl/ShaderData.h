@@ -3,8 +3,6 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-namespace VPP {
-namespace impl {
 class ShaderData {
  public:
   struct LayoutSet {
@@ -72,5 +70,3 @@ class ShaderData {
   std::vector<uint32_t>     locations_{};
   std::vector<SpvData>      spv_datas_{};
 };
-}  // namespace impl
-}  // namespace VPP

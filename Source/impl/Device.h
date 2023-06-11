@@ -28,7 +28,6 @@ class DeviceResource {
  protected:
   DeviceResource();
   inline Renderer*  renderer();
-  inline Swapchain* swapchain();
 
  private:
   std::shared_ptr<Device> device_;

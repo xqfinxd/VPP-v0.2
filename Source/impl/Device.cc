@@ -26,9 +26,5 @@ VPP::impl::Renderer* DeviceResource::renderer() {
   return device_->renderer_;
 }
 
-inline Swapchain* DeviceResource::swapchain() {
-  return device_->swapchain_;
-}
-
 }  // namespace impl
 }  // namespace VPP

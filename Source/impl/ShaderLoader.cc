@@ -26,8 +26,7 @@
 #pragma comment(lib, "SPIRV-Tools.lib")
 #endif
 
-namespace VPP {
-namespace impl {
+namespace {
 const int                             kGlslVersion = 400;
 const glslang::EShSource              kSourceLanguage = glslang::EShSourceGlsl;
 const glslang::EShClient              kClient = glslang::EShClientVulkan;
@@ -38,6 +37,7 @@ const glslang::EShTargetLanguageVersion kTargetLanguageVersion =
     glslang::EShTargetSpv_1_2;
 const EShMessages kMessages =
     (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules | EShMsgAST);
+}  // namespace
 
 static void InitResources(TBuiltInResource& res) {
   res.maxLights = 32;
@@ -507,7 +507,7 @@ void ShaderData::AddSpvData(vk::ShaderStageFlagBits stage,
   spv_datas_.back().data.swap(data);
 }
 
-ShaderLoader* LoadShader(std::vector<const char*> files) {
+ShaderLoader* CreateShaderLoader(std::vector<const char*> files) {
   auto loader = std::make_unique<ShaderLoader>();
 
   for (auto fn : files) {
@@ -523,7 +523,7 @@ ShaderLoader* LoadShader(std::vector<const char*> files) {
   return loader.release();
 }
 
-void DestroyShader(ShaderLoader* loader) {
+void DestroyShaderLoader(ShaderLoader* loader) {
   if (loader) {
     delete loader;
   }
@@ -534,5 +534,3 @@ void GetShaderData(const ShaderLoader* loader, ShaderData* data) {
     loader->Query(*data);
   }
 }
-}  // namespace impl
-}  // namespace VPP
