@@ -2,37 +2,31 @@
 
 #include <iostream>
 
+#include "impl/Device.h"
 #include "impl/Window.h"
-#include "impl/Renderer.h"
 
 namespace VPP {
-
-static std::shared_ptr<impl::Window> g_Window{nullptr};
-impl::Renderer*                      renderer = nullptr;
 
 Application::Application() {}
 
 Application::~Application() {}
 
 void Application::Run() {
-  g_Window = std::make_shared<impl::Window>();
-  renderer = new impl::Renderer(*g_Window.get());
+  auto _window = std::make_shared<impl::Window>();
+  auto _device = std::make_shared<impl::Device>(_window);
 
   OnStart();
 
   impl::WindowFrame frameData{};
-  while (g_Window->running()) {
-    g_Window->StartFrame(frameData);
+  while (_window->running()) {
+    _window->StartFrame(frameData);
 
     OnLoop();
 
-    g_Window->EndFrame(frameData);
+    _window->EndFrame(frameData);
   }
 
   OnEnd();
-
-  delete renderer;
-  g_Window.reset();
 }
 
 void Application::OnStart() {}

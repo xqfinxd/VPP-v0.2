@@ -8,18 +8,12 @@
 namespace VPP {
 namespace impl {
 class Swapchain {
+  friend class Device;
+
   struct Depthbuffer {
     vk::Image        image;
     vk::ImageView    view;
     vk::DeviceMemory memory;
-  };
-
-  struct InitializeInfo {
-    uint32_t             width{};
-    uint32_t             height{};
-    vk::SurfaceFormatKHR surface_format{};
-    vk::PresentModeKHR   present_mode{};
-    uint32_t             min_image_count;
   };
 
  public:
@@ -28,45 +22,40 @@ class Swapchain {
 
   void ReCreate(Renderer* renderer);
 
-  InitializeInfo info{};
+ private:
+  Renderer*        renderer_ = nullptr;
+  vk::SwapchainKHR swapchain_{};
 
-  Renderer*            renderer;
-  vk::SwapchainKHR     swapchain{};
+  uint32_t             swapchain_image_count_{};
+  Array<vk::Image>     swapchain_images_{};
+  Array<vk::ImageView> swapchain_imageviews_{};
+  Depthbuffer          depthbuffer_;
 
-  vk::SurfaceCapabilitiesKHR capabilities{};
-  vk::SurfaceFormatKHR       surface_format{};
-  vk::PresentModeKHR         present_mode{};
-  uint32_t             swapchain_image_count{};
-  Array<vk::Image>     swapchain_images{};
-  Array<vk::ImageView> swapchain_imageviews{};
-  Depthbuffer          depthbuffer;
+  vk::RenderPass         render_pass_{};
+  Array<vk::Framebuffer> framebuffers_{};
 
-  vk::RenderPass         render_pass{};
-  Array<vk::Framebuffer> framebuffers{};
+  vk::CommandPool          command_pool_{};
+  Array<vk::CommandBuffer> commands_{};
 
-  vk::CommandPool          command_pool{};
-  Array<vk::CommandBuffer> commands{};
+  uint32_t image_index_{};
 
-  uint32_t image_index{};
+  bool           enable_clear_{};
+  vk::ClearValue clear_value_{};
 
-  bool           enable_clear{};
-  vk::ClearValue clear_value{};
-
-  uint32_t             frame_index{};
-  Array<vk::Fence>     device_idle{};
-  Array<vk::Semaphore> image_acquired{};
-  Array<vk::Semaphore> render_complete{};
+  uint32_t             frame_index_{};
+  Array<vk::Fence>     device_idle_{};
+  Array<vk::Semaphore> image_acquired_{};
+  Array<vk::Semaphore> render_complete_{};
 
  private:
   void Create();
-  void Destroy(bool excludeSwapchain);
+  void Destroy();
 
-  void UpdateInfo();
-  void CreateSwapchain(vk::SwapchainKHR oldSwapchain);
-  void CreateSwapchainImageViews();
-  void CreateDepthbuffer();
-  void CreateRenderPass();
-  void CreateFramebuffers();
+  void GetSwapchainImages();
+  void CreateSwapchainImageViews(vk::Format format);
+  void CreateDepthbuffer(vk::Extent2D extent);
+  void CreateRenderPass(vk::Format format);
+  void CreateFramebuffers(vk::Extent2D extent);
   void CreateCommandBuffers();
   void CreateSyncObject();
 };

@@ -20,12 +20,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\source\Application.cc" />
+    <ClCompile Include="..\..\Source\impl\Device.cc" />
     <ClCompile Include="..\..\Source\impl\Renderer.cc" />
     <ClCompile Include="..\..\Source\impl\Swapchain.cc" />
     <ClCompile Include="..\..\Source\impl\Window.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\VPP\Application.h" />
+    <ClInclude Include="..\..\Source\impl\Device.h" />
     <ClInclude Include="..\..\Source\impl\Renderer.h" />
     <ClInclude Include="..\..\Source\impl\Swapchain.h" />
     <ClInclude Include="..\..\Source\impl\UniqueArray.hpp" />

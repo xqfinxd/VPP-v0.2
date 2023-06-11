@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "Singleton.hpp"
+
 namespace VPP {
 namespace impl {
 struct WindowFrame {
@@ -13,8 +15,9 @@ struct WindowFrame {
   uint32_t               frame_num = 0;
 };
 
-class Window {
+class Window : protected Singleton<Window> {
   friend class Renderer;
+  friend Window* GetWindow();
 
  public:
   Window();
@@ -35,5 +38,8 @@ class Window {
   uint32_t    frame_duration_ = 0;
   SDL_Window* window_ = nullptr;
 };
+
+Window* GetWindow();
+
 }  // namespace impl
 }  // namespace VPP

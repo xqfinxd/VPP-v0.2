@@ -27,6 +27,9 @@
     <ClCompile Include="..\..\Source\impl\Swapchain.cc">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\impl\Device.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\VPP\Application.h">
@@ -42,6 +45,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\impl\UniqueArray.hpp">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\Device.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,6 +1,7 @@
 #include "Window.h"
 
 #include <SDL2/SDL_vulkan.h>
+
 #include <cassert>
 #include <iostream>
 
@@ -8,13 +9,6 @@
 
 namespace VPP {
 namespace impl {
-Window::~Window() {
-  if (window_) {
-    SDL_DestroyWindow(window_);
-    SDL_Quit();
-  }
-}
-
 Window::Window() {
   bool initialized = SDL_Init(SDL_INIT_EVERYTHING);
   assert(initialized == 0);
@@ -26,6 +20,13 @@ Window::Window() {
   assert(window_);
   running_flag_ = true;
   set_fps(cfg.fps);
+}
+
+Window::~Window() {
+  if (window_) {
+    SDL_DestroyWindow(window_);
+    SDL_Quit();
+  }
 }
 
 void Window::Close() {
@@ -59,5 +60,10 @@ void Window::set_fps(int fps) {
     frame_duration_ = 1000 / fps;
   }
 }
+
+Window* GetWindow() {
+  return Window::GetSingleton();
+}
+
 }  // namespace impl
 }  // namespace VPP

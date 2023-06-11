@@ -29,6 +29,8 @@ struct QueueIndices {
 };
 
 class Renderer {
+  friend class Device;
+
  public:
   Renderer(Window& window);
   ~Renderer();
@@ -44,11 +46,13 @@ class Renderer {
     return indices_;
   }
 
-  vk::SurfaceCapabilitiesKHR GetCapabilities() const;
-  std::vector<vk::PresentModeKHR> GetPresentModes() const;
+  vk::SurfaceCapabilitiesKHR        GetCapabilities() const;
+  std::vector<vk::PresentModeKHR>   GetPresentModes() const;
   std::vector<vk::SurfaceFormatKHR> GetFormats() const;
 
-  vk::SwapchainKHR CreateSwapchain(vk::SwapchainKHR oldSwapchain, vk::SurfaceFormatKHR format, vk::PresentModeKHR presentMode);
+  vk::SwapchainKHR CreateSwapchain(vk::SwapchainKHR     oldSwapchain,
+                                   vk::SurfaceFormatKHR format,
+                                   vk::PresentModeKHR   presentMode);
 
  private:
   vk::Instance       instance_{};
