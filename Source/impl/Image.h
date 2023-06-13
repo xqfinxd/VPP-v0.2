@@ -1,10 +1,10 @@
 #include <vulkan/vulkan.hpp>
 
-#include "renderer_impl.h"
+#include "Device.h"
 
 namespace VPP {
 namespace impl {
-class Image {
+class Image : public DeviceResource {
  public:
   Image();
   ~Image();
@@ -23,7 +23,7 @@ class Image {
   vk::DeviceMemory memory_{};
 };
 
-class Sampler {
+class Sampler : public DeviceResource {
  public:
   Sampler();
   ~Sampler();

@@ -11,8 +11,8 @@
 class ShaderData;
 class ShaderLoader;
 
-SHADER_API ShaderLoader* CreateShaderLoader(std::vector<const char*> files);
+SHADER_API ShaderLoader* ShaderLoader_Create(std::vector<const char*> files);
 
-SHADER_API void DestroyShaderLoader(ShaderLoader* loader);
+SHADER_API void ShaderLoader_Destroy(ShaderLoader* loader);
 
-SHADER_API void GetShaderData(const ShaderLoader* loader, ShaderData* data);
+SHADER_API void ShaderLoader_GetData(const ShaderLoader* loader, ShaderData* data);

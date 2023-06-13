@@ -507,7 +507,7 @@ void ShaderData::AddSpvData(vk::ShaderStageFlagBits stage,
   spv_datas_.back().data.swap(data);
 }
 
-ShaderLoader* CreateShaderLoader(std::vector<const char*> files) {
+ShaderLoader* ShaderLoader_Create(std::vector<const char*> files) {
   auto loader = std::make_unique<ShaderLoader>();
 
   for (auto fn : files) {
@@ -523,13 +523,13 @@ ShaderLoader* CreateShaderLoader(std::vector<const char*> files) {
   return loader.release();
 }
 
-void DestroyShaderLoader(ShaderLoader* loader) {
+void ShaderLoader_Destroy(ShaderLoader* loader) {
   if (loader) {
     delete loader;
   }
 }
 
-void GetShaderData(const ShaderLoader* loader, ShaderData* data) {
+void ShaderLoader_GetData(const ShaderLoader* loader, ShaderData* data) {
   if (loader && data) {
     loader->Query(*data);
   }

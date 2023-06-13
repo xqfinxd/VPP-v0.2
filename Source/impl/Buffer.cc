@@ -1,24 +1,29 @@
-#include "buffer_impl.h"
+#include "Buffer.h"
 
 namespace VPP {
 namespace impl {
-vk::MemoryPropertyFlags GetMemoryTypeByUsage(vk::BufferUsageFlags usage) {
-  if (usage & vk::BufferUsageFlagBits::eVertexBuffer) {
-    return vk::MemoryPropertyFlagBits::eHostVisible |
-           vk::MemoryPropertyFlagBits::eHostCoherent;
-  }
-  return (vk::MemoryPropertyFlags)0;
-}
 
 Buffer::Buffer() {}
 
-Buffer::~Buffer() {}
+Buffer::~Buffer() {
+  auto& device = renderer()->device();
+  device.destroy(buffer_);
+  device.free(memory_);
+}
 
 bool Buffer::Init(vk::BufferUsageFlags usage, vk::DeviceSize size) {
+  return Init(usage, size,
+              vk::MemoryPropertyFlagBits::eHostVisible |
+                  vk::MemoryPropertyFlagBits::eHostCoherent);
+}
+
+bool Buffer::Init(vk::BufferUsageFlags usage, vk::DeviceSize size,
+                  vk::MemoryPropertyFlags memoryFlags) {
   usage_ = usage;
   size_ = size;
+  memory_flags_ = memoryFlags;
 
-  auto& rnd = Renderer::Ref();
+  auto& device = renderer()->device();
 
   vk::Result result = vk::Result::eSuccess;
 
@@ -28,31 +33,30 @@ bool Buffer::Init(vk::BufferUsageFlags usage, vk::DeviceSize size) {
                       .setPQueueFamilyIndices(nullptr)
                       .setSharingMode(vk::SharingMode::eExclusive)
                       .setSize(size);
-  result = rnd.device.createBuffer(&bufferCI, nullptr, &buffer_);
+  result = device.createBuffer(&bufferCI, nullptr, &buffer_);
   if (result != vk::Result::eSuccess) {
     return false;
   }
   vk::MemoryRequirements req;
-  req = rnd.device.getBufferMemoryRequirements(buffer_);
+  req = device.getBufferMemoryRequirements(buffer_);
   auto allocateInfo = vk::MemoryAllocateInfo().setAllocationSize(req.size);
 
-  vk::MemoryPropertyFlags memFlags = GetMemoryTypeByUsage(usage_);
-  auto found = rnd.FindMemoryType(req.memoryTypeBits, memFlags,
-                                  allocateInfo.memoryTypeIndex);
+  auto found = renderer()->FindMemoryType(req.memoryTypeBits, memory_flags_,
+                                          allocateInfo.memoryTypeIndex);
   if (!found) {
     return false;
   }
-  result = rnd.device.allocateMemory(&allocateInfo, nullptr, &memory_);
+  result = device.allocateMemory(&allocateInfo, nullptr, &memory_);
   if (result != vk::Result::eSuccess) {
     return false;
   }
 
-  rnd.device.bindBufferMemory(buffer_, memory_, 0);
+  device.bindBufferMemory(buffer_, memory_, 0);
   return true;
 }
 
 bool Buffer::SetData(void* data, size_t size) {
-  auto& device = Renderer::Ref().device;
+  auto& device = renderer()->device();
 
   vk::Result result = vk::Result::eSuccess;
 
