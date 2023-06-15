@@ -2,25 +2,22 @@
 
 namespace VPP {
 namespace impl {
-Image::Image() {}
+Image::Image() {
+}
 
 Image::~Image() {
-  auto& device = renderer()->device();
-
   if (image_) {
-    device.destroy(image_);
+    device().destroy(image_);
   }
   if (view_) {
-    device.destroy(view_);
+    device().destroy(view_);
   }
   if (memory_) {
-    device.free(memory_);
+    device().free(memory_);
   }
 }
 
 bool Image::Init(vk::Format format, uint32_t width, uint32_t height) {
-  auto& device = renderer()->device();
-
   auto imageCI = vk::ImageCreateInfo()
                      .setImageType(vk::ImageType::e2D)
                      .setFormat(vk::Format::eR32G32B32A32Sfloat)
@@ -35,42 +32,31 @@ bool Image::Init(vk::Format format, uint32_t width, uint32_t height) {
                      .setPQueueFamilyIndices(nullptr)
                      .setInitialLayout(vk::ImageLayout::ePreinitialized);
 
-  auto result = device.createImage(&imageCI, nullptr, &image_);
+  auto result = device().createImage(&imageCI, nullptr, &image_);
   if (result != vk::Result::eSuccess) {
     return false;
   }
 
   vk::MemoryRequirements req{};
-  device.getImageMemoryRequirements(image_, &req);
-
-  vk::MemoryAllocateInfo memoryAI = vk::MemoryAllocateInfo();
-  memoryAI.setAllocationSize(req.size);
-  memoryAI.setMemoryTypeIndex(0);
-  auto memType = vk::MemoryPropertyFlagBits::eHostVisible |
-                 vk::MemoryPropertyFlagBits::eHostCoherent;
-  auto pass =
-      renderer()->FindMemoryType(req.memoryTypeBits, memType, memoryAI.memoryTypeIndex);
-  if (result != vk::Result::eSuccess) {
-    return false;
-  }
-  result = device.allocateMemory(&memoryAI, nullptr, &memory_);
-  if (result != vk::Result::eSuccess) {
+  device().getImageMemoryRequirements(image_, &req);
+  memory_ = CreateMemory(
+      req, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  if (!memory_) {
     return false;
   }
 
-  device.bindImageMemory(image_, memory_, 0);
+  device().bindImageMemory(image_, memory_, 0);
 
   memory_size_ = req.size;
 
-  auto const imageViewCI =
-      vk::ImageViewCreateInfo()
-          .setImage(image_)
-          .setViewType(vk::ImageViewType::e2D)
-          .setFormat(vk::Format::eR32G32B32A32Sfloat)
-          .setSubresourceRange(vk::ImageSubresourceRange(
-              vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
+  auto const imageViewCI = vk::ImageViewCreateInfo()
+                               .setImage(image_)
+                               .setViewType(vk::ImageViewType::e2D)
+                               .setFormat(vk::Format::eR32G32B32A32Sfloat)
+                               .setSubresourceRange(vk::ImageSubresourceRange(
+                                   vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
 
-  result = device.createImageView(&imageViewCI, nullptr, &view_);
+  result = device().createImageView(&imageViewCI, nullptr, &view_);
   if (result != vk::Result::eSuccess) {
     return false;
   }
@@ -79,50 +65,45 @@ bool Image::Init(vk::Format format, uint32_t width, uint32_t height) {
 }
 
 bool Image::SetData(void* data, size_t size) {
-  auto& device = renderer()->device();
-
   vk::DeviceSize mapSize = std::min(memory_size_, size);
 
-  auto ptr = device.mapMemory(memory_, 0, mapSize);
+  auto ptr = device().mapMemory(memory_, 0, mapSize);
   if (!ptr) {
     return false;
   }
   memcpy(ptr, data, size);
-  device.unmapMemory(memory_);
+  device().unmapMemory(memory_);
 
   return true;
 }
 
-Sampler::Sampler() {}
+Sampler::Sampler() {
+}
 
 Sampler::~Sampler() {
-  auto& device = renderer()->device();
-
   if (sampler_) {
-    device.destroy(sampler_);
+    device().destroy(sampler_);
   }
 }
 
 bool Sampler::Init() {
-  vk::SamplerCreateInfo samplerInfo =
-      vk::SamplerCreateInfo()
-          .setMagFilter(vk::Filter::eNearest)
-          .setMinFilter(vk::Filter::eNearest)
-          .setMipmapMode(vk::SamplerMipmapMode::eNearest)
-          .setAddressModeU(vk::SamplerAddressMode::eClampToEdge)
-          .setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
-          .setAddressModeW(vk::SamplerAddressMode::eClampToEdge)
-          .setMipLodBias(0.0f)
-          .setAnisotropyEnable(VK_FALSE)
-          .setMaxAnisotropy(1)
-          .setCompareEnable(VK_FALSE)
-          .setCompareOp(vk::CompareOp::eNever)
-          .setMinLod(0.0f)
-          .setMaxLod(0.0f)
-          .setBorderColor(vk::BorderColor::eFloatOpaqueWhite)
-          .setUnnormalizedCoordinates(VK_FALSE);
-  auto result =
-      renderer()->device().createSampler(&samplerInfo, nullptr, &sampler_);
+  vk::SamplerCreateInfo samplerInfo = vk::SamplerCreateInfo()
+                                          .setMagFilter(vk::Filter::eNearest)
+                                          .setMinFilter(vk::Filter::eNearest)
+                                          .setMipmapMode(vk::SamplerMipmapMode::eNearest)
+                                          .setAddressModeU(vk::SamplerAddressMode::eClampToEdge)
+                                          .setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
+                                          .setAddressModeW(vk::SamplerAddressMode::eClampToEdge)
+                                          .setMipLodBias(0.0f)
+                                          .setAnisotropyEnable(VK_FALSE)
+                                          .setMaxAnisotropy(1)
+                                          .setCompareEnable(VK_FALSE)
+                                          .setCompareOp(vk::CompareOp::eNever)
+                                          .setMinLod(0.0f)
+                                          .setMaxLod(0.0f)
+                                          .setBorderColor(vk::BorderColor::eFloatOpaqueWhite)
+                                          .setUnnormalizedCoordinates(VK_FALSE);
+  auto result = device().createSampler(&samplerInfo, nullptr, &sampler_);
   if (result != vk::Result::eSuccess) {
     return false;
   }

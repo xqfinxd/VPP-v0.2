@@ -5,7 +5,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "Variables.h"
+#include "VPP_Config.h"
 
 namespace VPP {
 namespace impl {
@@ -13,13 +13,11 @@ Window::Window() {
   bool initialized = SDL_Init(SDL_INIT_EVERYTHING);
   assert(initialized == 0);
 
-  auto& cfg = g_Vars;
-  window_ = SDL_CreateWindow(cfg.title.c_str(), SDL_WINDOWPOS_CENTERED,
-                             SDL_WINDOWPOS_CENTERED, cfg.width, cfg.height,
-                             SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
+  window_ = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                             WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
   assert(window_);
   running_flag_ = true;
-  set_fps(cfg.fps);
+  set_fps(WINDOW_FPS);
 }
 
 Window::~Window() {
@@ -33,7 +31,7 @@ void Window::Close() {
   running_flag_ = false;
 }
 
-void Window::StartFrame(WindowFrame& frame) {
+void Window::StartFrame(WindowFrameData& frame) {
   frame.start_ticks = SDL_GetTicks();
 
   frame.dump_events.clear();
@@ -47,7 +45,7 @@ void Window::StartFrame(WindowFrame& frame) {
   }
 }
 
-void Window::EndFrame(WindowFrame& frame) {
+void Window::EndFrame(WindowFrameData& frame) {
   auto endTicks = SDL_GetTicks();
   auto delta = endTicks - frame.start_ticks;
   if (delta < frame_duration_) {
@@ -64,6 +62,5 @@ void Window::set_fps(int fps) {
 Window* GetWindow() {
   return Window::GetSingleton();
 }
-
 }  // namespace impl
 }  // namespace VPP

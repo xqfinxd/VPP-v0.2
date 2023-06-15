@@ -4,23 +4,35 @@
 
 namespace VPP {
 namespace impl {
-class Buffer : public DeviceResource {
- public:
-  Buffer();
-  ~Buffer();
 
-  bool Init(vk::BufferUsageFlags usage, vk::DeviceSize size);
-  bool Init(vk::BufferUsageFlags usage, vk::DeviceSize size,
-            vk::MemoryPropertyFlags memoryFlags);
-  bool SetData(void* data, size_t size);
+class VertexBuffer : public DeviceResource {
+ public:
+  VertexBuffer();
+  ~VertexBuffer();
+
+  bool Init(uint32_t stride, uint32_t count, void* data, size_t size);
 
  private:
-  vk::BufferUsageFlags    usage_ = (vk::BufferUsageFlags)0;
-  vk::DeviceSize          size_ = 0;
-  vk::MemoryPropertyFlags memory_flags_;
+  uint32_t vertex_stride_ = 0;
+  uint32_t vertex_count_ = 0;
 
-  vk::Buffer              buffer_{};
-  vk::DeviceMemory        memory_{};
+  vk::Buffer buffer_{};
+  vk::DeviceMemory memory_{};
 };
+
+class IndexBuffer : public DeviceResource {
+ public:
+  IndexBuffer();
+  ~IndexBuffer();
+
+  bool Init(uint32_t count, void* data, size_t size);
+
+ private:
+  uint32_t index_count_ = 0;
+
+  vk::Buffer buffer_{};
+  vk::DeviceMemory memory_{};
+};
+
 }  // namespace impl
 }  // namespace VPP

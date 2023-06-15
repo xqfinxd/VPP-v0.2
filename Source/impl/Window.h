@@ -9,14 +9,14 @@
 
 namespace VPP {
 namespace impl {
-struct WindowFrame {
+struct WindowFrameData {
   std::vector<SDL_Event> dump_events{};
-  uint32_t               start_ticks = 0;
-  uint32_t               frame_num = 0;
+  uint32_t start_ticks = 0;
+  uint32_t frame_num = 0;
 };
 
 class Window : protected Singleton<Window> {
-  friend class Renderer;
+  friend class Device;
   friend Window* GetWindow();
 
  public:
@@ -25,8 +25,8 @@ class Window : protected Singleton<Window> {
 
   void Close();
 
-  void StartFrame(WindowFrame& frame);
-  void EndFrame(WindowFrame& frame);
+  void StartFrame(WindowFrameData& frame);
+  void EndFrame(WindowFrameData& frame);
 
   void set_fps(int fps);
   bool running() const {
@@ -34,12 +34,11 @@ class Window : protected Singleton<Window> {
   }
 
  private:
-  bool        running_flag_ = false;
-  uint32_t    frame_duration_ = 0;
+  bool running_flag_ = false;
+  uint32_t frame_duration_ = 0;
   SDL_Window* window_ = nullptr;
 };
 
 Window* GetWindow();
-
 }  // namespace impl
 }  // namespace VPP

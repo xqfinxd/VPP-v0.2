@@ -14,12 +14,12 @@ class Image : public DeviceResource {
 
  private:
   vk::Format format_ = vk::Format::eUndefined;
-  uint32_t   width_ = 0;
-  uint32_t   height_ = 0;
+  uint32_t width_ = 0;
+  uint32_t height_ = 0;
 
-  vk::DeviceSize   memory_size_ = 0;
-  vk::Image        image_{};
-  vk::ImageView    view_{};
+  vk::DeviceSize memory_size_ = 0;
+  vk::Image image_{};
+  vk::ImageView view_{};
   vk::DeviceMemory memory_{};
 };
 

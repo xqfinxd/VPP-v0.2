@@ -2,74 +2,98 @@
 
 namespace VPP {
 namespace impl {
-
-Buffer::Buffer() {}
-
-Buffer::~Buffer() {
-  auto& device = renderer()->device();
-  device.destroy(buffer_);
-  device.free(memory_);
+VertexBuffer::VertexBuffer() : DeviceResource() {
 }
 
-bool Buffer::Init(vk::BufferUsageFlags usage, vk::DeviceSize size) {
-  return Init(usage, size,
-              vk::MemoryPropertyFlagBits::eHostVisible |
-                  vk::MemoryPropertyFlagBits::eHostCoherent);
+VertexBuffer::~VertexBuffer() {
+  device().destroy(buffer_);
+  device().free(memory_);
 }
 
-bool Buffer::Init(vk::BufferUsageFlags usage, vk::DeviceSize size,
-                  vk::MemoryPropertyFlags memoryFlags) {
-  usage_ = usage;
-  size_ = size;
-  memory_flags_ = memoryFlags;
+bool VertexBuffer::Init(uint32_t stride, uint32_t count, void* data, size_t size) {
+  vertex_stride_ = stride;
+  vertex_count_ = count;
 
-  auto& device = renderer()->device();
-
-  vk::Result result = vk::Result::eSuccess;
+  auto result = vk::Result::eSuccess;
 
   auto bufferCI = vk::BufferCreateInfo()
-                      .setUsage(usage)
+                      .setUsage(vk::BufferUsageFlagBits::eVertexBuffer)
                       .setQueueFamilyIndexCount(0)
                       .setPQueueFamilyIndices(nullptr)
                       .setSharingMode(vk::SharingMode::eExclusive)
                       .setSize(size);
-  result = device.createBuffer(&bufferCI, nullptr, &buffer_);
-  if (result != vk::Result::eSuccess) {
-    return false;
-  }
-  vk::MemoryRequirements req;
-  req = device.getBufferMemoryRequirements(buffer_);
-  auto allocateInfo = vk::MemoryAllocateInfo().setAllocationSize(req.size);
-
-  auto found = renderer()->FindMemoryType(req.memoryTypeBits, memory_flags_,
-                                          allocateInfo.memoryTypeIndex);
-  if (!found) {
-    return false;
-  }
-  result = device.allocateMemory(&allocateInfo, nullptr, &memory_);
+  result = device().createBuffer(&bufferCI, nullptr, &buffer_);
   if (result != vk::Result::eSuccess) {
     return false;
   }
 
-  device.bindBufferMemory(buffer_, memory_, 0);
+  auto req = device().getBufferMemoryRequirements(buffer_);
+
+  vk::MemoryPropertyFlags memFlags =
+      vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+  memory_ = CreateMemory(req, memFlags);
+  if (!memory_) {
+    return false;
+  }
+
+  void* mapData = nullptr;
+  size_t memSize = std::min(req.size, size);
+  result = device().mapMemory(memory_, 0, req.size, vk::MemoryMapFlags(), &mapData);
+  if (result != vk::Result::eSuccess) {
+    return false;
+  }
+  memcpy(mapData, data, memSize);
+  device().unmapMemory(memory_);
+
+  device().bindBufferMemory(buffer_, memory_, 0);
   return true;
 }
 
-bool Buffer::SetData(void* data, size_t size) {
-  auto& device = renderer()->device();
+IndexBuffer::IndexBuffer() : DeviceResource() {
+}
 
-  vk::Result result = vk::Result::eSuccess;
+IndexBuffer::~IndexBuffer() {
+  device().destroy(buffer_);
+  device().free(memory_);
+}
 
-  void*  mapData = nullptr;
-  size_t limitSize = std::min(size, size_);
-  result =
-      device.mapMemory(memory_, 0, limitSize, vk::MemoryMapFlags(), &mapData);
+bool IndexBuffer::Init(uint32_t count, void* data, size_t size) {
+  index_count_ = count;
+
+  auto result = vk::Result::eSuccess;
+
+  auto bufferCI = vk::BufferCreateInfo()
+                      .setUsage(vk::BufferUsageFlagBits::eIndexBuffer)
+                      .setQueueFamilyIndexCount(0)
+                      .setPQueueFamilyIndices(nullptr)
+                      .setSharingMode(vk::SharingMode::eExclusive)
+                      .setSize(size);
+  result = device().createBuffer(&bufferCI, nullptr, &buffer_);
   if (result != vk::Result::eSuccess) {
     return false;
   }
-  memcpy(mapData, data, limitSize);
-  device.unmapMemory(memory_);
+
+  auto req = device().getBufferMemoryRequirements(buffer_);
+
+  vk::MemoryPropertyFlags memFlags =
+      vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+  memory_ = CreateMemory(req, memFlags);
+  if (!memory_) {
+    return false;
+  }
+
+  void* mapData = nullptr;
+  size_t memSize = std::min(req.size, size);
+  result = device().mapMemory(memory_, 0, req.size, vk::MemoryMapFlags(), &mapData);
+  if (result != vk::Result::eSuccess) {
+    return false;
+  }
+  memcpy(mapData, data, memSize);
+  device().unmapMemory(memory_);
+
+  device().bindBufferMemory(buffer_, memory_, 0);
   return true;
 }
+
 }  // namespace impl
 }  // namespace VPP

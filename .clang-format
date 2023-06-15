@@ -3,13 +3,11 @@
 Language: Cpp
 BasedOnStyle: Google
 
-AlignConsecutiveDeclarations: true
-
-AllowShortFunctionsOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: Empty
 AllowShortLoopsOnASingleLine: 'false'
 
-ColumnLimit: 80
+ColumnLimit: 100
 PointerAlignment: Left
 FixNamespaceComments: 'true'

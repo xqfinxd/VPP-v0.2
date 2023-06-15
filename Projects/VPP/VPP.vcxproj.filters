@@ -21,12 +21,6 @@
     <ClCompile Include="..\..\Source\impl\Window.cc">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\impl\Renderer.cc">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\impl\Swapchain.cc">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Source\impl\Device.cc">
       <Filter>Source</Filter>
     </ClCompile>
@@ -44,16 +38,10 @@
     <ClInclude Include="..\..\Source\impl\Window.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\impl\Renderer.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\impl\Swapchain.h">
+    <ClInclude Include="..\..\Source\impl\Device.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\impl\UniqueArray.hpp">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\impl\Device.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\impl\Buffer.h">
