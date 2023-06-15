@@ -4,7 +4,6 @@
 
 namespace VPP {
 namespace impl {
-
 class VertexBuffer : public DeviceResource {
  public:
   VertexBuffer();
@@ -34,5 +33,19 @@ class IndexBuffer : public DeviceResource {
   vk::DeviceMemory memory_{};
 };
 
+class UniformBuffer : public DeviceResource {
+ public:
+  UniformBuffer();
+  ~UniformBuffer();
+
+  bool Init(size_t size);
+
+ private:
+  size_t size_ = 0;
+  std::vector<uint8_t> data_{};
+
+  vk::Buffer buffer_{};
+  vk::DeviceMemory memory_{};
+};
 }  // namespace impl
 }  // namespace VPP

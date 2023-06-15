@@ -2,10 +2,13 @@
 
 namespace VPP {
 namespace impl {
-Image::Image() {
+SampledImage::SampledImage() : DeviceResource() {
 }
 
-Image::~Image() {
+SampledImage::~SampledImage() {
+  if (memory_) {
+    device().free(memory_);
+  }
   if (image_) {
     device().destroy(image_);
   }
@@ -17,7 +20,8 @@ Image::~Image() {
   }
 }
 
-bool Image::Init(vk::Format format, uint32_t width, uint32_t height) {
+bool SampledImage::Init(vk::Format format, uint32_t width, uint32_t height, void* data,
+                        size_t size) {
   auto imageCI = vk::ImageCreateInfo()
                      .setImageType(vk::ImageType::e2D)
                      .setFormat(vk::Format::eR32G32B32A32Sfloat)
@@ -45,68 +49,50 @@ bool Image::Init(vk::Format format, uint32_t width, uint32_t height) {
     return false;
   }
 
+  auto memSize = std::min(req.size, size);
+  auto ptr = device().mapMemory(memory_, 0, memSize);
+  if (!ptr) {
+    return false;
+  }
+
+  memcpy(ptr, data, size);
+  device().unmapMemory(memory_);
+
   device().bindImageMemory(image_, memory_, 0);
 
-  memory_size_ = req.size;
-
-  auto const imageViewCI = vk::ImageViewCreateInfo()
-                               .setImage(image_)
-                               .setViewType(vk::ImageViewType::e2D)
-                               .setFormat(vk::Format::eR32G32B32A32Sfloat)
-                               .setSubresourceRange(vk::ImageSubresourceRange(
-                                   vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
+  auto imageViewCI = vk::ImageViewCreateInfo()
+                         .setImage(image_)
+                         .setViewType(vk::ImageViewType::e2D)
+                         .setFormat(vk::Format::eR32G32B32A32Sfloat)
+                         .setSubresourceRange(vk::ImageSubresourceRange(
+                             vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
 
   result = device().createImageView(&imageViewCI, nullptr, &view_);
   if (result != vk::Result::eSuccess) {
     return false;
   }
 
-  return true;
-}
-
-bool Image::SetData(void* data, size_t size) {
-  vk::DeviceSize mapSize = std::min(memory_size_, size);
-
-  auto ptr = device().mapMemory(memory_, 0, mapSize);
-  if (!ptr) {
-    return false;
-  }
-  memcpy(ptr, data, size);
-  device().unmapMemory(memory_);
-
-  return true;
-}
-
-Sampler::Sampler() {
-}
-
-Sampler::~Sampler() {
-  if (sampler_) {
-    device().destroy(sampler_);
-  }
-}
-
-bool Sampler::Init() {
-  vk::SamplerCreateInfo samplerInfo = vk::SamplerCreateInfo()
-                                          .setMagFilter(vk::Filter::eNearest)
-                                          .setMinFilter(vk::Filter::eNearest)
-                                          .setMipmapMode(vk::SamplerMipmapMode::eNearest)
-                                          .setAddressModeU(vk::SamplerAddressMode::eClampToEdge)
-                                          .setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
-                                          .setAddressModeW(vk::SamplerAddressMode::eClampToEdge)
-                                          .setMipLodBias(0.0f)
-                                          .setAnisotropyEnable(VK_FALSE)
-                                          .setMaxAnisotropy(1)
-                                          .setCompareEnable(VK_FALSE)
-                                          .setCompareOp(vk::CompareOp::eNever)
-                                          .setMinLod(0.0f)
-                                          .setMaxLod(0.0f)
-                                          .setBorderColor(vk::BorderColor::eFloatOpaqueWhite)
-                                          .setUnnormalizedCoordinates(VK_FALSE);
-  auto result = device().createSampler(&samplerInfo, nullptr, &sampler_);
+  auto samplerInfo = vk::SamplerCreateInfo()
+                         .setMagFilter(vk::Filter::eNearest)
+                         .setMinFilter(vk::Filter::eNearest)
+                         .setMipmapMode(vk::SamplerMipmapMode::eNearest)
+                         .setAddressModeU(vk::SamplerAddressMode::eClampToEdge)
+                         .setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
+                         .setAddressModeW(vk::SamplerAddressMode::eClampToEdge)
+                         .setMipLodBias(0.0f)
+                         .setAnisotropyEnable(VK_FALSE)
+                         .setMaxAnisotropy(1)
+                         .setCompareEnable(VK_FALSE)
+                         .setCompareOp(vk::CompareOp::eNever)
+                         .setMinLod(0.0f)
+                         .setMaxLod(0.0f)
+                         .setBorderColor(vk::BorderColor::eFloatOpaqueWhite)
+                         .setUnnormalizedCoordinates(VK_FALSE);
+  result = device().createSampler(&samplerInfo, nullptr, &sampler_);
   if (result != vk::Result::eSuccess) {
     return false;
   }
+
   return true;
 }
 }  // namespace impl

@@ -7,7 +7,7 @@ class ShaderData {
  public:
   struct LayoutSet {
     using LB = vk::DescriptorSetLayoutBinding;
-    uint32_t        set_num{};
+    uint32_t set_num{};
     std::vector<LB> bindings{};
   };
 
@@ -15,7 +15,7 @@ class ShaderData {
     using Stage = vk::ShaderStageFlagBits;
     using Data = std::vector<uint32_t>;
     Stage stage = (Stage)~0;
-    Data  data{};
+    Data data{};
   };
 
   using PushConstant = vk::PushConstantRange;
@@ -65,8 +65,8 @@ class ShaderData {
   void AddSpvData(vk::ShaderStageFlagBits stage, std::vector<uint32_t>&& data);
 
  private:
-  std::vector<LayoutSet>    layout_sets_{};
+  std::vector<LayoutSet> layout_sets_{};
   std::vector<PushConstant> push_constants_{};
-  std::vector<uint32_t>     locations_{};
-  std::vector<SpvData>      spv_datas_{};
+  std::vector<uint32_t> locations_{};
+  std::vector<SpvData> spv_datas_{};
 };

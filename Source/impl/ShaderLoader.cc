@@ -27,16 +27,13 @@
 #endif
 
 namespace {
-const int                             kGlslVersion = 400;
-const glslang::EShSource              kSourceLanguage = glslang::EShSourceGlsl;
-const glslang::EShClient              kClient = glslang::EShClientVulkan;
-const glslang::EShTargetClientVersion kClientVersion =
-    glslang::EShTargetVulkan_1_1;
-const glslang::EShTargetLanguage        kTargetLanguage = glslang::EShTargetSpv;
-const glslang::EShTargetLanguageVersion kTargetLanguageVersion =
-    glslang::EShTargetSpv_1_2;
-const EShMessages kMessages =
-    (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules | EShMsgAST);
+const int kGlslVersion = 400;
+const glslang::EShSource kSourceLanguage = glslang::EShSourceGlsl;
+const glslang::EShClient kClient = glslang::EShClientVulkan;
+const glslang::EShTargetClientVersion kClientVersion = glslang::EShTargetVulkan_1_1;
+const glslang::EShTargetLanguage kTargetLanguage = glslang::EShTargetSpv;
+const glslang::EShTargetLanguageVersion kTargetLanguageVersion = glslang::EShTargetSpv_1_2;
+const EShMessages kMessages = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules | EShMsgAST);
 }  // namespace
 
 static void InitResources(TBuiltInResource& res) {
@@ -167,8 +164,7 @@ static glslang::TShader* CreateShader(const char* filename, EShLanguage stage) {
   const char* const strs[] = {content.c_str()};
   shader_ptr->setStrings(strs, 1);
   shader_ptr->setEntryPoint("main");
-  shader_ptr->setEnvInput(kSourceLanguage, static_cast<EShLanguage>(stage),
-                          kClient, kGlslVersion);
+  shader_ptr->setEnvInput(kSourceLanguage, static_cast<EShLanguage>(stage), kClient, kGlslVersion);
   shader_ptr->setEnvClient(kClient, kClientVersion);
   shader_ptr->setEnvTarget(kTargetLanguage, kTargetLanguageVersion);
 
@@ -183,8 +179,7 @@ static glslang::TShader* CreateShader(const char* filename, EShLanguage stage) {
   return nullptr;
 }
 
-static glslang::TProgram* CreateProgram(
-    std::vector<glslang::TShader*> shaders) {
+static glslang::TProgram* CreateProgram(std::vector<glslang::TShader*> shaders) {
   if (shaders.empty()) {
     std::cerr << "None shader is added to program" << std::endl;
     return nullptr;
@@ -246,8 +241,7 @@ static vk::ShaderStageFlags GetStages(uint32_t mask) {
   const std::map<uint32_t, vk::ShaderStageFlagBits> table{
       {EShLangVertexMask, vk::ShaderStageFlagBits::eVertex},
       {EShLangTessControlMask, vk::ShaderStageFlagBits::eTessellationControl},
-      {EShLangTessEvaluationMask,
-       vk::ShaderStageFlagBits::eTessellationEvaluation},
+      {EShLangTessEvaluationMask, vk::ShaderStageFlagBits::eTessellationEvaluation},
       {EShLangGeometryMask, vk::ShaderStageFlagBits::eGeometry},
       {EShLangFragmentMask, vk::ShaderStageFlagBits::eFragment},
       {EShLangComputeMask, vk::ShaderStageFlagBits::eCompute},
@@ -320,8 +314,7 @@ vk::PushConstantRange ToPushConstant(const glslang::TObjectReflection& obj) {
   return pushCons;
 }
 
-vk::DescriptorSetLayoutBinding ToBinding(
-    const glslang::TObjectReflection& obj) {
+vk::DescriptorSetLayoutBinding ToBinding(const glslang::TObjectReflection& obj) {
   vk::DescriptorSetLayoutBinding binding{};
 
   auto ttype = obj.getType();
@@ -457,11 +450,10 @@ class ShaderLoader {
 
  private:
   std::vector<glslang::TShader*> shaders_{};
-  glslang::TProgram*             program_{};
+  glslang::TProgram* program_{};
 };
 
-void ShaderData::AddBinding(uint32_t                         setNum,
-                            vk::DescriptorSetLayoutBinding&& binding) {
+void ShaderData::AddBinding(uint32_t setNum, vk::DescriptorSetLayoutBinding&& binding) {
   bool addSet = true;
   for (auto& ls : layout_sets_) {
     if (ls.set_num != setNum) {
@@ -500,8 +492,7 @@ void ShaderData::AddLocation(uint32_t location) {
   }
 }
 
-void ShaderData::AddSpvData(vk::ShaderStageFlagBits stage,
-                            std::vector<uint32_t>&& data) {
+void ShaderData::AddSpvData(vk::ShaderStageFlagBits stage, std::vector<uint32_t>&& data) {
   spv_datas_.emplace_back();
   spv_datas_.back().stage = stage;
   spv_datas_.back().data.swap(data);
