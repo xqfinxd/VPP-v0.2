@@ -4,10 +4,10 @@
 
 namespace VPP {
 namespace impl {
-class SampledImage : public DeviceResource {
+class CombinedImageSampler : public DeviceResource {
  public:
-  SampledImage();
-  ~SampledImage();
+  CombinedImageSampler();
+  ~CombinedImageSampler();
 
   bool Init(vk::Format format, uint32_t width, uint32_t height, void* data, size_t size);
 

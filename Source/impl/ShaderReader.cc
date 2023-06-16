@@ -1,4 +1,4 @@
-#include "ShaderLoader.h"
+#include "ShaderReader.h"
 
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
@@ -285,8 +285,6 @@ vk::DescriptorType GetType(const glslang::TType& ttype) {
       return vk::DescriptorType::eCombinedImageSampler;
     } else if (sampler.isTexture()) {
       return vk::DescriptorType::eSampledImage;
-    } else if (sampler.isTexture()) {
-      return vk::DescriptorType::eSampledImage;
     } else if (sampler.isImage()) {
       return vk::DescriptorType::eStorageImage;
     } else if (sampler.isPureSampler()) {
@@ -330,13 +328,13 @@ vk::DescriptorSetLayoutBinding ToBinding(const glslang::TObjectReflection& obj) 
   return binding;
 }
 
-class ShaderLoader {
+class ShaderReader {
  public:
-  ShaderLoader() {
+  ShaderReader() {
     glslang::InitializeProcess();
   }
 
-  ~ShaderLoader() {
+  ~ShaderReader() {
     if (program_) {
       delete program_;
     }
@@ -498,8 +496,8 @@ void ShaderData::AddSpvData(vk::ShaderStageFlagBits stage, std::vector<uint32_t>
   spv_datas_.back().data.swap(data);
 }
 
-ShaderLoader* ShaderLoader_Create(std::vector<const char*> files) {
-  auto loader = std::make_unique<ShaderLoader>();
+ShaderReader* ShaderReader_Create(std::vector<const char*> files) {
+  auto loader = std::make_unique<ShaderReader>();
 
   for (auto fn : files) {
     if (!loader->AddShader(fn)) {
@@ -514,13 +512,13 @@ ShaderLoader* ShaderLoader_Create(std::vector<const char*> files) {
   return loader.release();
 }
 
-void ShaderLoader_Destroy(ShaderLoader* loader) {
+void ShaderReader_Destroy(ShaderReader* loader) {
   if (loader) {
     delete loader;
   }
 }
 
-void ShaderLoader_GetData(const ShaderLoader* loader, ShaderData* data) {
+void ShaderReader_GetData(const ShaderReader* loader, ShaderData* data) {
   if (loader && data) {
     loader->Query(*data);
   }

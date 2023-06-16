@@ -2,10 +2,10 @@
 
 namespace VPP {
 namespace impl {
-SampledImage::SampledImage() : DeviceResource() {
+CombinedImageSampler::CombinedImageSampler() : DeviceResource() {
 }
 
-SampledImage::~SampledImage() {
+CombinedImageSampler::~CombinedImageSampler() {
   if (memory_) {
     device().free(memory_);
   }
@@ -20,7 +20,7 @@ SampledImage::~SampledImage() {
   }
 }
 
-bool SampledImage::Init(vk::Format format, uint32_t width, uint32_t height, void* data,
+bool CombinedImageSampler::Init(vk::Format format, uint32_t width, uint32_t height, void* data,
                         size_t size) {
   auto imageCI = vk::ImageCreateInfo()
                      .setImageType(vk::ImageType::e2D)

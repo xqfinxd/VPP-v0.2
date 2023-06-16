@@ -18,12 +18,12 @@
     <ClInclude Include="..\..\Source\impl\ShaderData.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\impl\ShaderLoader.h">
+    <ClInclude Include="..\..\Source\impl\ShaderReader.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Source\impl\ShaderLoader.cc">
+    <ClCompile Include="..\..\Source\impl\ShaderReader.cc">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

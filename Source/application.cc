@@ -4,6 +4,8 @@
 
 #include "impl/Device.h"
 #include "impl/Window.h"
+#include "impl/ShaderReader.h"
+#include "impl/ShaderData.h"
 
 namespace VPP {
 Application::Application() {
