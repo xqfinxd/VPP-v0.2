@@ -1,13 +1,13 @@
 ---
-# Use Google code formatting rules.
+# Use LLVM code formatting rules.
 Language: Cpp
-BasedOnStyle: Google
+BasedOnStyle: LLVM
 
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: Empty
 AllowShortLoopsOnASingleLine: 'false'
 
-ColumnLimit: 100
+ColumnLimit: 80
 PointerAlignment: Left
 FixNamespaceComments: 'true'

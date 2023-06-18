@@ -3,13 +3,17 @@
 #include "VPP/Application.h"
 
 class MyApp : public VPP::Application {
- public:
-  MyApp() {}
-  ~MyApp() {}
+public:
+  MyApp() {
+  }
+  ~MyApp() {
+  }
 
-  void OnLoop() override {}
+  void OnLoop() override {
+    __super::OnLoop();
+  }
 
- private:
+private:
 };
 
 int main(int argc, char** argv) {

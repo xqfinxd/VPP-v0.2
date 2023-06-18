@@ -8,6 +8,8 @@
 namespace VPP {
 namespace impl {
 struct SwapchainResource {
+  vk::Extent2D extent{};
+
   uint32_t image_count{};
 
   uint32_t image_index{};
@@ -27,22 +29,29 @@ struct SwapchainResource {
   void Destroy(const vk::Device& device);
 };
 
-class Device : protected Singleton<Device>, protected std::enable_shared_from_this<Device> {
+class Device : protected Singleton<Device>,
+               public std::enable_shared_from_this<Device> {
   friend class DeviceResource;
 
- public:
+public:
   Device(std::shared_ptr<Window> window);
   ~Device();
 
-  bool FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask, uint32_t& typeIndex) const;
-
   void ReCreateSwapchain();
 
- private:
+  uint32_t GetDrawCount() const {
+    return resource_.image_count;
+  }
+
+  void Draw();
+  void EndDraw();
+
+private:
   vk::Instance instance_{};
   vk::SurfaceKHR surface_{};
   vk::PhysicalDevice gpu_{};
   vk::Device device_{};
+  vk::PhysicalDeviceProperties property_{};
 
   uint32_t graphics_index_{UINT32_MAX};
   uint32_t present_index_{UINT32_MAX};
@@ -59,7 +68,7 @@ class Device : protected Singleton<Device>, protected std::enable_shared_from_th
   vk::SwapchainKHR swapchain_{};
   SwapchainResource resource_{};
 
- private:
+private:
   void CreateInstance(SDL_Window* window);
   void CreateSurface(SDL_Window* window);
   void SetGpuAndIndices();
@@ -73,20 +82,47 @@ class Device : protected Singleton<Device>, protected std::enable_shared_from_th
   void CreateRenderPass(vk::Format format);
   void CreateFramebuffers(vk::Extent2D extent);
   void CreateCommandBuffers();
+  bool FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
+                      uint32_t& typeIndex) const;
 };
 
 class DeviceResource {
- protected:
+protected:
   DeviceResource();
 
   const vk::Device& device() const {
     return parent_->device_;
   }
 
-  vk::DeviceMemory CreateMemory(vk::MemoryRequirements& req, vk::MemoryPropertyFlags flags) const;
+  const vk::RenderPass& render_pass() const {
+    return parent_->resource_.render_pass;
+  }
 
- private:
+  const vk::Framebuffer& framebuffer(uint32_t index) const {
+    return parent_->resource_.framebuffers[index];
+  }
+
+  const vk::Framebuffer& framebuffer() const {
+    return framebuffer(parent_->resource_.image_index);
+  }
+
+  const vk::CommandBuffer& command(uint32_t index) const {
+      return parent_->resource_.commands[index];
+  }
+  const vk::CommandBuffer& command() const {
+      return command(parent_->resource_.image_index);
+  }
+
+  const vk::Extent2D& surface_extent() const {
+    return parent_->resource_.extent;
+  }
+
+  vk::DeviceMemory CreateMemory(vk::MemoryRequirements& req,
+                                vk::MemoryPropertyFlags flags) const;
+
+private:
   std::shared_ptr<Device> parent_;
 };
-}  // namespace impl
-}  // namespace VPP
+
+} // namespace impl
+} // namespace VPP

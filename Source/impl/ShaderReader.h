@@ -6,13 +6,22 @@
 #define SHADER_API __declspec(dllexport)
 #else
 #define SHADER_API __declspec(dllimport)
-#endif  // SHADER_EXPORTS
+#endif // SHADER_EXPORTS
 
-class ShaderData;
-class ShaderReader;
+namespace Shader {
 
-SHADER_API ShaderReader* ShaderReader_Create(std::vector<const char*> files);
+struct MetaData;
+struct ReaderImpl;
 
-SHADER_API void ShaderReader_Destroy(ShaderReader* loader);
+class SHADER_API Reader {
+public:
+  Reader();
+  Reader(std::vector<const char*> files);
+  ~Reader();
 
-SHADER_API void ShaderReader_GetData(const ShaderReader* loader, ShaderData* data);
+  bool GetData(MetaData* data);
+
+private:
+  ReaderImpl* impl_ = nullptr;
+};
+} // namespace Shader

@@ -20,8 +20,8 @@ CombinedImageSampler::~CombinedImageSampler() {
   }
 }
 
-bool CombinedImageSampler::Init(vk::Format format, uint32_t width, uint32_t height, void* data,
-                        size_t size) {
+bool CombinedImageSampler::Init(vk::Format format, uint32_t width,
+                                uint32_t height, void* data, size_t size) {
   auto imageCI = vk::ImageCreateInfo()
                      .setImageType(vk::ImageType::e2D)
                      .setFormat(vk::Format::eR32G32B32A32Sfloat)
@@ -43,8 +43,8 @@ bool CombinedImageSampler::Init(vk::Format format, uint32_t width, uint32_t heig
 
   vk::MemoryRequirements req{};
   device().getImageMemoryRequirements(image_, &req);
-  memory_ = CreateMemory(
-      req, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  memory_ = CreateMemory(req, vk::MemoryPropertyFlagBits::eHostVisible |
+                                  vk::MemoryPropertyFlagBits::eHostCoherent);
   if (!memory_) {
     return false;
   }
@@ -95,5 +95,5 @@ bool CombinedImageSampler::Init(vk::Format format, uint32_t width, uint32_t heig
 
   return true;
 }
-}  // namespace impl
-}  // namespace VPP
+} // namespace impl
+} // namespace VPP
