@@ -23,6 +23,8 @@ public:
                        uint32_t offset);
   bool Enable();
 
+  void BindCmd(const vk::CommandBuffer& buf) const;
+
 private:
   struct Module {
     vk::ShaderModule shader{};
@@ -36,27 +38,6 @@ private:
   std::vector<Module> shaders_{};
   std::vector<vk::VertexInputBindingDescription> vertex_bindings_{};
   std::vector<vk::VertexInputAttributeDescription> vertex_attribs_{};
-};
-
-class DrawCmd : public DeviceResource {
-public:
-  DrawCmd(uint32_t index, const std::vector<vk::ClearValue>& clearValues);
-  DrawCmd(DrawCmd&) = delete;
-  DrawCmd(DrawCmd&& dc) noexcept {
-    buf_ = dc.buf_;
-    dc.buf_ = nullptr;
-  }
-  ~DrawCmd();
-
-  void BindPipeline(const Pipeline& pipeline);
-
-  void DrawVertex(const VertexArray& vertex);
-
-  void SetViewport();
-  void SetScissor();
-
-private:
-  const vk::CommandBuffer* buf_{};
 };
 
 } // namespace impl

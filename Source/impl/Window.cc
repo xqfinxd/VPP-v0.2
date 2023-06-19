@@ -13,8 +13,10 @@ Window::Window() {
   bool initialized = SDL_Init(SDL_INIT_EVERYTHING);
   assert(initialized == 0);
 
-  window_ = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                             WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+  window_ = SDL_CreateWindow(
+      WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+      WINDOW_WIDTH, WINDOW_HEIGHT,
+      SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
   assert(window_);
   running_flag_ = true;
   set_fps(WINDOW_FPS);
@@ -59,8 +61,9 @@ void Window::set_fps(int fps) {
   }
 }
 
+extern Window* g_Window;
 Window* GetWindow() {
-  return Window::GetSingleton();
+  return g_Window;
 }
-}  // namespace impl
-}  // namespace VPP
+} // namespace impl
+} // namespace VPP

@@ -140,9 +140,18 @@ bool Pipeline::Enable() {
       vk::PipelineInputAssemblyStateCreateInfo().setTopology(
           vk::PrimitiveTopology::eTriangleList);
 
+  auto& extent = surface_extent();
+  std::vector<vk::Viewport> viewports = {vk::Viewport()
+                                             .setWidth((float)extent.width)
+                                             .setHeight((float)extent.height / 4)
+                                             .setMinDepth((float)0.0f)
+                                             .setMaxDepth((float)1.0f)};
+  std::vector<vk::Rect2D> scissors = {
+    vk::Rect2D{vk::Offset2D(0, 0), extent}
+  };
   auto viewportInfo =
-      vk::PipelineViewportStateCreateInfo().setViewportCount(1).setScissorCount(
-          1);
+      vk::PipelineViewportStateCreateInfo().setViewports(viewports).setScissors(
+          scissors);
 
   auto rasterizationInfo = vk::PipelineRasterizationStateCreateInfo()
                                .setDepthClampEnable(VK_FALSE)
@@ -177,12 +186,10 @@ bool Pipeline::Enable() {
                             .setAttachmentCount(1)
                             .setPAttachments(colorBlendAttachments);
 
-  vk::DynamicState dynamicStates[2] = {vk::DynamicState::eViewport,
-                                       vk::DynamicState::eScissor};
+  std::vector<vk::DynamicState> dynamicStates = {};
 
   auto dynamicStateInfo = vk::PipelineDynamicStateCreateInfo()
-                              .setPDynamicStates(dynamicStates)
-                              .setDynamicStateCount(2);
+                              .setDynamicStates(dynamicStates);
 
   auto pipelineCI = vk::GraphicsPipelineCreateInfo()
                         .setStages(shaderStageInfo)
@@ -201,63 +208,13 @@ bool Pipeline::Enable() {
   return result == vk::Result::eSuccess;
 }
 
-DrawCmd::DrawCmd(uint32_t index, const std::vector<vk::ClearValue>& clearValues)
-    : DeviceResource() {
-  buf_ = &command(index);
-  auto beginInfo = vk::CommandBufferBeginInfo().setFlags(
-      vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-  buf_->begin(beginInfo);
-
-  const auto rpBegin =
-      vk::RenderPassBeginInfo()
-          .setRenderPass(render_pass())
-          .setFramebuffer(framebuffer(index))
-          .setRenderArea(vk::Rect2D(vk::Offset2D{0, 0}, surface_extent()))
-          .setClearValues(clearValues);
-  buf_->beginRenderPass(rpBegin, vk::SubpassContents::eInline);
-}
-
-DrawCmd::~DrawCmd() {
-  buf_->endRenderPass();
-  buf_->end();
-}
-
-void DrawCmd::BindPipeline(const Pipeline& pipeline) {
-  buf_->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.pipeline_);
-  if (!pipeline.desc_set_.empty()) {
+void Pipeline::BindCmd(const vk::CommandBuffer& buf) const {
+  buf.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
+  if (!desc_set_.empty()) {
     std::vector<uint32_t> offset{};
-    buf_->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                             pipeline.pipe_layout_, 0, pipeline.desc_set_,
-                             offset);
+    buf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipe_layout_, 0,
+                           desc_set_, offset);
   }
-}
-
-void DrawCmd::DrawVertex(const VertexArray& vertex) {
-  std::vector<vk::DeviceSize> offsets{};
-  offsets.assign(vertex.vertices_.size(), 0);
-  auto buffers = vertex.GetVertex();
-
-  buf_->bindVertexBuffers(0, buffers, offsets);
-  if (vertex.index_) {
-    buf_->bindIndexBuffer(vertex.GetIndex(), 0, vk::IndexType::eUint32);
-    buf_->drawIndexed(vertex.GetIndexCount(), 1, 0, 0, 0);
-  }
-}
-
-void DrawCmd::SetViewport() {
-  auto& extent = surface_extent();
-  auto viewport = vk::Viewport()
-                      .setWidth((float)extent.width)
-                      .setHeight((float)extent.height)
-                      .setMinDepth((float)0.0f)
-                      .setMaxDepth((float)1.0f);
-  buf_->setViewport(0, 1, &viewport);
-}
-
-void DrawCmd::SetScissor() {
-  auto& extent = surface_extent();
-  vk::Rect2D scissor(vk::Offset2D(0, 0), extent);
-  buf_->setScissor(0, 1, &scissor);
 }
 
 } // namespace impl

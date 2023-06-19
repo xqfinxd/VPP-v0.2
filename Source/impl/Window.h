@@ -15,11 +15,10 @@ struct WindowFrameData {
   uint32_t frame_num = 0;
 };
 
-class Window : protected Singleton<Window> {
+class Window {
   friend class Device;
-  friend Window* GetWindow();
 
- public:
+public:
   Window();
   ~Window();
 
@@ -33,12 +32,12 @@ class Window : protected Singleton<Window> {
     return running_flag_;
   }
 
- private:
+private:
   bool running_flag_ = false;
   uint32_t frame_duration_ = 0;
   SDL_Window* window_ = nullptr;
 };
 
 Window* GetWindow();
-}  // namespace impl
-}  // namespace VPP
+} // namespace impl
+} // namespace VPP

@@ -6,6 +6,7 @@
 #include <set>
 
 #include "VPP_Config.h"
+#include "DrawCmd.h"
 
 namespace VPP {
 namespace impl {
@@ -49,14 +50,13 @@ static std::vector<const char*> GetWindowExtensions(SDL_Window* window) {
   return extensions;
 }
 
-Device::Device(std::shared_ptr<Window> window)
-    : Singleton(), std::enable_shared_from_this<Device>() {
+Device::Device(Window* window) {
   CreateInstance(window->window_);
   CreateSurface(window->window_);
   SetGpuAndIndices();
   CreateDevice();
   GetQueues();
-  CreateSwapchain(VK_NULL_HANDLE);
+  CreateSwapchainResource(VK_NULL_HANDLE);
   CreateSyncObject();
 }
 
@@ -111,9 +111,19 @@ void Device::ReCreateSwapchain() {
   }
 
   DestroySwapchainResource();
-  vk::SwapchainKHR oldSwapchain;
-  CreateSwapchain(oldSwapchain);
-  // device_.destroy(oldSwapchain);
+  vk::SwapchainKHR oldSwapchain = swapchain_;
+  CreateSwapchainResource(oldSwapchain);
+  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
+    cmd_->Call(commands_[i], framebuffers_[i], render_pass_);
+  }
+  device_.destroy(oldSwapchain);
+}
+
+void Device::set_cmd(const DrawCmd& cmd) {
+  cmd_ = &cmd;
+  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
+    cmd_->Call(commands_[i], framebuffers_[i], render_pass_);
+  }
 }
 
 void Device::Draw() {
@@ -128,9 +138,11 @@ void Device::Draw() {
                                          image_acquired_[frame_index_],
                                          vk::Fence(), &curBuf);
     if (result == vk::Result::eErrorOutOfDateKHR) {
-      // swapchain need to resize
+      ReCreateSwapchain();
+      return;
     } else if (result == vk::Result::eSuboptimalKHR) {
-      break;
+      ReCreateSwapchain();
+      return;
     } else {
     }
   } while (result != vk::Result::eSuccess);
@@ -162,10 +174,11 @@ void Device::Draw() {
   frame_index_ += 1;
   frame_index_ %= FRAME_LAG;
   if (result == vk::Result::eErrorOutOfDateKHR) {
-    // swapchain need to resize
+    ReCreateSwapchain();
+    return;
   } else if (result == vk::Result::eSuboptimalKHR) {
-    // swapchain is not as optimal as it could be, but the platform's
-    // presentation engine will still present the image correctly.
+    ReCreateSwapchain();
+    return;
   } else {
   }
 }
@@ -185,7 +198,7 @@ void Device::EndDraw() {
   render_complete_.reset();
 }
 
-void Device::CreateSwapchain(vk::SwapchainKHR oldSwapchain) {
+void Device::CreateSwapchainResource(vk::SwapchainKHR oldSwapchain) {
   vk::Result result = vk::Result::eSuccess;
 
   auto caps = gpu_.getSurfaceCapabilitiesKHR(surface_);
@@ -584,10 +597,6 @@ void Device::CreateSyncObject() {
   frame_index_ = 0;
 }
 
-DeviceResource::DeviceResource() {
-  parent_ = Device::Get().shared_from_this();
-}
-
 vk::DeviceMemory
 DeviceResource::CreateMemory(vk::MemoryRequirements& req,
                              vk::MemoryPropertyFlags flags) const {
@@ -599,6 +608,18 @@ DeviceResource::CreateMemory(vk::MemoryRequirements& req,
     return VK_NULL_HANDLE;
   }
   return device().allocateMemory(memoryAI);
+}
+
+extern Device* g_Device;
+Device* GetDevice() {
+  return g_Device;
+}
+
+DeviceResource::DeviceResource() {
+  parent_ = g_Device;
+}
+
+DeviceResource::~DeviceResource() {
 }
 
 } // namespace impl

@@ -8,12 +8,13 @@
 namespace VPP {
 namespace impl {
 
-class Device : protected Singleton<Device>,
-               public std::enable_shared_from_this<Device> {
+class DrawCmd;
+
+class Device {
   friend class DeviceResource;
 
 public:
-  Device(std::shared_ptr<Window> window);
+  Device(Window* window);
   ~Device();
 
   void ReCreateSwapchain();
@@ -21,7 +22,8 @@ public:
   uint32_t GetDrawCount() const {
     return swapchain_image_count_;
   }
-
+  
+  void set_cmd(const DrawCmd& cmd);
   void Draw();
   void EndDraw();
 
@@ -32,7 +34,7 @@ private:
   void CreateDevice();
   void GetQueues();
   void CreateSyncObject();
-  void CreateSwapchain(vk::SwapchainKHR oldSwapchain);
+  void CreateSwapchainResource(vk::SwapchainKHR oldSwapchain);
   void DestroySwapchainResource();
   void GetSwapchainImages();
   void CreateSwapchainImageViews(vk::Format format);
@@ -80,11 +82,14 @@ private:
 
   vk::CommandPool command_pool_{};
   uarray<vk::CommandBuffer> commands_{};
+
+  const DrawCmd* cmd_;
 };
 
 class DeviceResource {
 protected:
   DeviceResource();
+  ~DeviceResource();
 
   const vk::Device& device() const {
     return parent_->device_;
@@ -92,21 +97,6 @@ protected:
 
   const vk::RenderPass& render_pass() const {
     return parent_->render_pass_;
-  }
-
-  const vk::Framebuffer& framebuffer(uint32_t index) const {
-    return parent_->framebuffers_[index];
-  }
-
-  const vk::Framebuffer& framebuffer() const {
-    return framebuffer(parent_->current_buffer_);
-  }
-
-  const vk::CommandBuffer& command(uint32_t index) const {
-    return parent_->commands_[index];
-  }
-  const vk::CommandBuffer& command() const {
-    return command(parent_->current_buffer_);
   }
 
   const vk::Extent2D& surface_extent() const {
@@ -117,8 +107,10 @@ protected:
                                 vk::MemoryPropertyFlags flags) const;
 
 private:
-  std::shared_ptr<Device> parent_;
+  Device* parent_ = nullptr;
 };
+
+Device* GetDevice();
 
 } // namespace impl
 } // namespace VPP

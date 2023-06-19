@@ -2,8 +2,6 @@
 
 namespace VPP {
 namespace impl {
-VertexBuffer::VertexBuffer() : DeviceResource() {
-}
 
 VertexBuffer::~VertexBuffer() {
   if (buffer_) {
@@ -16,8 +14,8 @@ VertexBuffer::~VertexBuffer() {
 
 bool VertexBuffer::SetData(uint32_t stride, uint32_t count, void* data,
                            size_t size) {
-  vertex_stride_ = stride;
-  vertex_count_ = count;
+  stride_ = stride;
+  count_ = count;
 
   auto result = vk::Result::eSuccess;
 
@@ -55,9 +53,6 @@ bool VertexBuffer::SetData(uint32_t stride, uint32_t count, void* data,
   return true;
 }
 
-IndexBuffer::IndexBuffer() : DeviceResource() {
-}
-
 IndexBuffer::~IndexBuffer() {
   if (buffer_) {
     device().destroy(buffer_);
@@ -68,7 +63,7 @@ IndexBuffer::~IndexBuffer() {
 }
 
 bool IndexBuffer::SetData(uint32_t count, void* data, size_t size) {
-  index_count_ = count;
+  count_ = count;
 
   auto result = vk::Result::eSuccess;
 
@@ -155,12 +150,39 @@ bool UniformBuffer::SetData(size_t size) {
   return true;
 }
 
-void VertexArray::BindVertex(const VertexBuffer& vertex) {
+void VertexArray::add_vertex(const VertexBuffer& vertex) {
   vertices_.push_back(&vertex);
 }
 
-void VertexArray::BindIndex(const IndexBuffer& index) {
+void VertexArray::set_index(const IndexBuffer& index) {
   index_ = &index;
+}
+
+void VertexArray::BindCmd(const vk::CommandBuffer& buf) const {
+  std::vector<vk::Buffer> buffers{};
+  for (const auto& e : vertices_) {
+    buffers.emplace_back(e->buffer());
+  }
+
+  std::vector<vk::DeviceSize> offsets{};
+  offsets.assign(buffers.size(), 0);
+
+  buf.bindVertexBuffers(0, buffers, offsets);
+  if (index_) {
+    buf.bindIndexBuffer(index_->buffer(), 0, vk::IndexType::eUint32);
+  }
+}
+
+void VertexArray::DrawAtCmd(const vk::CommandBuffer& buf) const {
+  if (index_) {
+    buf.drawIndexed(index_->count(), 1, 0, 0, 0);
+  } else {
+    uint32_t minVertexCount = UINT32_MAX;
+    for (const auto* e : vertices_) {
+      minVertexCount = std::min(minVertexCount, e->count());
+    }
+    buf.draw(minVertexCount, 1, 0, 0);
+  }
 }
 
 std::vector<vk::VertexInputBindingDescription>
@@ -170,20 +192,11 @@ VertexArray::GetBindings() const {
   for (const auto& e : vertices_) {
     bindings.emplace_back(vk::VertexInputBindingDescription()
                               .setBinding(index++)
-                              .setStride(e->vertex_stride_)
+                              .setStride(e->stride())
                               .setInputRate(vk::VertexInputRate::eVertex));
   }
   return bindings;
 }
-std::vector<vk::Buffer> VertexArray::GetVertex() const {
-  std::vector<vk::Buffer> buffers{};
-  for (const auto& e : vertices_) {
-    buffers.emplace_back(e->buffer_);
-  }
-  return buffers;
-}
-const vk::Buffer& VertexArray::GetIndex() const {
-  return index_->buffer_;
-}
+
 } // namespace impl
 } // namespace VPP

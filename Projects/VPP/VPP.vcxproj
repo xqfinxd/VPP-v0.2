@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\source\Application.cc" />
     <ClCompile Include="..\..\Source\impl\Buffer.cc" />
+    <ClCompile Include="..\..\Source\impl\DrawCmd.cc" />
     <ClCompile Include="..\..\Source\impl\Image.cc" />
     <ClCompile Include="..\..\Source\impl\Device.cc" />
     <ClCompile Include="..\..\Source\impl\Pipeline.cc" />
@@ -29,6 +30,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\VPP\Application.h" />
     <ClInclude Include="..\..\Source\impl\Buffer.h" />
+    <ClInclude Include="..\..\Source\impl\DrawCmd.h" />
     <ClInclude Include="..\..\Source\impl\Image.h" />
     <ClInclude Include="..\..\Source\impl\Device.h" />
     <ClInclude Include="..\..\Source\impl\Pipeline.h" />

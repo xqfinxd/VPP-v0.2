@@ -33,6 +33,9 @@
     <ClCompile Include="..\..\Source\impl\Pipeline.cc">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\impl\DrawCmd.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\VPP\Application.h">
@@ -54,6 +57,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\impl\Pipeline.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\DrawCmd.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

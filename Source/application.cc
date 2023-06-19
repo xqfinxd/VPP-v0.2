@@ -3,20 +3,28 @@
 #include <iostream>
 
 #include "impl/Device.h"
+#include "impl/Buffer.h"
 #include "impl/Pipeline.h"
 #include "impl/ShaderData.h"
 #include "impl/ShaderReader.h"
 #include "impl/Window.h"
+#include "impl/DrawCmd.h"
 
 namespace VPP {
 
+namespace impl {
+
+Window* g_Window = nullptr;
+Device* g_Device = nullptr;
+
+} // namespace impl
+
 struct {
-  std::shared_ptr<impl::Window> window = nullptr;
-  std::shared_ptr<impl::Device> device = nullptr;
   impl::Pipeline* basicPipe = nullptr;
   impl::VertexBuffer* vertexBuffer = nullptr;
   impl::VertexArray* vertexArray = nullptr;
   impl::IndexBuffer* indexBuffer = nullptr;
+  impl::DrawCmd* cmd = nullptr;
 } _G{};
 
 Application::Application() {
@@ -26,24 +34,29 @@ Application::~Application() {
 }
 
 void Application::Run() {
+  impl::g_Window = new impl::Window;
+  impl::g_Device = new impl::Device(impl::g_Window);
 
   OnStart();
 
   impl::WindowFrameData frameData{};
-  while (_G.window->running()) {
-    _G.window->StartFrame(frameData);
+  while (impl::g_Window->running()) {
+    impl::g_Window->StartFrame(frameData);
 
     OnLoop();
 
-    _G.window->EndFrame(frameData);
+    impl::g_Window->EndFrame(frameData);
   }
-  _G.device->EndDraw();
+  impl::g_Device->EndDraw();
   OnEnd();
+
+  delete impl::g_Device;
+  impl::g_Device = nullptr;
+  delete impl::g_Window;
+  impl::g_Window = nullptr;
 }
 
 void Application::OnStart() {
-  _G.window = std::make_shared<impl::Window>();
-  _G.device = std::make_shared<impl::Device>(_G.window);
 
   std::vector<float> vertices = {
       0.5f,  0.5f,  0.0f, // top right
@@ -67,8 +80,8 @@ void Application::OnStart() {
                           indices.size() * sizeof(uint32_t));
 
   _G.vertexArray = new impl::VertexArray();
-  _G.vertexArray->BindVertex(*_G.vertexBuffer);
-  _G.vertexArray->BindIndex(*_G.indexBuffer);
+  _G.vertexArray->add_vertex(*_G.vertexBuffer);
+  _G.vertexArray->set_index(*_G.indexBuffer);
 
   _G.basicPipe = new impl::Pipeline();
   {
@@ -81,22 +94,20 @@ void Application::OnStart() {
     _G.basicPipe->Enable();
   }
 
-  const std::vector<vk::ClearValue> clearValues = {
-    vk::ClearValue().setColor(vk::ClearColorValue{1.0f, 0.2f, 0.2f, 1.0f}),
-    vk::ClearValue().setDepthStencil(vk::ClearDepthStencilValue{1.0f, 0}),
+  _G.cmd = new impl::DrawCmd();
+  _G.cmd->set_vertices(*_G.vertexArray);
+  _G.cmd->set_pipeline(*_G.basicPipe);
+  std::vector<vk::ClearValue> clearValues = {
+      vk::ClearValue().setColor(vk::ClearColorValue{0.2f, 0.3f, 0.3f, 1.0f}),
+      vk::ClearValue().setDepthStencil(vk::ClearDepthStencilValue{1.0f, 0}),
   };
-
-  for (uint32_t i = 0; i < _G.device->GetDrawCount(); i++) {
-    auto dc = impl::DrawCmd(i, clearValues);
-    dc.BindPipeline(*_G.basicPipe);
-    dc.SetViewport();
-    dc.SetScissor();
-    dc.DrawVertex(*_G.vertexArray);
-  }
+  _G.cmd->set_clear_values(clearValues);
+  impl::g_Device->set_cmd(*_G.cmd);
+  
 }
 
 void Application::OnLoop() {
-  _G.device->Draw();
+  impl::g_Device->Draw();
 }
 
 void Application::OnEnd() {
@@ -104,7 +115,5 @@ void Application::OnEnd() {
   delete _G.vertexArray;
   delete _G.indexBuffer;
   delete _G.vertexBuffer;
-  _G.device.reset();
-  _G.window.reset();
 }
 } // namespace VPP
