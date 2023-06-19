@@ -7,27 +7,6 @@
 
 namespace VPP {
 namespace impl {
-struct SwapchainResource {
-  vk::Extent2D extent{};
-
-  uint32_t image_count{};
-
-  uint32_t image_index{};
-  uarray<vk::Image> images{};
-  uarray<vk::ImageView> imageviews{};
-
-  vk::Image depth_image;
-  vk::ImageView depth_imageview;
-  vk::DeviceMemory depth_memory;
-
-  vk::RenderPass render_pass{};
-  uarray<vk::Framebuffer> framebuffers{};
-
-  vk::CommandPool command_pool{};
-  uarray<vk::CommandBuffer> commands{};
-
-  void Destroy(const vk::Device& device);
-};
 
 class Device : protected Singleton<Device>,
                public std::enable_shared_from_this<Device> {
@@ -40,11 +19,29 @@ public:
   void ReCreateSwapchain();
 
   uint32_t GetDrawCount() const {
-    return resource_.image_count;
+    return image_count_;
   }
 
   void Draw();
   void EndDraw();
+
+private:
+  void CreateInstance(SDL_Window* window);
+  void CreateSurface(SDL_Window* window);
+  void SetGpuAndIndices();
+  void CreateDevice();
+  void GetQueues();
+  void CreateSyncObject();
+  void CreateSwapchain(vk::SwapchainKHR oldSwapchain);
+  void DestroySwapchainResource();
+  void GetSwapchainImages();
+  void CreateSwapchainImageViews(vk::Format format);
+  void CreateDepthbuffer(vk::Extent2D extent);
+  void CreateRenderPass(vk::Format format);
+  void CreateFramebuffers(vk::Extent2D extent);
+  void CreateCommandBuffers();
+  bool FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
+                      uint32_t& typeIndex) const;
 
 private:
   vk::Instance instance_{};
@@ -66,24 +63,23 @@ private:
   uarray<vk::Semaphore> render_complete_{};
 
   vk::SwapchainKHR swapchain_{};
-  SwapchainResource resource_{};
+  vk::Extent2D extent_{};
 
-private:
-  void CreateInstance(SDL_Window* window);
-  void CreateSurface(SDL_Window* window);
-  void SetGpuAndIndices();
-  void CreateDevice();
-  void GetQueues();
-  void CreateSyncObject();
-  void CreateSwapchain(vk::SwapchainKHR oldSwapchain);
-  void GetSwapchainImages();
-  void CreateSwapchainImageViews(vk::Format format);
-  void CreateDepthbuffer(vk::Extent2D extent);
-  void CreateRenderPass(vk::Format format);
-  void CreateFramebuffers(vk::Extent2D extent);
-  void CreateCommandBuffers();
-  bool FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
-                      uint32_t& typeIndex) const;
+  uint32_t image_count_{};
+
+  uint32_t image_index_{};
+  uarray<vk::Image> images_{};
+  uarray<vk::ImageView> imageviews_{};
+
+  vk::Image depth_image_{};
+  vk::ImageView depth_imageview_{};
+  vk::DeviceMemory depth_memory_{};
+
+  vk::RenderPass render_pass_{};
+  uarray<vk::Framebuffer> framebuffers_{};
+
+  vk::CommandPool command_pool_{};
+  uarray<vk::CommandBuffer> commands_{};
 };
 
 class DeviceResource {
@@ -95,26 +91,26 @@ protected:
   }
 
   const vk::RenderPass& render_pass() const {
-    return parent_->resource_.render_pass;
+    return parent_->render_pass_;
   }
 
   const vk::Framebuffer& framebuffer(uint32_t index) const {
-    return parent_->resource_.framebuffers[index];
+    return parent_->framebuffers_[index];
   }
 
   const vk::Framebuffer& framebuffer() const {
-    return framebuffer(parent_->resource_.image_index);
+    return framebuffer(parent_->image_index_);
   }
 
   const vk::CommandBuffer& command(uint32_t index) const {
-      return parent_->resource_.commands[index];
+      return parent_->commands_[index];
   }
   const vk::CommandBuffer& command() const {
-      return command(parent_->resource_.image_index);
+      return command(parent_->image_index_);
   }
 
   const vk::Extent2D& surface_extent() const {
-    return parent_->resource_.extent;
+    return parent_->extent_;
   }
 
   vk::DeviceMemory CreateMemory(vk::MemoryRequirements& req,
