@@ -19,7 +19,7 @@ public:
   void ReCreateSwapchain();
 
   uint32_t GetDrawCount() const {
-    return image_count_;
+    return swapchain_image_count_;
   }
 
   void Draw();
@@ -65,11 +65,11 @@ private:
   vk::SwapchainKHR swapchain_{};
   vk::Extent2D extent_{};
 
-  uint32_t image_count_{};
+  uint32_t swapchain_image_count_{};
 
-  uint32_t image_index_{};
-  uarray<vk::Image> images_{};
-  uarray<vk::ImageView> imageviews_{};
+  uint32_t current_buffer_{};
+  uarray<vk::Image> swapchain_images_{};
+  uarray<vk::ImageView> swapchain_imageviews_{};
 
   vk::Image depth_image_{};
   vk::ImageView depth_imageview_{};
@@ -99,14 +99,14 @@ protected:
   }
 
   const vk::Framebuffer& framebuffer() const {
-    return framebuffer(parent_->image_index_);
+    return framebuffer(parent_->current_buffer_);
   }
 
   const vk::CommandBuffer& command(uint32_t index) const {
-      return parent_->commands_[index];
+    return parent_->commands_[index];
   }
   const vk::CommandBuffer& command() const {
-      return command(parent_->image_index_);
+    return command(parent_->current_buffer_);
   }
 
   const vk::Extent2D& surface_extent() const {

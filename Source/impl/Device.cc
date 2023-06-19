@@ -109,7 +109,7 @@ void Device::ReCreateSwapchain() {
   for (int i = 0; i < FRAME_LAG; i++) {
     device_.waitForFences(1, &fences_[i], VK_TRUE, UINT64_MAX);
   }
-  
+
   DestroySwapchainResource();
   vk::SwapchainKHR oldSwapchain;
   CreateSwapchain(oldSwapchain);
@@ -120,7 +120,7 @@ void Device::Draw() {
   device_.waitForFences(1, &fences_[frame_index_], VK_TRUE, UINT64_MAX);
   device_.resetFences(1, &fences_[frame_index_]);
 
-  auto& curBuf = image_index_;
+  auto& curBuf = current_buffer_;
 
   vk::Result result;
   do {
@@ -132,7 +132,6 @@ void Device::Draw() {
     } else if (result == vk::Result::eSuboptimalKHR) {
       break;
     } else {
-      
     }
   } while (result != vk::Result::eSuccess);
 
@@ -231,13 +230,13 @@ void Device::CreateSwapchain(vk::SwapchainKHR oldSwapchain) {
 }
 
 void Device::DestroySwapchainResource() {
-  for (uint32_t i = 0; i < image_count_; ++i) {
+  for (uint32_t i = 0; i < swapchain_image_count_; ++i) {
     if (framebuffers_[i]) {
       device_.destroy(framebuffers_[i]);
     }
 
-    if (imageviews_[i]) {
-      device_.destroy(imageviews_[i]);
+    if (swapchain_imageviews_[i]) {
+      device_.destroy(swapchain_imageviews_[i]);
     }
   }
   if (command_pool_) {
@@ -264,12 +263,12 @@ void Device::DestroySwapchainResource() {
 void Device::GetSwapchainImages() {
   vk::Result result = vk::Result::eSuccess;
 
-  result = device_.getSwapchainImagesKHR(swapchain_, &image_count_,
+  result = device_.getSwapchainImagesKHR(swapchain_, &swapchain_image_count_,
                                          nullptr);
   assert(result == vk::Result::eSuccess);
-  images_ = NewArray<vk::Image>(image_count_);
-  result = device_.getSwapchainImagesKHR(swapchain_, &image_count_,
-                                         images_.get());
+  swapchain_images_ = NewArray<vk::Image>(swapchain_image_count_);
+  result = device_.getSwapchainImagesKHR(swapchain_, &swapchain_image_count_,
+                                         swapchain_images_.get());
   assert(result == vk::Result::eSuccess);
 }
 
@@ -283,18 +282,18 @@ void Device::CreateSwapchainImageViews(vk::Format format) {
                       .setLevelCount(1)
                       .setBaseMipLevel(0);
 
-  imageviews_ = NewArray<vk::ImageView>(image_count_);
+  swapchain_imageviews_ = NewArray<vk::ImageView>(swapchain_image_count_);
 
-  for (uint32_t i = 0; i < image_count_; i++) {
+  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
     vk::ImageViewCreateInfo imageViewCI =
         vk::ImageViewCreateInfo()
             .setViewType(vk::ImageViewType::e2D)
             .setFormat(format)
             .setPNext(nullptr)
             .setSubresourceRange(resRange);
-    imageViewCI.setImage(images_[i]);
+    imageViewCI.setImage(swapchain_images_[i]);
     result = device_.createImageView(&imageViewCI, nullptr,
-                                     &imageviews_[i]);
+                                     &swapchain_imageviews_[i]);
     assert(result == vk::Result::eSuccess);
   }
 }
@@ -343,8 +342,7 @@ void Device::CreateDepthbuffer(vk::Extent2D extent) {
                          .setSubresourceRange(vk::ImageSubresourceRange(
                              vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1))
                          .setPNext(nullptr);
-  result = device_.createImageView(&imageViewCI, nullptr,
-                                   &depth_imageview_);
+  result = device_.createImageView(&imageViewCI, nullptr, &depth_imageview_);
   assert(result == vk::Result::eSuccess);
 }
 
@@ -395,13 +393,12 @@ void Device::CreateRenderPass(vk::Format format) {
                           .setDependencyCount(0)
                           .setPDependencies(nullptr);
 
-  result =
-      device_.createRenderPass(&renderPassCI, nullptr, &render_pass_);
+  result = device_.createRenderPass(&renderPassCI, nullptr, &render_pass_);
   assert(result == vk::Result::eSuccess);
 }
 
 void Device::CreateFramebuffers(vk::Extent2D extent) {
-  framebuffers_ = NewArray<vk::Framebuffer>(image_count_);
+  framebuffers_ = NewArray<vk::Framebuffer>(swapchain_image_count_);
 
   vk::ImageView attachments[2];
   attachments[1] = depth_imageview_;
@@ -414,10 +411,10 @@ void Device::CreateFramebuffers(vk::Extent2D extent) {
                            .setHeight(extent.height)
                            .setLayers(1);
 
-  for (uint32_t i = 0; i < image_count_; i++) {
-    attachments[0] = imageviews_[i];
-    auto result = device_.createFramebuffer(&frameBufferCI, nullptr,
-                                            &framebuffers_[i]);
+  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
+    attachments[0] = swapchain_imageviews_[i];
+    auto result =
+        device_.createFramebuffer(&frameBufferCI, nullptr, &framebuffers_[i]);
     assert(result == vk::Result::eSuccess);
   }
 }
@@ -427,8 +424,7 @@ void Device::CreateCommandBuffers() {
 
   auto cmdPoolCI =
       vk::CommandPoolCreateInfo().setQueueFamilyIndex(graphics_index_);
-  result =
-      device_.createCommandPool(&cmdPoolCI, nullptr, &command_pool_);
+  result = device_.createCommandPool(&cmdPoolCI, nullptr, &command_pool_);
   assert(result == vk::Result::eSuccess);
 
   auto cmdAI = vk::CommandBufferAllocateInfo()
@@ -436,8 +432,8 @@ void Device::CreateCommandBuffers() {
                    .setLevel(vk::CommandBufferLevel::ePrimary)
                    .setCommandBufferCount(1);
 
-  commands_ = NewArray<vk::CommandBuffer>(image_count_);
-  for (size_t i = 0; i < image_count_; i++) {
+  commands_ = NewArray<vk::CommandBuffer>(swapchain_image_count_);
+  for (size_t i = 0; i < swapchain_image_count_; i++) {
     result = device_.allocateCommandBuffers(&cmdAI, &commands_[i]);
     assert(result == vk::Result::eSuccess);
   }
