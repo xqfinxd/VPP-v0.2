@@ -43,8 +43,10 @@ void Application::Run() {
   while (impl::g_Window->running()) {
     impl::g_Window->StartFrame(frameData);
 
-    OnLoop();
-
+    if (!impl::g_Window->IsMinimized()) {
+      OnLoop();
+    }
+    
     impl::g_Window->EndFrame(frameData);
   }
   impl::g_Device->EndDraw();

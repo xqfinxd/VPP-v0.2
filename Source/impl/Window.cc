@@ -61,6 +61,11 @@ void Window::set_fps(int fps) {
   }
 }
 
+bool Window::IsMinimized() const {
+  auto flags = SDL_GetWindowFlags(window_);
+  return (flags & SDL_WINDOW_MINIMIZED) != 0;
+}
+
 extern Window* g_Window;
 Window* GetWindow() {
   return g_Window;

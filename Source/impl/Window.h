@@ -32,6 +32,8 @@ public:
     return running_flag_;
   }
 
+  bool IsMinimized() const;
+
 private:
   bool running_flag_ = false;
   uint32_t frame_duration_ = 0;

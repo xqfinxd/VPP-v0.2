@@ -21,7 +21,6 @@ public:
   void set_pipeline(const Pipeline& pipeline) {
     pipeline_ = &pipeline;
   }
-
   void Call(const vk::CommandBuffer& buf, const vk::Framebuffer& framebuffer,
             const vk::RenderPass& renderpass) const;
 

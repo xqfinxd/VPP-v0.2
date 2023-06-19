@@ -22,6 +22,14 @@ void DrawCmd::Call(const vk::CommandBuffer& buf,
           .setClearValues(clear_values_);
   buf.beginRenderPass(rpBegin, vk::SubpassContents::eInline);
 
+  auto extent = surface_extent();
+  std::vector<vk::Viewport> viewports = {vk::Viewport()
+                                             .setWidth((float)extent.width)
+                                             .setHeight((float)extent.height)
+                                             .setMinDepth((float)0.0f)
+                                             .setMaxDepth((float)1.0f)};
+  buf.setViewport(0, viewports);
+
   pipeline_->BindCmd(buf);
   vertices_->BindCmd(buf);
   vertices_->DrawAtCmd(buf);
