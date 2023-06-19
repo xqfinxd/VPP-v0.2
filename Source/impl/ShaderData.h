@@ -57,11 +57,6 @@ struct SpvData {
   std::vector<uint32_t> data{};
 };
 
-struct Module {
-  vk::ShaderModule module{};
-  vk::ShaderStageFlagBits stage{};
-};
-
 struct MetaData {
   std::vector<Shader::Uniform> uniforms{};
   std::vector<Shader::PushConstant> pushes{};

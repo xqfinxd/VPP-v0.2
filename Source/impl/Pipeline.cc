@@ -25,8 +25,8 @@ Pipeline::~Pipeline() {
     }
   }
   for (auto& e : shaders_) {
-    if (e.module) {
-      device().destroy(e.module);
+    if (e.shader) {
+      device().destroy(e.shader);
     }
   }
 }
@@ -89,10 +89,10 @@ bool Pipeline::SetShader(const Shader::MetaData& data) {
   }
 
   for (const auto& e : data.spvs) {
-    Shader::Module shader{};
+    Module shader{};
     auto muduleCI = vk::ShaderModuleCreateInfo().setCode(e.data);
-    shader.module = device().createShaderModule(muduleCI);
-    if (!shader.module) {
+    shader.shader = device().createShaderModule(muduleCI);
+    if (!shader.shader) {
       return false;
     }
     shader.stage = e.stage;
@@ -128,7 +128,7 @@ bool Pipeline::Enable() {
   for (const auto& e : shaders_) {
     shaderStageInfo.emplace_back(vk::PipelineShaderStageCreateInfo()
                                      .setStage(e.stage)
-                                     .setModule(e.module)
+                                     .setModule(e.shader)
                                      .setPName("main"));
   }
 
@@ -240,7 +240,7 @@ void DrawCmd::DrawVertex(const VertexArray& vertex) {
   buf_->bindVertexBuffers(0, buffers, offsets);
   if (vertex.index_) {
     buf_->bindIndexBuffer(vertex.GetIndex(), 0, vk::IndexType::eUint32);
-    buf_->drawIndexed(vertex.GetIndexCount(), 0, 0, 0, 0);
+    buf_->drawIndexed(vertex.GetIndexCount(), 1, 0, 0, 0);
   }
 }
 

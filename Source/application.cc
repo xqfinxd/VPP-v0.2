@@ -17,20 +17,6 @@ struct {
   impl::VertexBuffer* vertexBuffer = nullptr;
   impl::VertexArray* vertexArray = nullptr;
   impl::IndexBuffer* indexBuffer = nullptr;
-
-  std::vector<float> vertices = {
-      0.5f,  0.5f,  0.0f, // top right
-      0.5f,  -0.5f, 0.0f, // bottom right
-      -0.5f, -0.5f, 0.0f, // bottom left
-      -0.5f, 0.5f,  0.0f  // top left
-  };
-
-  std::vector<uint32_t> indices = {
-      // note that we start from 0!
-      0, 1, 3, // first Triangle
-      1, 2, 3  // second Triangle
-  };
-
 } _G{};
 
 Application::Application() {
@@ -59,13 +45,26 @@ void Application::OnStart() {
   _G.window = std::make_shared<impl::Window>();
   _G.device = std::make_shared<impl::Device>(_G.window);
 
+  std::vector<float> vertices = {
+      0.5f,  0.5f,  0.0f, // top right
+      0.5f,  -0.5f, 0.0f, // bottom right
+      -0.5f, -0.5f, 0.0f, // bottom left
+      -0.5f, 0.5f,  0.0f  // top left
+  };
+
+  std::vector<uint32_t> indices = {
+      // note that we start from 0!
+      0, 1, 3, // first Triangle
+      1, 2, 3  // second Triangle
+  };
+
   _G.vertexBuffer = new impl::VertexBuffer();
-  _G.vertexBuffer->SetData((uint32_t)sizeof(float) * 3, 4, _G.vertices.data(),
-                           _G.vertices.size() * sizeof(float));
+  _G.vertexBuffer->SetData((uint32_t)sizeof(float) * 3, 4, vertices.data(),
+                           vertices.size() * sizeof(float));
 
   _G.indexBuffer = new impl::IndexBuffer();
-  _G.indexBuffer->SetData((uint32_t)_G.indices.size(), _G.indices.data(),
-                          _G.indices.size() * sizeof(uint32_t));
+  _G.indexBuffer->SetData((uint32_t)indices.size(), indices.data(),
+                          indices.size() * sizeof(uint32_t));
 
   _G.vertexArray = new impl::VertexArray();
   _G.vertexArray->BindVertex(*_G.vertexBuffer);

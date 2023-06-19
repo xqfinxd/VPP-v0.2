@@ -104,6 +104,12 @@ bool Device::FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
 }
 
 void Device::ReCreateSwapchain() {
+  device_.waitIdle();
+
+  for (int i = 0; i < FRAME_LAG; i++) {
+    device_.waitForFences(1, &fences_[i], VK_TRUE, UINT64_MAX);
+  }
+  
   resource_.Destroy(device_);
   vk::SwapchainKHR oldSwapchain;
   CreateSwapchain(oldSwapchain);

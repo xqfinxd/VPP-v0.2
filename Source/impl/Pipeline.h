@@ -24,12 +24,16 @@ public:
   bool Enable();
 
 private:
+  struct Module {
+    vk::ShaderModule shader{};
+    vk::ShaderStageFlagBits stage{};
+  };
   vk::Pipeline pipeline_{};
   vk::PipelineLayout pipe_layout_{};
   std::vector<vk::DescriptorSetLayout> desc_layout_{};
   vk::DescriptorPool desc_pool_{};
   std::vector<vk::DescriptorSet> desc_set_{};
-  std::vector<Shader::Module> shaders_{};
+  std::vector<Module> shaders_{};
   std::vector<vk::VertexInputBindingDescription> vertex_bindings_{};
   std::vector<vk::VertexInputAttributeDescription> vertex_attribs_{};
 };
@@ -38,7 +42,7 @@ class DrawCmd : public DeviceResource {
 public:
   DrawCmd(uint32_t index, const std::vector<vk::ClearValue>& clearValues);
   DrawCmd(DrawCmd&) = delete;
-  DrawCmd(DrawCmd&& dc) {
+  DrawCmd(DrawCmd&& dc) noexcept {
     buf_ = dc.buf_;
     dc.buf_ = nullptr;
   }
