@@ -2,8 +2,9 @@
 
 #include <vector>
 #include <vulkan/vulkan.hpp>
-
+namespace VPP {
 namespace Shader {
+
 struct Uniform {
   uint32_t set = 0;
   uint32_t binding = 0;
@@ -72,3 +73,4 @@ struct MetaData {
 };
 
 } // namespace Shader
+} // namespace VPP

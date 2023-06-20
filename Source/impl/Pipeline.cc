@@ -6,8 +6,7 @@ namespace VPP {
 
 namespace impl {
 
-Pipeline::Pipeline() : DeviceResource() {
-}
+Pipeline::Pipeline() : DeviceResource() {}
 
 Pipeline::~Pipeline() {
   if (pipeline_) {

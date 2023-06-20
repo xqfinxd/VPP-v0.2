@@ -2,12 +2,13 @@
 
 #include <vector>
 
-#ifdef SHADERREADER_EXPORTS
+#ifdef VPPSHADER_EXPORTS
 #define SHADER_API __declspec(dllexport)
 #else
 #define SHADER_API __declspec(dllimport)
 #endif // SHADER_EXPORTS
 
+namespace VPP {
 namespace Shader {
 
 struct MetaData;
@@ -24,4 +25,6 @@ public:
 private:
   ReaderImpl* impl_ = nullptr;
 };
+
 } // namespace Shader
+} // namespace VPP

@@ -19,10 +19,8 @@ public:
 
   void ReCreateSwapchain();
 
-  uint32_t GetDrawCount() const {
-    return swapchain_image_count_;
-  }
-  
+  uint32_t GetDrawCount() const { return swapchain_image_count_; }
+
   void set_cmd(const DrawCmd& cmd);
   void Draw();
   void EndDraw();
@@ -91,18 +89,9 @@ protected:
   DeviceResource();
   ~DeviceResource();
 
-  const vk::Device& device() const {
-    return parent_->device_;
-  }
-
-  const vk::RenderPass& render_pass() const {
-    return parent_->render_pass_;
-  }
-
-  const vk::Extent2D& surface_extent() const {
-    return parent_->extent_;
-  }
-
+  const vk::Device& device() const { return parent_->device_; }
+  const vk::RenderPass& render_pass() const { return parent_->render_pass_; }
+  const vk::Extent2D& surface_extent() const { return parent_->extent_; }
   vk::DeviceMemory CreateMemory(const vk::MemoryRequirements& req,
                                 vk::MemoryPropertyFlags flags) const;
   vk::Buffer CreateBuffer(vk::BufferUsageFlags flags, size_t size) const;

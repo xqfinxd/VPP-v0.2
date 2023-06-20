@@ -29,9 +29,7 @@ Window::~Window() {
   }
 }
 
-void Window::Close() {
-  running_flag_ = false;
-}
+void Window::Close() { running_flag_ = false; }
 
 void Window::StartFrame(WindowFrameData& frame) {
   frame.start_ticks = SDL_GetTicks();
@@ -67,8 +65,6 @@ bool Window::IsMinimized() const {
 }
 
 extern Window* g_Window;
-Window* GetWindow() {
-  return g_Window;
-}
+Window* GetWindow() { return g_Window; }
 } // namespace impl
 } // namespace VPP

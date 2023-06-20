@@ -1,4 +1,4 @@
-#include "ShaderReader.h"
+#include "VPPShader.h"
 
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
@@ -25,7 +25,7 @@
 #pragma comment(lib, "GenericCodeGen.lib")
 #pragma comment(lib, "SPIRV-Tools.lib")
 #endif
-
+namespace VPP {
 namespace Shader {
 
 const int kGlslVersion = 400;
@@ -348,9 +348,7 @@ static void AddUniform(std::vector<Shader::Uniform>& uniforms,
 }
 
 struct ReaderImpl {
-  ReaderImpl() {
-    glslang::InitializeProcess();
-  }
+  ReaderImpl() { glslang::InitializeProcess(); }
 
   ~ReaderImpl() {
     if (program_) {
@@ -502,8 +500,7 @@ Reader::Reader(std::vector<const char*> files) {
   } while (false);
 }
 
-Reader::Reader() : impl_(nullptr) {
-}
+Reader::Reader() : impl_(nullptr) {}
 
 Reader::~Reader() {
   if (impl_) {
@@ -521,3 +518,4 @@ bool Reader::GetData(MetaData* data) {
 }
 
 } // namespace Shader
+} // namespace VPP

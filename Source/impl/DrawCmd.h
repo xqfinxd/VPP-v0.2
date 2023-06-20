@@ -15,12 +15,8 @@ public:
   void set_clear_values(std::vector<vk::ClearValue>& clearValues) {
     clear_values_.swap(clearValues);
   }
-  void set_vertices(const VertexArray& vertex) {
-    vertices_ = &vertex;
-  }
-  void set_pipeline(const Pipeline& pipeline) {
-    pipeline_ = &pipeline;
-  }
+  void set_vertices(const VertexArray& vertex) { vertices_ = &vertex; }
+  void set_pipeline(const Pipeline& pipeline) { pipeline_ = &pipeline; }
   void set_scissors(std::vector<vk::Rect2D>& scissors) {
     scissors_.swap(scissors);
   }

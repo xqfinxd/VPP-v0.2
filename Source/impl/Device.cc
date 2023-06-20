@@ -686,16 +686,11 @@ bool StageBuffer::CopyTo(vk::Buffer dstBuffer) {
 }
 
 extern Device* g_Device;
-Device* GetDevice() {
-  return g_Device;
-}
+Device* GetDevice() { return g_Device; }
 
-DeviceResource::DeviceResource() {
-  parent_ = g_Device;
-}
+DeviceResource::DeviceResource() { parent_ = g_Device; }
 
-DeviceResource::~DeviceResource() {
-}
+DeviceResource::~DeviceResource() {}
 
 } // namespace impl
 } // namespace VPP

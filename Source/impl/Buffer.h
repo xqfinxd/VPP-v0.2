@@ -9,9 +9,7 @@ namespace impl {
 
 class StaticBuffer : public DeviceResource {
 public:
-  const vk::Buffer& buffer() const {
-    return buffer_;
-  }
+  const vk::Buffer& buffer() const { return buffer_; }
 
 protected:
   StaticBuffer();
@@ -27,13 +25,8 @@ class VertexBuffer : public StaticBuffer {
 public:
   bool SetData(uint32_t stride, uint32_t count, void* data, size_t size);
 
-  uint32_t stride() const {
-    return stride_;
-  }
-
-  uint32_t count() const {
-    return count_;
-  }
+  uint32_t stride() const { return stride_; }
+  uint32_t count() const { return count_; }
 
 private:
   uint32_t stride_ = 0;
@@ -44,9 +37,7 @@ class IndexBuffer : public StaticBuffer {
 public:
   bool SetData(uint32_t count, void* data, size_t size);
 
-  uint32_t count() const {
-    return count_;
-  }
+  uint32_t count() const { return count_; }
 
 private:
   uint32_t count_ = 0;

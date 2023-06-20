@@ -7,7 +7,8 @@
 #include "impl/DrawCmd.h"
 #include "impl/Pipeline.h"
 #include "impl/ShaderData.h"
-#include "impl/ShaderReader.h"
+#include "impl/VPPShader.h"
+#include "impl/VPPImage.h"
 #include "impl/Window.h"
 
 namespace VPP {
@@ -25,11 +26,9 @@ static impl::VertexArray* vertexArray = nullptr;
 static impl::IndexBuffer* indexBuffer = nullptr;
 static impl::DrawCmd* cmd = nullptr;
 
-Application::Application() {
-}
+Application::Application() {}
 
-Application::~Application() {
-}
+Application::~Application() {}
 
 void Application::Run() {
   impl::g_Window = new impl::Window;
@@ -83,6 +82,12 @@ void Application::OnStart() {
   vertexArray->BindBuffer(*vertexBuffer);
   vertexArray->BindBuffer(*indexBuffer);
 
+  {
+      Image::Reader reader;
+      reader.Load("container.jpg", 0);
+      reader.pixel();
+  }
+
   basicPipe = new impl::Pipeline();
   {
     Shader::Reader reader({"basic.vert", "basic.frag"});
@@ -107,9 +112,7 @@ void Application::OnStart() {
   impl::g_Device->set_cmd(*cmd);
 }
 
-void Application::OnLoop() {
-  impl::g_Device->Draw();
-}
+void Application::OnLoop() { impl::g_Device->Draw(); }
 
 void Application::OnEnd() {
   delete basicPipe;

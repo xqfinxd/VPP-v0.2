@@ -3,8 +3,7 @@
 namespace VPP {
 namespace impl {
 
-StaticBuffer::StaticBuffer() : DeviceResource() {
-}
+StaticBuffer::StaticBuffer() : DeviceResource() {}
 
 StaticBuffer::~StaticBuffer() {
   if (buffer_) {
@@ -50,8 +49,7 @@ bool IndexBuffer::SetData(uint32_t count, void* data, size_t size) {
                                size);
 }
 
-UniformBuffer::UniformBuffer() : DeviceResource() {
-}
+UniformBuffer::UniformBuffer() : DeviceResource() {}
 
 UniformBuffer::~UniformBuffer() {
   if (buffer_) {
@@ -97,9 +95,7 @@ void VertexArray::BindBuffer(const VertexBuffer& vertex) {
   vertices_.push_back(&vertex);
 }
 
-void VertexArray::BindBuffer(const IndexBuffer& index) {
-  index_ = &index;
-}
+void VertexArray::BindBuffer(const IndexBuffer& index) { index_ = &index; }
 
 void VertexArray::BindCmd(const vk::CommandBuffer& buf) const {
   std::vector<vk::Buffer> buffers{};

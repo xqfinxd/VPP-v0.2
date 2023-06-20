@@ -15,16 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\impl\ShaderData.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\impl\ShaderReader.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\Source\impl\ShaderReader.cc">
+    <ClCompile Include="..\..\Source\impl\VPPImage.cc">
       <Filter>Source</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Source\impl\VPPImage.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

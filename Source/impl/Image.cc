@@ -2,8 +2,7 @@
 
 namespace VPP {
 namespace impl {
-CombinedImageSampler::CombinedImageSampler() : DeviceResource() {
-}
+CombinedImageSampler::CombinedImageSampler() : DeviceResource() {}
 
 CombinedImageSampler::~CombinedImageSampler() {
   if (memory_) {

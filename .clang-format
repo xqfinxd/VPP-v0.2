@@ -3,7 +3,7 @@
 Language: Cpp
 BasedOnStyle: LLVM
 
-AllowShortFunctionsOnASingleLine: None
+AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: Empty
 AllowShortLoopsOnASingleLine: 'false'
