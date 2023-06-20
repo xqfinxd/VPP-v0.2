@@ -5,8 +5,8 @@
 #include <iostream>
 #include <set>
 
-#include "VPP_Config.h"
 #include "DrawCmd.h"
+#include "VPP_Config.h"
 
 namespace VPP {
 namespace impl {
@@ -598,7 +598,7 @@ void Device::CreateSyncObject() {
 }
 
 vk::DeviceMemory
-DeviceResource::CreateMemory(vk::MemoryRequirements& req,
+DeviceResource::CreateMemory(const vk::MemoryRequirements& req,
                              vk::MemoryPropertyFlags flags) const {
   vk::MemoryAllocateInfo memoryAI = vk::MemoryAllocateInfo();
   memoryAI.setAllocationSize(req.size);
@@ -608,6 +608,81 @@ DeviceResource::CreateMemory(vk::MemoryRequirements& req,
     return VK_NULL_HANDLE;
   }
   return device().allocateMemory(memoryAI);
+}
+
+vk::Buffer DeviceResource::CreateBuffer(vk::BufferUsageFlags flags,
+                                        size_t size) const {
+  auto bufferCI = vk::BufferCreateInfo()
+                      .setUsage(flags)
+                      .setQueueFamilyIndexCount(0)
+                      .setPQueueFamilyIndices(nullptr)
+                      .setSharingMode(vk::SharingMode::eExclusive)
+                      .setSize(size);
+  return device().createBuffer(bufferCI);
+}
+
+bool DeviceResource::CopyBuffer(const vk::Buffer& srcBuffer,
+                                const vk::Buffer& dstBuffer, size_t size) {
+  auto cmdAI = vk::CommandBufferAllocateInfo()
+                   .setCommandPool(parent_->command_pool_)
+                   .setLevel(vk::CommandBufferLevel::ePrimary)
+                   .setCommandBufferCount(1);
+
+  vk::CommandBuffer cmd = VK_NULL_HANDLE;
+  auto result = device().allocateCommandBuffers(&cmdAI, &cmd);
+  if (result != vk::Result::eSuccess) {
+    return false;
+  }
+
+  auto beginInfo = vk::CommandBufferBeginInfo().setFlags(
+      vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+  cmd.begin(beginInfo);
+
+  auto copyRegion =
+      vk::BufferCopy().setDstOffset(0).setSrcOffset(0).setSize(size);
+  cmd.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
+
+  cmd.end();
+
+  parent_->graphics_queue_.waitIdle();
+  auto submitInfo =
+      vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&cmd);
+  parent_->graphics_queue_.submit(1, &submitInfo, VK_NULL_HANDLE);
+  parent_->graphics_queue_.waitIdle();
+
+  device().free(parent_->command_pool_, 1, &cmd);
+  return true;
+}
+
+StageBuffer::StageBuffer(void* data, size_t size)
+    : DeviceResource(), size_(size) {
+  buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eTransferSrc, size_);
+  if (!buffer_) {
+    return;
+  }
+  memory_ = CreateMemory(device().getBufferMemoryRequirements(buffer_),
+                         vk::MemoryPropertyFlagBits::eHostVisible |
+                             vk::MemoryPropertyFlagBits::eHostCoherent);
+  if (!memory_) {
+    return;
+  }
+  device().bindBufferMemory(buffer_, memory_, 0);
+  auto* mapData = device().mapMemory(memory_, 0, size_);
+  memcpy(mapData, data, size_);
+  device().unmapMemory(memory_);
+}
+
+StageBuffer::~StageBuffer() {
+  if (buffer_) {
+    device().destroy(buffer_);
+  }
+  if (memory_) {
+    device().free(memory_);
+  }
+}
+
+bool StageBuffer::CopyTo(vk::Buffer dstBuffer) {
+  return CopyBuffer(buffer_, dstBuffer, size_);
 }
 
 extern Device* g_Device;

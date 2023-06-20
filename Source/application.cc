@@ -2,13 +2,13 @@
 
 #include <iostream>
 
-#include "impl/Device.h"
 #include "impl/Buffer.h"
+#include "impl/Device.h"
+#include "impl/DrawCmd.h"
 #include "impl/Pipeline.h"
 #include "impl/ShaderData.h"
 #include "impl/ShaderReader.h"
 #include "impl/Window.h"
-#include "impl/DrawCmd.h"
 
 namespace VPP {
 
@@ -19,13 +19,11 @@ Device* g_Device = nullptr;
 
 } // namespace impl
 
-struct {
-  impl::Pipeline* basicPipe = nullptr;
-  impl::VertexBuffer* vertexBuffer = nullptr;
-  impl::VertexArray* vertexArray = nullptr;
-  impl::IndexBuffer* indexBuffer = nullptr;
-  impl::DrawCmd* cmd = nullptr;
-} _G{};
+static impl::Pipeline* basicPipe = nullptr;
+static impl::VertexBuffer* vertexBuffer = nullptr;
+static impl::VertexArray* vertexArray = nullptr;
+static impl::IndexBuffer* indexBuffer = nullptr;
+static impl::DrawCmd* cmd = nullptr;
 
 Application::Application() {
 }
@@ -46,7 +44,7 @@ void Application::Run() {
     if (!impl::g_Window->IsMinimized()) {
       OnLoop();
     }
-    
+
     impl::g_Window->EndFrame(frameData);
   }
   impl::g_Device->EndDraw();
@@ -61,51 +59,52 @@ void Application::Run() {
 void Application::OnStart() {
 
   std::vector<float> vertices = {
-      0.5f,  0.5f,  0.0f, // top right
-      0.5f,  -0.5f, 0.0f, // bottom right
-      -0.5f, -0.5f, 0.0f, // bottom left
-      -0.5f, 0.5f,  0.0f  // top left
+      // positions         // colors
+      0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
+      -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
+      0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f  // top
   };
 
   std::vector<uint32_t> indices = {
       // note that we start from 0!
-      0, 1, 3, // first Triangle
-      1, 2, 3  // second Triangle
+      0, 1, 2, // first Triangle
+      1, 2, 0  // second Triangle
   };
 
-  _G.vertexBuffer = new impl::VertexBuffer();
-  _G.vertexBuffer->SetData((uint32_t)sizeof(float) * 3, 4, vertices.data(),
-                           vertices.size() * sizeof(float));
+  vertexBuffer = new impl::VertexBuffer();
+  vertexBuffer->SetData((uint32_t)sizeof(float) * 6, 3, vertices.data(),
+                        vertices.size() * sizeof(float));
 
-  _G.indexBuffer = new impl::IndexBuffer();
-  _G.indexBuffer->SetData((uint32_t)indices.size(), indices.data(),
-                          indices.size() * sizeof(uint32_t));
+  indexBuffer = new impl::IndexBuffer();
+  indexBuffer->SetData((uint32_t)indices.size(), indices.data(),
+                       indices.size() * sizeof(uint32_t));
 
-  _G.vertexArray = new impl::VertexArray();
-  _G.vertexArray->add_vertex(*_G.vertexBuffer);
-  _G.vertexArray->set_index(*_G.indexBuffer);
+  vertexArray = new impl::VertexArray();
+  vertexArray->BindBuffer(*vertexBuffer);
+  vertexArray->BindBuffer(*indexBuffer);
 
-  _G.basicPipe = new impl::Pipeline();
+  basicPipe = new impl::Pipeline();
   {
     Shader::Reader reader({"basic.vert", "basic.frag"});
     Shader::MetaData data{};
     if (reader.GetData(&data))
-      _G.basicPipe->SetShader(data);
-    _G.basicPipe->SetVertexArray(*_G.vertexArray);
-    _G.basicPipe->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);
-    _G.basicPipe->Enable();
+      basicPipe->SetShader(data);
+    basicPipe->SetVertexArray(*vertexArray);
+    basicPipe->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);
+    basicPipe->SetVertexAttrib(1, 0, vk::Format::eR32G32B32Sfloat,
+                               (3 * sizeof(float)));
+    basicPipe->Enable();
   }
 
-  _G.cmd = new impl::DrawCmd();
-  _G.cmd->set_vertices(*_G.vertexArray);
-  _G.cmd->set_pipeline(*_G.basicPipe);
+  cmd = new impl::DrawCmd();
+  cmd->set_vertices(*vertexArray);
+  cmd->set_pipeline(*basicPipe);
   std::vector<vk::ClearValue> clearValues = {
       vk::ClearValue().setColor(vk::ClearColorValue{0.2f, 0.3f, 0.3f, 1.0f}),
       vk::ClearValue().setDepthStencil(vk::ClearDepthStencilValue{1.0f, 0}),
   };
-  _G.cmd->set_clear_values(clearValues);
-  impl::g_Device->set_cmd(*_G.cmd);
-  
+  cmd->set_clear_values(clearValues);
+  impl::g_Device->set_cmd(*cmd);
 }
 
 void Application::OnLoop() {
@@ -113,9 +112,9 @@ void Application::OnLoop() {
 }
 
 void Application::OnEnd() {
-  delete _G.basicPipe;
-  delete _G.vertexArray;
-  delete _G.indexBuffer;
-  delete _G.vertexBuffer;
+  delete basicPipe;
+  delete vertexArray;
+  delete indexBuffer;
+  delete vertexBuffer;
 }
 } // namespace VPP

@@ -103,11 +103,26 @@ protected:
     return parent_->extent_;
   }
 
-  vk::DeviceMemory CreateMemory(vk::MemoryRequirements& req,
+  vk::DeviceMemory CreateMemory(const vk::MemoryRequirements& req,
                                 vk::MemoryPropertyFlags flags) const;
+  vk::Buffer CreateBuffer(vk::BufferUsageFlags flags, size_t size) const;
+  bool CopyBuffer(const vk::Buffer& srcBuffer, const vk::Buffer& dstBuffer,
+                  size_t size);
 
 private:
   Device* parent_ = nullptr;
+};
+
+class StageBuffer : public DeviceResource {
+public:
+  StageBuffer(void* data, size_t size);
+  ~StageBuffer();
+  bool CopyTo(vk::Buffer buffer);
+
+private:
+  size_t size_ = 0;
+  vk::Buffer buffer_{};
+  vk::DeviceMemory memory_{};
 };
 
 Device* GetDevice();

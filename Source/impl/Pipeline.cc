@@ -146,9 +146,7 @@ bool Pipeline::Enable() {
                                              .setHeight((float)extent.height)
                                              .setMinDepth((float)0.0f)
                                              .setMaxDepth((float)1.0f)};
-  std::vector<vk::Rect2D> scissors = {
-    vk::Rect2D{vk::Offset2D(0, 0), extent}
-  };
+  std::vector<vk::Rect2D> scissors = {vk::Rect2D{vk::Offset2D(0, 0), extent}};
   auto viewportInfo =
       vk::PipelineViewportStateCreateInfo().setViewports(viewports).setScissors(
           scissors);
@@ -186,10 +184,11 @@ bool Pipeline::Enable() {
                             .setAttachmentCount(1)
                             .setPAttachments(colorBlendAttachments);
 
-  std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport};
+  std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport,
+                                                 vk::DynamicState::eScissor};
 
-  auto dynamicStateInfo = vk::PipelineDynamicStateCreateInfo()
-                              .setDynamicStates(dynamicStates);
+  auto dynamicStateInfo =
+      vk::PipelineDynamicStateCreateInfo().setDynamicStates(dynamicStates);
 
   auto pipelineCI = vk::GraphicsPipelineCreateInfo()
                         .setStages(shaderStageInfo)

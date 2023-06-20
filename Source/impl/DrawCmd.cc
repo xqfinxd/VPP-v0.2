@@ -10,8 +10,7 @@ void DrawCmd::Call(const vk::CommandBuffer& buf,
   if (!pipeline_ || !vertices_ || !buf) {
     return;
   }
-  auto beginInfo = vk::CommandBufferBeginInfo().setFlags(
-      vk::CommandBufferUsageFlagBits::eSimultaneousUse);
+  auto beginInfo = vk::CommandBufferBeginInfo();
   buf.begin(beginInfo);
 
   const auto rpBegin =
@@ -29,6 +28,8 @@ void DrawCmd::Call(const vk::CommandBuffer& buf,
                                              .setMinDepth((float)0.0f)
                                              .setMaxDepth((float)1.0f)};
   buf.setViewport(0, viewports);
+  std::vector<vk::Rect2D> scissors = {vk::Rect2D{vk::Offset2D(0, 0), extent}};
+  buf.setScissor(0, scissors);
 
   pipeline_->BindCmd(buf);
   vertices_->BindCmd(buf);

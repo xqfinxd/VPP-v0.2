@@ -6,10 +6,25 @@
 
 namespace VPP {
 namespace impl {
-class VertexBuffer : public DeviceResource {
-public:
-  ~VertexBuffer();
 
+class StaticBuffer : public DeviceResource {
+public:
+  const vk::Buffer& buffer() const {
+    return buffer_;
+  }
+
+protected:
+  StaticBuffer();
+  ~StaticBuffer();
+  bool SetData(vk::BufferUsageFlags usage, void* data, size_t size);
+
+private:
+  vk::Buffer buffer_{};
+  vk::DeviceMemory memory_{};
+};
+
+class VertexBuffer : public StaticBuffer {
+public:
   bool SetData(uint32_t stride, uint32_t count, void* data, size_t size);
 
   uint32_t stride() const {
@@ -20,43 +35,27 @@ public:
     return count_;
   }
 
-  const vk::Buffer& buffer() const {
-    return buffer_;
-  }
-
 private:
   uint32_t stride_ = 0;
   uint32_t count_ = 0;
-
-  vk::Buffer buffer_{};
-  vk::DeviceMemory memory_{};
 };
 
-class IndexBuffer : public DeviceResource {
+class IndexBuffer : public StaticBuffer {
 public:
-  ~IndexBuffer();
-
   bool SetData(uint32_t count, void* data, size_t size);
 
   uint32_t count() const {
     return count_;
   }
 
-  const vk::Buffer& buffer() const {
-    return buffer_;
-  }
-
 private:
   uint32_t count_ = 0;
-
-  vk::Buffer buffer_{};
-  vk::DeviceMemory memory_{};
 };
 
 class VertexArray : public DeviceResource {
 public:
-  void add_vertex(const VertexBuffer& vertex);
-  void set_index(const IndexBuffer& index);
+  void BindBuffer(const VertexBuffer& vertex);
+  void BindBuffer(const IndexBuffer& index);
   void BindCmd(const vk::CommandBuffer& buf) const;
   void DrawAtCmd(const vk::CommandBuffer& buf) const;
 

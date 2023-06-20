@@ -21,6 +21,9 @@ public:
   void set_pipeline(const Pipeline& pipeline) {
     pipeline_ = &pipeline;
   }
+  void set_scissors(std::vector<vk::Rect2D>& scissors) {
+    scissors_.swap(scissors);
+  }
   void Call(const vk::CommandBuffer& buf, const vk::Framebuffer& framebuffer,
             const vk::RenderPass& renderpass) const;
 
@@ -28,6 +31,7 @@ private:
   const VertexArray* vertices_ = nullptr;
   const Pipeline* pipeline_ = nullptr;
   std::vector<vk::ClearValue> clear_values_{};
+  std::vector<vk::Rect2D> scissors_{};
 };
 
 } // namespace impl

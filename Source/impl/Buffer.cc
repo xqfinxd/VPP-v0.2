@@ -3,13 +3,35 @@
 namespace VPP {
 namespace impl {
 
-VertexBuffer::~VertexBuffer() {
+StaticBuffer::StaticBuffer() : DeviceResource() {
+}
+
+StaticBuffer::~StaticBuffer() {
   if (buffer_) {
     device().destroy(buffer_);
   }
   if (memory_) {
     device().free(memory_);
   }
+}
+
+bool StaticBuffer::SetData(vk::BufferUsageFlags usage, void* data,
+                           size_t size) {
+  buffer_ = CreateBuffer(usage | vk::BufferUsageFlagBits::eTransferDst, size);
+  if (!buffer_) {
+    return false;
+  }
+
+  memory_ = CreateMemory(device().getBufferMemoryRequirements(buffer_),
+                         vk::MemoryPropertyFlagBits::eDeviceLocal);
+  if (!memory_) {
+    return false;
+  }
+
+  device().bindBufferMemory(buffer_, memory_, 0);
+
+  StageBuffer stageBuffer(data, size);
+  return stageBuffer.CopyTo(buffer_);
 }
 
 bool VertexBuffer::SetData(uint32_t stride, uint32_t count, void* data,
@@ -17,88 +39,15 @@ bool VertexBuffer::SetData(uint32_t stride, uint32_t count, void* data,
   stride_ = stride;
   count_ = count;
 
-  auto result = vk::Result::eSuccess;
-
-  auto bufferCI = vk::BufferCreateInfo()
-                      .setUsage(vk::BufferUsageFlagBits::eVertexBuffer)
-                      .setQueueFamilyIndexCount(0)
-                      .setPQueueFamilyIndices(nullptr)
-                      .setSharingMode(vk::SharingMode::eExclusive)
-                      .setSize(size);
-  result = device().createBuffer(&bufferCI, nullptr, &buffer_);
-  if (result != vk::Result::eSuccess) {
-    return false;
-  }
-
-  auto req = device().getBufferMemoryRequirements(buffer_);
-
-  vk::MemoryPropertyFlags memFlags = vk::MemoryPropertyFlagBits::eHostVisible |
-                                     vk::MemoryPropertyFlagBits::eHostCoherent;
-  memory_ = CreateMemory(req, memFlags);
-  if (!memory_) {
-    return false;
-  }
-
-  device().bindBufferMemory(buffer_, memory_, 0);
-
-  size_t memSize = std::min(req.size, size);
-  void* mapData = device().mapMemory(memory_, 0, memSize, vk::MemoryMapFlags());
-  if (!mapData) {
-    return false;
-  }
-
-  memcpy(mapData, data, memSize);
-  device().unmapMemory(memory_);
-
-  return true;
-}
-
-IndexBuffer::~IndexBuffer() {
-  if (buffer_) {
-    device().destroy(buffer_);
-  }
-  if (memory_) {
-    device().free(memory_);
-  }
+  return StaticBuffer::SetData(vk::BufferUsageFlagBits::eVertexBuffer, data,
+                               size);
 }
 
 bool IndexBuffer::SetData(uint32_t count, void* data, size_t size) {
   count_ = count;
 
-  auto result = vk::Result::eSuccess;
-
-  auto bufferCI = vk::BufferCreateInfo()
-                      .setUsage(vk::BufferUsageFlagBits::eIndexBuffer)
-                      .setQueueFamilyIndexCount(0)
-                      .setPQueueFamilyIndices(nullptr)
-                      .setSharingMode(vk::SharingMode::eExclusive)
-                      .setSize(size);
-  result = device().createBuffer(&bufferCI, nullptr, &buffer_);
-  if (result != vk::Result::eSuccess) {
-    return false;
-  }
-
-  auto req = device().getBufferMemoryRequirements(buffer_);
-
-  vk::MemoryPropertyFlags memFlags = vk::MemoryPropertyFlagBits::eHostVisible |
-                                     vk::MemoryPropertyFlagBits::eHostCoherent;
-  memory_ = CreateMemory(req, memFlags);
-  if (!memory_) {
-    return false;
-  }
-
-  device().bindBufferMemory(buffer_, memory_, 0);
-
-  size_t memSize = std::min(req.size, size);
-  void* mapData = device().mapMemory(memory_, 0, memSize, vk::MemoryMapFlags());
-  if (!mapData) {
-    return false;
-  }
-
-  memcpy(mapData, data, memSize);
-  device().unmapMemory(memory_);
-
-  return true;
+  return StaticBuffer::SetData(vk::BufferUsageFlagBits::eIndexBuffer, data,
+                               size);
 }
 
 UniformBuffer::UniformBuffer() : DeviceResource() {
@@ -118,14 +67,8 @@ bool UniformBuffer::SetData(size_t size) {
 
   auto result = vk::Result::eSuccess;
 
-  auto bufferCI = vk::BufferCreateInfo()
-                      .setUsage(vk::BufferUsageFlagBits::eUniformBuffer)
-                      .setQueueFamilyIndexCount(0)
-                      .setPQueueFamilyIndices(nullptr)
-                      .setSharingMode(vk::SharingMode::eExclusive)
-                      .setSize(size);
-  result = device().createBuffer(&bufferCI, nullptr, &buffer_);
-  if (result != vk::Result::eSuccess) {
+  buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eUniformBuffer, size);
+  if (!buffer_) {
     return false;
   }
 
@@ -150,11 +93,11 @@ bool UniformBuffer::SetData(size_t size) {
   return true;
 }
 
-void VertexArray::add_vertex(const VertexBuffer& vertex) {
+void VertexArray::BindBuffer(const VertexBuffer& vertex) {
   vertices_.push_back(&vertex);
 }
 
-void VertexArray::set_index(const IndexBuffer& index) {
+void VertexArray::BindBuffer(const IndexBuffer& index) {
   index_ = &index;
 }
 
@@ -175,13 +118,13 @@ void VertexArray::BindCmd(const vk::CommandBuffer& buf) const {
 
 void VertexArray::DrawAtCmd(const vk::CommandBuffer& buf) const {
   if (index_) {
-    buf.drawIndexed(index_->count(), 1, 0, 0, 0);
+    buf.drawIndexed(index_->count(), 2, 0, 0, 0);
   } else {
     uint32_t minVertexCount = UINT32_MAX;
     for (const auto* e : vertices_) {
       minVertexCount = std::min(minVertexCount, e->count());
     }
-    buf.draw(minVertexCount, 1, 0, 0);
+    buf.draw(minVertexCount, 2, 0, 0);
   }
 }
 
