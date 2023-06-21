@@ -14,7 +14,7 @@ public:
 protected:
   StaticBuffer();
   ~StaticBuffer();
-  bool SetData(vk::BufferUsageFlags usage, void* data, size_t size);
+  bool SetData(vk::BufferUsageFlags usage, const void* data, size_t size);
 
 private:
   vk::Buffer buffer_{};
@@ -23,7 +23,7 @@ private:
 
 class VertexBuffer : public StaticBuffer {
 public:
-  bool SetData(uint32_t stride, uint32_t count, void* data, size_t size);
+  bool SetData(uint32_t stride, uint32_t count, const void* data, size_t size);
 
   uint32_t stride() const { return stride_; }
   uint32_t count() const { return count_; }
@@ -35,7 +35,7 @@ private:
 
 class IndexBuffer : public StaticBuffer {
 public:
-  bool SetData(uint32_t count, void* data, size_t size);
+  bool SetData(uint32_t count, const void* data, size_t size);
 
   uint32_t count() const { return count_; }
 

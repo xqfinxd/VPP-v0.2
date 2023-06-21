@@ -2,13 +2,14 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Buffer.h"
 #include "Device.h"
 #include "ShaderData.h"
 
 namespace VPP {
 
 namespace impl {
+
+class VertexArray;
 
 class Pipeline : public DeviceResource {
   friend class DrawCmd;
@@ -18,10 +19,9 @@ public:
   ~Pipeline();
 
   bool SetShader(const Shader::MetaData& data);
-  void SetVertexArray(const VertexArray& array);
   void SetVertexAttrib(uint32_t location, uint32_t binding, vk::Format format,
                        uint32_t offset);
-  bool Enable();
+  bool Enable(const VertexArray& array);
 
   void BindCmd(const vk::CommandBuffer& buf) const;
 

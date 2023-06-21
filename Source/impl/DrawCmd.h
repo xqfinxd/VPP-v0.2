@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "Buffer.h"
+#include "Image.h"
 #include "Device.h"
 #include "Pipeline.h"
 

@@ -5,10 +5,11 @@
 #include "impl/Buffer.h"
 #include "impl/Device.h"
 #include "impl/DrawCmd.h"
+#include "impl/Image.h"
 #include "impl/Pipeline.h"
 #include "impl/ShaderData.h"
-#include "impl/VPPShader.h"
 #include "impl/VPPImage.h"
+#include "impl/VPPShader.h"
 #include "impl/Window.h"
 
 namespace VPP {
@@ -83,9 +84,12 @@ void Application::OnStart() {
   vertexArray->BindBuffer(*indexBuffer);
 
   {
-      Image::Reader reader;
-      reader.Load("container.jpg", 0);
-      reader.pixel();
+    impl::SamplerTexture tex;
+    Image::Reader reader;
+    reader.Load("container.jpg", 4);
+    tex.SetImage2D(vk::Format::eR8G8B8A8Srgb, reader.width(), reader.height(),
+                   4, reader.pixel());
+    reader.channel();
   }
 
   basicPipe = new impl::Pipeline();
@@ -94,11 +98,10 @@ void Application::OnStart() {
     Shader::MetaData data{};
     if (reader.GetData(&data))
       basicPipe->SetShader(data);
-    basicPipe->SetVertexArray(*vertexArray);
     basicPipe->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);
     basicPipe->SetVertexAttrib(1, 0, vk::Format::eR32G32B32Sfloat,
                                (3 * sizeof(float)));
-    basicPipe->Enable();
+    basicPipe->Enable(*vertexArray);
   }
 
   cmd = new impl::DrawCmd();

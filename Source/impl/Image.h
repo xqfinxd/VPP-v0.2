@@ -1,16 +1,18 @@
+#pragma once
+
 #include <vulkan/vulkan.hpp>
 
 #include "Device.h"
 
 namespace VPP {
 namespace impl {
-class CombinedImageSampler : public DeviceResource {
+class SamplerTexture : public DeviceResource {
 public:
-  CombinedImageSampler();
-  ~CombinedImageSampler();
+  SamplerTexture();
+  ~SamplerTexture();
 
-  bool Init(vk::Format format, uint32_t width, uint32_t height, void* data,
-            size_t size);
+  bool SetImage2D(vk::Format format, uint32_t width, uint32_t height,
+                  uint32_t channel, const void* data);
 
 private:
   vk::Format format_ = vk::Format::eUndefined;

@@ -14,7 +14,7 @@ StaticBuffer::~StaticBuffer() {
   }
 }
 
-bool StaticBuffer::SetData(vk::BufferUsageFlags usage, void* data,
+bool StaticBuffer::SetData(vk::BufferUsageFlags usage, const void* data,
                            size_t size) {
   buffer_ = CreateBuffer(usage | vk::BufferUsageFlagBits::eTransferDst, size);
   if (!buffer_) {
@@ -33,7 +33,7 @@ bool StaticBuffer::SetData(vk::BufferUsageFlags usage, void* data,
   return stageBuffer.CopyTo(buffer_);
 }
 
-bool VertexBuffer::SetData(uint32_t stride, uint32_t count, void* data,
+bool VertexBuffer::SetData(uint32_t stride, uint32_t count, const void* data,
                            size_t size) {
   stride_ = stride;
   count_ = count;
@@ -42,7 +42,7 @@ bool VertexBuffer::SetData(uint32_t stride, uint32_t count, void* data,
                                size);
 }
 
-bool IndexBuffer::SetData(uint32_t count, void* data, size_t size) {
+bool IndexBuffer::SetData(uint32_t count, const void* data, size_t size) {
   count_ = count;
 
   return StaticBuffer::SetData(vk::BufferUsageFlagBits::eIndexBuffer, data,

@@ -1,4 +1,5 @@
 #include "Pipeline.h"
+#include "Buffer.h"
 
 #include <map>
 
@@ -101,10 +102,6 @@ bool Pipeline::SetShader(const Shader::MetaData& data) {
   return true;
 }
 
-void Pipeline::SetVertexArray(const VertexArray& array) {
-  vertex_bindings_ = array.GetBindings();
-}
-
 void Pipeline::SetVertexAttrib(uint32_t location, uint32_t binding,
                                vk::Format format, uint32_t offset) {
   vertex_attribs_.emplace_back(vk::VertexInputAttributeDescription()
@@ -114,7 +111,7 @@ void Pipeline::SetVertexAttrib(uint32_t location, uint32_t binding,
                                    .setOffset(offset));
 }
 
-bool Pipeline::Enable() {
+bool Pipeline::Enable(const VertexArray& vertices) {
   if (pipeline_) {
     return true;
   }
@@ -122,6 +119,8 @@ bool Pipeline::Enable() {
   if (shaders_.empty()) {
     return false;
   }
+
+  vertex_bindings_ = vertices.GetBindings();
 
   std::vector<vk::PipelineShaderStageCreateInfo> shaderStageInfo{};
   for (const auto& e : shaders_) {

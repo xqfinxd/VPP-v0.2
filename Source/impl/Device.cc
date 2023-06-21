@@ -621,8 +621,44 @@ vk::Buffer DeviceResource::CreateBuffer(vk::BufferUsageFlags flags,
   return device().createBuffer(bufferCI);
 }
 
-bool DeviceResource::CopyBuffer(const vk::Buffer& srcBuffer,
-                                const vk::Buffer& dstBuffer, size_t size) {
+bool DeviceResource::CopyBuffer2Buffer(const vk::Buffer& srcBuffer,
+                                       const vk::Buffer& dstBuffer,
+                                       size_t size) const {
+  auto cmd = BeginOnceCmd();
+  if (!cmd) {
+    return false;
+  }
+  auto copyRegion =
+      vk::BufferCopy().setDstOffset(0).setSrcOffset(0).setSize(size);
+  cmd.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
+  EndOnceCmd(cmd);
+  return true;
+}
+
+bool DeviceResource::CopyBuffer2Image(const vk::Buffer& srcBuffer,
+                                      const vk::Image& dstImage, uint32_t width,
+                                      uint32_t height, uint32_t channel) const {
+  auto cmd = BeginOnceCmd();
+  if (!cmd) {
+    return false;
+  }
+  SetImageForTransfer(cmd, dstImage);
+  auto region = vk::BufferImageCopy()
+                    .setBufferOffset(0)
+                    .setBufferRowLength(width)
+                    .setBufferImageHeight(height)
+                    .setImageSubresource(vk::ImageSubresourceLayers{
+                        vk::ImageAspectFlagBits::eColor, 0, 0, 1})
+                    .setImageOffset(vk::Offset3D{0, 0, 0})
+                    .setImageExtent(vk::Extent3D{width, height, 1});
+  cmd.copyBufferToImage(srcBuffer, dstImage,
+                        vk::ImageLayout::eTransferDstOptimal, 1, &region);
+  SetImageForShader(cmd, dstImage);
+  EndOnceCmd(cmd);
+  return true;
+}
+
+vk::CommandBuffer DeviceResource::BeginOnceCmd() const {
   auto cmdAI = vk::CommandBufferAllocateInfo()
                    .setCommandPool(parent_->command_pool_)
                    .setLevel(vk::CommandBufferLevel::ePrimary)
@@ -631,17 +667,16 @@ bool DeviceResource::CopyBuffer(const vk::Buffer& srcBuffer,
   vk::CommandBuffer cmd = VK_NULL_HANDLE;
   auto result = device().allocateCommandBuffers(&cmdAI, &cmd);
   if (result != vk::Result::eSuccess) {
-    return false;
+    return cmd;
   }
 
   auto beginInfo = vk::CommandBufferBeginInfo().setFlags(
       vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
   cmd.begin(beginInfo);
+  return cmd;
+}
 
-  auto copyRegion =
-      vk::BufferCopy().setDstOffset(0).setSrcOffset(0).setSize(size);
-  cmd.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
-
+void DeviceResource::EndOnceCmd(vk::CommandBuffer& cmd) const {
   cmd.end();
 
   parent_->graphics_queue_.waitIdle();
@@ -651,10 +686,46 @@ bool DeviceResource::CopyBuffer(const vk::Buffer& srcBuffer,
   parent_->graphics_queue_.waitIdle();
 
   device().free(parent_->command_pool_, 1, &cmd);
-  return true;
+  cmd = VK_NULL_HANDLE;
 }
 
-StageBuffer::StageBuffer(void* data, size_t size)
+void DeviceResource::SetImageForTransfer(const vk::CommandBuffer& cmd,
+                                         const vk::Image& image) const {
+  auto barrier = vk::ImageMemoryBarrier()
+                     .setOldLayout(vk::ImageLayout::eUndefined)
+                     .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
+                     .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                     .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                     .setImage(image)
+                     .setSubresourceRange(vk::ImageSubresourceRange{
+                         vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1})
+                     .setSrcAccessMask((vk::AccessFlags)0)
+                     .setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
+  cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+                      vk::PipelineStageFlagBits::eTransfer,
+                      (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
+                      &barrier);
+}
+
+void DeviceResource::SetImageForShader(const vk::CommandBuffer& cmd,
+                                       const vk::Image& image) const {
+  auto barrier = vk::ImageMemoryBarrier()
+                     .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
+                     .setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+                     .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                     .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                     .setImage(image)
+                     .setSubresourceRange(vk::ImageSubresourceRange{
+                         vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1})
+                     .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
+                     .setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+  cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                      vk::PipelineStageFlagBits::eFragmentShader,
+                      (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
+                      &barrier);
+}
+
+StageBuffer::StageBuffer(const void* data, size_t size)
     : DeviceResource(), size_(size) {
   buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eTransferSrc, size_);
   if (!buffer_) {
@@ -681,8 +752,13 @@ StageBuffer::~StageBuffer() {
   }
 }
 
-bool StageBuffer::CopyTo(vk::Buffer dstBuffer) {
-  return CopyBuffer(buffer_, dstBuffer, size_);
+bool StageBuffer::CopyTo(const vk::Buffer& dstBuffer) {
+  return CopyBuffer2Buffer(buffer_, dstBuffer, size_);
+}
+
+bool StageBuffer::CopyTo(const vk::Image& dstImage, uint32_t width,
+                         uint32_t height, uint32_t channel) {
+  return CopyBuffer2Image(buffer_, dstImage, width, height, channel);
 }
 
 extern Device* g_Device;
