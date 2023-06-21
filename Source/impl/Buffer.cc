@@ -3,9 +3,9 @@
 namespace VPP {
 namespace impl {
 
-StaticBuffer::StaticBuffer() : DeviceResource() {}
+CommonBuffer::CommonBuffer() : DeviceResource() {}
 
-StaticBuffer::~StaticBuffer() {
+CommonBuffer::~CommonBuffer() {
   if (buffer_) {
     device().destroy(buffer_);
   }
@@ -14,7 +14,7 @@ StaticBuffer::~StaticBuffer() {
   }
 }
 
-bool StaticBuffer::SetData(vk::BufferUsageFlags usage, const void* data,
+bool CommonBuffer::SetLocalData(vk::BufferUsageFlags usage, const void* data,
                            size_t size) {
   buffer_ = CreateBuffer(usage | vk::BufferUsageFlagBits::eTransferDst, size);
   if (!buffer_) {
@@ -33,36 +33,7 @@ bool StaticBuffer::SetData(vk::BufferUsageFlags usage, const void* data,
   return stageBuffer.CopyTo(buffer_);
 }
 
-bool VertexBuffer::SetData(uint32_t stride, uint32_t count, const void* data,
-                           size_t size) {
-  stride_ = stride;
-  count_ = count;
-
-  return StaticBuffer::SetData(vk::BufferUsageFlagBits::eVertexBuffer, data,
-                               size);
-}
-
-bool IndexBuffer::SetData(uint32_t count, const void* data, size_t size) {
-  count_ = count;
-
-  return StaticBuffer::SetData(vk::BufferUsageFlagBits::eIndexBuffer, data,
-                               size);
-}
-
-UniformBuffer::UniformBuffer() : DeviceResource() {}
-
-UniformBuffer::~UniformBuffer() {
-  if (buffer_) {
-    device().destroy(buffer_);
-  }
-  if (memory_) {
-    device().free(memory_);
-  }
-}
-
-bool UniformBuffer::SetData(size_t size) {
-  size_ = size;
-
+bool CommonBuffer::SetGlobalData(vk::BufferUsageFlags usage, const void* data, size_t size) {
   auto result = vk::Result::eSuccess;
 
   buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eUniformBuffer, size);
@@ -81,14 +52,46 @@ bool UniformBuffer::SetData(size_t size) {
 
   device().bindBufferMemory(buffer_, memory_, 0);
 
-  size_t memSize = std::min(req.size, size);
-  void* mapData = device().mapMemory(memory_, 0, memSize, vk::MemoryMapFlags());
-  if (mapData) {
-    memset(mapData, 0, memSize);
+  if (data) {
+    void* mapData = device().mapMemory(memory_, 0, size, vk::MemoryMapFlags());
+    if (mapData) {
+      memcpy(mapData, data, size);
+    }
+    device().unmapMemory(memory_);
   }
-  device().unmapMemory(memory_);
 
   return true;
+}
+
+bool VertexBuffer::SetData(uint32_t stride, uint32_t count, const void* data,
+                           size_t size) {
+  stride_ = stride;
+  count_ = count;
+
+  return SetLocalData(vk::BufferUsageFlagBits::eVertexBuffer, data,
+                               size);
+}
+
+bool IndexBuffer::SetData(uint32_t count, const void* data, size_t size) {
+  count_ = count;
+
+  return SetLocalData(vk::BufferUsageFlagBits::eIndexBuffer, data,
+                               size);
+}
+
+bool UniformBuffer::SetData(size_t size) {
+  size_ = size;
+
+  auto result = vk::Result::eSuccess;
+  return SetGlobalData(vk::BufferUsageFlagBits::eUniformBuffer, nullptr, size);
+}
+
+void UniformBuffer::UpdateData(void* data, size_t size) {
+    if (!data || !size) { return; }
+    auto mapData = device().mapMemory(memory(), 0, size_);
+    size_t safeSize = std::min(size_, size);
+    memcpy(mapData, data, safeSize);
+    device().unmapMemory(memory());
 }
 
 void VertexArray::BindBuffer(const VertexBuffer& vertex) {

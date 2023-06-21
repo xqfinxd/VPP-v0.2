@@ -12,7 +12,7 @@ namespace impl {
 class VertexArray;
 
 class Pipeline : public DeviceResource {
-  friend class DrawCmd;
+  friend class DrawParam;
 
 public:
   Pipeline();
@@ -33,8 +33,8 @@ private:
   vk::Pipeline pipeline_{};
   vk::PipelineLayout pipe_layout_{};
   std::vector<vk::DescriptorSetLayout> desc_layout_{};
-  vk::DescriptorPool desc_pool_{};
-  std::vector<vk::DescriptorSet> desc_set_{};
+  vk::DescriptorPool descriptor_pool_{};
+  std::vector<vk::DescriptorSet> descriptor_sets_{};
   std::vector<Module> shaders_{};
   std::vector<vk::VertexInputBindingDescription> vertex_bindings_{};
   std::vector<vk::VertexInputAttributeDescription> vertex_attribs_{};

@@ -119,7 +119,7 @@ void Device::ReCreateSwapchain() {
   device_.destroy(oldSwapchain);
 }
 
-void Device::set_cmd(const DrawCmd& cmd) {
+void Device::set_cmd(const DrawParam& cmd) {
   cmd_ = &cmd;
   for (uint32_t i = 0; i < swapchain_image_count_; i++) {
     cmd_->Call(commands_[i], framebuffers_[i], render_pass_);
@@ -720,7 +720,7 @@ void DeviceResource::SetImageForShader(const vk::CommandBuffer& cmd,
                      .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
                      .setDstAccessMask(vk::AccessFlagBits::eShaderRead);
   cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-                      vk::PipelineStageFlagBits::eFragmentShader,
+                      vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eVertexShader,
                       (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
                       &barrier);
 }

@@ -8,7 +8,7 @@
 namespace VPP {
 namespace impl {
 
-class DrawCmd;
+class DrawParam;
 
 class Device {
   friend class DeviceResource;
@@ -21,7 +21,7 @@ public:
 
   uint32_t GetDrawCount() const { return swapchain_image_count_; }
 
-  void set_cmd(const DrawCmd& cmd);
+  void set_cmd(const DrawParam& cmd);
   void Draw();
   void EndDraw();
 
@@ -81,7 +81,7 @@ private:
   vk::CommandPool command_pool_{};
   uarray<vk::CommandBuffer> commands_{};
 
-  const DrawCmd* cmd_;
+  const DrawParam* cmd_;
 };
 
 class DeviceResource {

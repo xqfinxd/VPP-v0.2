@@ -7,21 +7,23 @@
 namespace VPP {
 namespace impl {
 
-class StaticBuffer : public DeviceResource {
+class CommonBuffer : public DeviceResource {
 public:
   const vk::Buffer& buffer() const { return buffer_; }
+  const vk::DeviceMemory& memory() const { return memory_; }
 
 protected:
-  StaticBuffer();
-  ~StaticBuffer();
-  bool SetData(vk::BufferUsageFlags usage, const void* data, size_t size);
+  CommonBuffer();
+  ~CommonBuffer();
+  bool SetLocalData(vk::BufferUsageFlags usage, const void* data, size_t size);
+  bool SetGlobalData(vk::BufferUsageFlags usage, const void* data, size_t size);
 
 private:
   vk::Buffer buffer_{};
   vk::DeviceMemory memory_{};
 };
 
-class VertexBuffer : public StaticBuffer {
+class VertexBuffer : public CommonBuffer {
 public:
   bool SetData(uint32_t stride, uint32_t count, const void* data, size_t size);
 
@@ -33,7 +35,7 @@ private:
   uint32_t count_ = 0;
 };
 
-class IndexBuffer : public StaticBuffer {
+class IndexBuffer : public CommonBuffer {
 public:
   bool SetData(uint32_t count, const void* data, size_t size);
 
@@ -57,19 +59,15 @@ private:
   const IndexBuffer* index_ = nullptr;
 };
 
-class UniformBuffer : public DeviceResource {
+class UniformBuffer : public CommonBuffer {
 public:
-  UniformBuffer();
-  ~UniformBuffer();
-
   bool SetData(size_t size);
+  size_t size() const { return size_; }
+  void UpdateData(void* data, size_t size);
 
 private:
   size_t size_ = 0;
   std::vector<uint8_t> data_{};
-
-  vk::Buffer buffer_{};
-  vk::DeviceMemory memory_{};
 };
 } // namespace impl
 } // namespace VPP

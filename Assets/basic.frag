@@ -4,9 +4,14 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (location = 0) out vec4 FragColor;
+
 layout (location = 0) in vec3 ourColor;
+layout (location = 1) in vec2 TexCoord;
+
+layout (set=0, binding=0) uniform sampler2D texture1;
+layout (set=0, binding=1) uniform sampler2D texture2;
 
 void main()
 {
-    FragColor = vec4(ourColor, 1.0f);
+    FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.5);
 } 

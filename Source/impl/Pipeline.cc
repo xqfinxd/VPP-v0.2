@@ -16,8 +16,8 @@ Pipeline::~Pipeline() {
   if (pipe_layout_) {
     device().destroy(pipe_layout_);
   }
-  if (desc_pool_) {
-    device().destroy(desc_pool_);
+  if (descriptor_pool_) {
+    device().destroy(descriptor_pool_);
   }
   for (auto& e : desc_layout_) {
     if (e) {
@@ -73,16 +73,16 @@ bool Pipeline::SetShader(const Shader::MetaData& data) {
     auto poolCI = vk::DescriptorPoolCreateInfo()
                       .setMaxSets((uint32_t)dataMap.size())
                       .setPoolSizes(poolSizes);
-    desc_pool_ = device().createDescriptorPool(poolCI);
-    if (!desc_pool_) {
+    descriptor_pool_ = device().createDescriptorPool(poolCI);
+    if (!descriptor_pool_) {
       return false;
     }
 
     auto descAI = vk::DescriptorSetAllocateInfo()
-                      .setDescriptorPool(desc_pool_)
+                      .setDescriptorPool(descriptor_pool_)
                       .setSetLayouts(desc_layout_);
-    desc_set_.resize(dataMap.size());
-    if (device().allocateDescriptorSets(&descAI, desc_set_.data()) !=
+    descriptor_sets_.resize(dataMap.size());
+    if (device().allocateDescriptorSets(&descAI, descriptor_sets_.data()) !=
         vk::Result::eSuccess) {
       return false;
     }
@@ -207,10 +207,10 @@ bool Pipeline::Enable(const VertexArray& vertices) {
 
 void Pipeline::BindCmd(const vk::CommandBuffer& buf) const {
   buf.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
-  if (!desc_set_.empty()) {
+  if (!descriptor_sets_.empty()) {
     std::vector<uint32_t> offset{};
     buf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipe_layout_, 0,
-                           desc_set_, offset);
+                           descriptor_sets_, offset);
   }
 }
 

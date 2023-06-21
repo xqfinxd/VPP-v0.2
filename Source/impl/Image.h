@@ -14,6 +14,9 @@ public:
   bool SetImage2D(vk::Format format, uint32_t width, uint32_t height,
                   uint32_t channel, const void* data);
 
+  const vk::ImageView& view() const { return view_; }
+  const vk::Sampler& sampler() const { return sampler_; }
+
 private:
   vk::Format format_ = vk::Format::eUndefined;
   uint32_t width_ = 0;

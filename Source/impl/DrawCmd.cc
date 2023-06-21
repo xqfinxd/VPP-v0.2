@@ -1,12 +1,14 @@
 #include "DrawCmd.h"
 
+#include "Pipeline.h"
+
 namespace VPP {
 
 namespace impl {
 
-void DrawCmd::Call(const vk::CommandBuffer& buf,
-                   const vk::Framebuffer& framebuffer,
-                   const vk::RenderPass& renderpass) const {
+void DrawParam::Call(const vk::CommandBuffer& buf,
+                     const vk::Framebuffer& framebuffer,
+                     const vk::RenderPass& renderpass) const {
   if (!pipeline_ || !vertices_ || !buf) {
     return;
   }
@@ -37,6 +39,54 @@ void DrawCmd::Call(const vk::CommandBuffer& buf,
 
   buf.endRenderPass();
   buf.end();
+}
+
+bool DrawParam::BindTexture(uint32_t slot, uint32_t set, uint32_t binding) {
+  auto iter =
+      std::find_if(sampler_textures_.begin(), sampler_textures_.end(),
+                   [slot](const std::pair<uint32_t, const SamplerTexture*>& e) {
+                     return e.first == slot;
+                   });
+  if (iter == sampler_textures_.end()) {
+    return false;
+  }
+  auto imageInfo = vk::DescriptorImageInfo()
+                       .setImageView(iter->second->view())
+                       .setSampler(iter->second->sampler())
+                       .setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
+  auto write = vk::WriteDescriptorSet()
+                   .setDescriptorCount(1)
+                   .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+                   .setDstSet(pipeline_->descriptor_sets_[set])
+                   .setDstBinding(binding)
+                   .setPImageInfo(&imageInfo);
+  device().updateDescriptorSets(1, &write, 0, nullptr);
+  return true;
+}
+
+bool DrawParam::BindBlock(uint32_t slot, uint32_t set, uint32_t binding) {
+    auto iter = std::find_if(
+        uniform_buffers_.begin(), uniform_buffers_.end(),
+        [slot](const std::pair<uint32_t, const UniformBuffer*>& e) {
+        return e.first == slot;
+    });
+    if (iter == uniform_buffers_.end()) {
+        return false;
+    }
+    auto bufferInfo = vk::DescriptorBufferInfo()
+        .setBuffer(iter->second->buffer())
+        .setOffset(0)
+        .setRange(iter->second->size());
+
+    auto write = vk::WriteDescriptorSet()
+        .setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+        .setDstSet(pipeline_->descriptor_sets_[set])
+        .setDstBinding(binding)
+        .setPBufferInfo(&bufferInfo);
+    device().updateDescriptorSets(1, &write, 0, nullptr);
+    return true;
 }
 
 } // namespace impl

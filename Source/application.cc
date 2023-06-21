@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "impl/Buffer.h"
 #include "impl/Device.h"
 #include "impl/DrawCmd.h"
@@ -25,7 +28,10 @@ static impl::Pipeline* basicPipe = nullptr;
 static impl::VertexBuffer* vertexBuffer = nullptr;
 static impl::VertexArray* vertexArray = nullptr;
 static impl::IndexBuffer* indexBuffer = nullptr;
-static impl::DrawCmd* cmd = nullptr;
+static impl::DrawParam* cmd = nullptr;
+static impl::SamplerTexture* tex1 = nullptr;
+static impl::SamplerTexture* tex2 = nullptr;
+static impl::UniformBuffer* transform = nullptr;
 
 Application::Application() {}
 
@@ -59,20 +65,19 @@ void Application::Run() {
 void Application::OnStart() {
 
   std::vector<float> vertices = {
-      // positions         // colors
-      0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
-      -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
-      0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f  // top
+      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+      -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
   };
 
   std::vector<uint32_t> indices = {
-      // note that we start from 0!
-      0, 1, 2, // first Triangle
-      1, 2, 0  // second Triangle
+      0, 1, 3, // first triangle
+      1, 2, 3  // second triangle
   };
 
   vertexBuffer = new impl::VertexBuffer();
-  vertexBuffer->SetData((uint32_t)sizeof(float) * 6, 3, vertices.data(),
+  vertexBuffer->SetData((uint32_t)sizeof(float) * 8, 3, vertices.data(),
                         vertices.size() * sizeof(float));
 
   indexBuffer = new impl::IndexBuffer();
@@ -83,14 +88,18 @@ void Application::OnStart() {
   vertexArray->BindBuffer(*vertexBuffer);
   vertexArray->BindBuffer(*indexBuffer);
 
-  {
-    impl::SamplerTexture tex;
-    Image::Reader reader;
-    reader.Load("container.jpg", 4);
-    tex.SetImage2D(vk::Format::eR8G8B8A8Srgb, reader.width(), reader.height(),
+  tex1 = new impl::SamplerTexture();
+  tex2 = new impl::SamplerTexture();
+  Image::Reader reader;
+  reader.Load("awesomeface.png", 4);
+  tex1->SetImage2D(vk::Format::eR8G8B8A8Srgb, reader.width(), reader.height(),
                    4, reader.pixel());
-    reader.channel();
-  }
+  reader.Load("container.jpg", 4);
+  tex2->SetImage2D(vk::Format::eR8G8B8A8Srgb, reader.width(), reader.height(),
+                   4, reader.pixel());
+
+  transform = new impl::UniformBuffer();
+  transform->SetData(sizeof(glm::mat4));
 
   basicPipe = new impl::Pipeline();
   {
@@ -101,12 +110,23 @@ void Application::OnStart() {
     basicPipe->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);
     basicPipe->SetVertexAttrib(1, 0, vk::Format::eR32G32B32Sfloat,
                                (3 * sizeof(float)));
-    basicPipe->Enable(*vertexArray);
+    basicPipe->SetVertexAttrib(2, 0, vk::Format::eR32G32Sfloat,
+                               (6 * sizeof(float)));
   }
 
-  cmd = new impl::DrawCmd();
+  cmd = new impl::DrawParam();
   cmd->set_vertices(*vertexArray);
+
   cmd->set_pipeline(*basicPipe);
+
+  cmd->add_sampler_texture(0, *tex1);
+  cmd->add_sampler_texture(1, *tex2);
+  cmd->BindTexture(0, 0, 0);
+  cmd->BindTexture(1, 0, 1);
+
+  cmd->add_uniform_buffer(0, *transform);
+  cmd->BindBlock(0, 1, 0);
+
   std::vector<vk::ClearValue> clearValues = {
       vk::ClearValue().setColor(vk::ClearColorValue{0.2f, 0.3f, 0.3f, 1.0f}),
       vk::ClearValue().setDepthStencil(vk::ClearDepthStencilValue{1.0f, 0}),
@@ -115,9 +135,20 @@ void Application::OnStart() {
   impl::g_Device->set_cmd(*cmd);
 }
 
-void Application::OnLoop() { impl::g_Device->Draw(); }
+void Application::OnLoop() {
+  glm::mat4 model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+  model = glm::rotate(model, (float)SDL_GetTicks() / 1000, glm::vec3(0.0f, 0.0f, 1.0f));
+  model = glm::scale(model, glm::vec3(0.8f, 1.8f, 1.0f));
+  transform->UpdateData(&model, sizeof(model));
+
+  impl::g_Device->Draw();
+}
 
 void Application::OnEnd() {
+  delete transform;
+  delete tex2;
+  delete tex1;
   delete basicPipe;
   delete vertexArray;
   delete indexBuffer;

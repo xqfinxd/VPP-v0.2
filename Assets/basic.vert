@@ -6,11 +6,18 @@
 
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aColor;
+layout (location = 2) in vec2 aTexCoord;
 
 layout (location = 0) out vec3 ourColor;
+layout (location = 1) out vec2 TexCoord;
+
+layout (std140, set = 1, binding = 0) uniform MVP {
+    mat4 model;
+} transform;
 
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y + gl_InstanceIndex, aPos.z, 1.0);
+    gl_Position = transform.model * vec4(aPos, 1.0);
 	ourColor = aColor;
+	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
 }
