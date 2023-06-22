@@ -20,16 +20,6 @@
     <ClCompile Include="..\..\Source\impl\Window.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\VPP\Application.h" />
-    <ClInclude Include="..\..\Source\impl\Buffer.h" />
-    <ClInclude Include="..\..\Source\impl\DrawCmd.h" />
-    <ClInclude Include="..\..\Source\impl\Image.h" />
-    <ClInclude Include="..\..\Source\impl\Device.h" />
-    <ClInclude Include="..\..\Source\impl\Pipeline.h" />
-    <ClInclude Include="..\..\Source\impl\UniqueArray.hpp" />
-    <ClInclude Include="..\..\Source\impl\Window.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\VPPImage\VPPImage.vcxproj">
       <Project>{c18aae56-7fbb-4e39-b01a-26929b408e73}</Project>
     </ProjectReference>

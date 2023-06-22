@@ -5,19 +5,18 @@
 #extension GL_ARB_enhanced_layouts : enable
 
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-layout (location = 2) in vec2 aTexCoord;
+layout (location = 1) in vec2 aTexCoord;
 
-layout (location = 0) out vec3 ourColor;
-layout (location = 1) out vec2 TexCoord;
+layout (location = 0) out vec2 TexCoord;
 
 layout (std140, set = 1, binding = 0) uniform MVP {
     mat4 model;
-} transform;
+    mat4 view;
+    mat4 projection;
+} mvp;
 
 void main()
 {
-    gl_Position = transform.model * vec4(aPos, 1.0);
-	ourColor = aColor;
+    gl_Position = mvp.projection * mvp.view * mvp.model * vec4(aPos, 1.0f);
 	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
 }

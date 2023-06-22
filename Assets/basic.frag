@@ -5,13 +5,12 @@
 
 layout (location = 0) out vec4 FragColor;
 
-layout (location = 0) in vec3 ourColor;
-layout (location = 1) in vec2 TexCoord;
+layout (location = 0) in vec2 TexCoord;
 
 layout (set=0, binding=0) uniform sampler2D texture1;
 layout (set=0, binding=1) uniform sampler2D texture2;
 
 void main()
 {
-    FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.5);
+    FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.8);
 } 

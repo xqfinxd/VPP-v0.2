@@ -153,7 +153,7 @@ bool Pipeline::Enable(const VertexArray& vertices) {
                                .setDepthClampEnable(VK_FALSE)
                                .setRasterizerDiscardEnable(VK_FALSE)
                                .setPolygonMode(vk::PolygonMode::eFill)
-                               .setCullMode(vk::CullModeFlagBits::eBack)
+                               .setCullMode(vk::CullModeFlagBits::eNone)
                                .setFrontFace(vk::FrontFace::eCounterClockwise)
                                .setDepthBiasEnable(VK_FALSE)
                                .setLineWidth(1.f);

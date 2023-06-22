@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/matrix_transform.hpp>
 
 #include "impl/Buffer.h"
 #include "impl/Device.h"
@@ -14,6 +15,7 @@
 #include "impl/VPPImage.h"
 #include "impl/VPPShader.h"
 #include "impl/Window.h"
+#include "VPP_Config.h"
 
 namespace VPP {
 
@@ -65,10 +67,47 @@ void Application::Run() {
 void Application::OnStart() {
 
   std::vector<float> vertices = {
-      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
-      -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
+      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+      0.5f,  -0.5f, -0.5f, 1.0f, 0.0f,
+      0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+      0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 1.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+
+      -0.5f, 0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+      -0.5f, 0.5f,  0.5f,  1.0f, 0.0f,
+
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, -0.5f, 0.0f, 1.0f,
+      0.5f,  -0.5f, -0.5f, 0.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  0.0f, 0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+      0.5f,  -0.5f, -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f,
+      0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 0.0f,
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f
   };
 
   std::vector<uint32_t> indices = {
@@ -77,7 +116,7 @@ void Application::OnStart() {
   };
 
   vertexBuffer = new impl::VertexBuffer();
-  vertexBuffer->SetData((uint32_t)sizeof(float) * 8, 3, vertices.data(),
+  vertexBuffer->SetData((uint32_t)sizeof(float) * 5, 36, vertices.data(),
                         vertices.size() * sizeof(float));
 
   indexBuffer = new impl::IndexBuffer();
@@ -86,7 +125,7 @@ void Application::OnStart() {
 
   vertexArray = new impl::VertexArray();
   vertexArray->BindBuffer(*vertexBuffer);
-  vertexArray->BindBuffer(*indexBuffer);
+  //vertexArray->BindBuffer(*indexBuffer);
 
   tex1 = new impl::SamplerTexture();
   tex2 = new impl::SamplerTexture();
@@ -99,7 +138,7 @@ void Application::OnStart() {
                    4, reader.pixel());
 
   transform = new impl::UniformBuffer();
-  transform->SetData(sizeof(glm::mat4));
+  transform->SetData(sizeof(glm::mat4) * 3);
 
   basicPipe = new impl::Pipeline();
   {
@@ -108,10 +147,10 @@ void Application::OnStart() {
     if (reader.GetData(&data))
       basicPipe->SetShader(data);
     basicPipe->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);
-    basicPipe->SetVertexAttrib(1, 0, vk::Format::eR32G32B32Sfloat,
+    basicPipe->SetVertexAttrib(1, 0, vk::Format::eR32G32Sfloat,
                                (3 * sizeof(float)));
-    basicPipe->SetVertexAttrib(2, 0, vk::Format::eR32G32Sfloat,
-                               (6 * sizeof(float)));
+    /*basicPipe->SetVertexAttrib(2, 0, vk::Format::eR32G32Sfloat,
+                               (6 * sizeof(float)));*/
   }
 
   cmd = new impl::DrawParam();
@@ -136,11 +175,16 @@ void Application::OnStart() {
 }
 
 void Application::OnLoop() {
-  glm::mat4 model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-  model = glm::rotate(model, (float)SDL_GetTicks() / 1000, glm::vec3(0.0f, 0.0f, 1.0f));
-  model = glm::scale(model, glm::vec3(0.8f, 1.8f, 1.0f));
-  transform->UpdateData(&model, sizeof(model));
+  glm::mat4 model = glm::mat4(
+      1.0f); // make sure to initialize matrix to identity matrix first
+  glm::mat4 view = glm::mat4(1.0f);
+  glm::mat4 projection = glm::mat4(1.0f);
+  model = glm::rotate(model, (float)SDL_GetTicks() / 1000, glm::vec3(0.5f, 1.0f, 0.0f));
+  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+  projection = glm::perspective(
+      glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+  glm::mat4 bytes[3] = {model, view, projection};
+  transform->UpdateData(bytes, sizeof(glm::mat4) * 3);
 
   impl::g_Device->Draw();
 }
