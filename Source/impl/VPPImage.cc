@@ -14,6 +14,9 @@ Reader::~Reader() {
 }
 
 bool Reader::Load(const char* file, uint32_t channel) {
+  if (pixel_) {
+    stbi_image_free(pixel_);
+  }
   // stbi_set_flip_vertically_on_load(true);
   pixel_ = (void*)stbi_load(file, (int*)&width_, (int*)&height_,
                             (int*)&channel_, (int)channel);

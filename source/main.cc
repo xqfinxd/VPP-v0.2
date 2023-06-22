@@ -4,14 +4,10 @@
 
 class MyApp : public VPP::Application {
 public:
-  MyApp() {
-  }
-  ~MyApp() {
-  }
+  MyApp() {}
+  ~MyApp() {}
 
-  void OnLoop() override {
-    __super::OnLoop();
-  }
+  void OnLoop() override { __super::OnLoop(); }
 
 private:
 };

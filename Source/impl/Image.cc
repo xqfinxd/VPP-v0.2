@@ -81,8 +81,8 @@ bool SamplerTexture::SetImage2D(vk::Format format, uint32_t width,
   }
 
   auto samplerInfo = vk::SamplerCreateInfo()
-                         .setMagFilter(vk::Filter::eNearest)
-                         .setMinFilter(vk::Filter::eNearest)
+                         .setMagFilter(vk::Filter::eLinear)
+                         .setMinFilter(vk::Filter::eLinear)
                          .setMipmapMode(vk::SamplerMipmapMode::eNearest)
                          .setAddressModeU(vk::SamplerAddressMode::eClampToEdge)
                          .setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
