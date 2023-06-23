@@ -26,6 +26,7 @@ Device* g_Device = nullptr;
 
 } // namespace impl
 
+static impl::WindowFrameData* frameData = nullptr;
 static impl::Pipeline* basicPipe = nullptr;
 static impl::VertexBuffer* vertexBuffer = nullptr;
 static impl::VertexArray* vertexArray = nullptr;
@@ -42,22 +43,24 @@ Application::~Application() {}
 void Application::Run() {
   impl::g_Window = new impl::Window;
   impl::g_Device = new impl::Device(impl::g_Window);
+  frameData = new impl::WindowFrameData();
 
   OnStart();
 
-  impl::WindowFrameData frameData{};
   while (impl::g_Window->running()) {
-    impl::g_Window->StartFrame(frameData);
+    impl::g_Window->StartFrame(*frameData);
 
     if (!impl::g_Window->IsMinimized()) {
       OnLoop();
     }
 
-    impl::g_Window->EndFrame(frameData);
+    impl::g_Window->EndFrame(*frameData);
   }
   impl::g_Device->EndDraw();
   OnEnd();
 
+  delete frameData;
+  frameData = nullptr;
   delete impl::g_Device;
   impl::g_Device = nullptr;
   delete impl::g_Window;
@@ -175,14 +178,49 @@ void Application::OnStart() {
 }
 
 void Application::OnLoop() {
-  glm::mat4 model = glm::mat4(
+  static glm::vec3 position{0.f};
+  static glm::vec3 cameraPos{10.f, 0.f, 10.f};
+  
+  for (const auto& e : frameData->dump_events)
+  {
+    if (e.type == SDL_KEYUP) {
+      switch (e.key.keysym.sym) {
+      case SDLK_LEFT:
+        position.x--;
+        break;
+      case SDLK_RIGHT:
+        position.x++;
+        break;
+      case SDLK_UP:
+        position.y++;
+        break;
+      case SDLK_DOWN:
+        position.y--;
+        break;
+      default:
+        break;
+      }
+    }
+    if (e.type == SDL_MOUSEWHEEL) {
+      position.z += e.wheel.y;
+    }
+  }
+  glm::mat4 view = glm::mat4(
       1.0f); // make sure to initialize matrix to identity matrix first
-  glm::mat4 view = glm::mat4(1.0f);
-  glm::mat4 projection = glm::mat4(1.0f);
-  model = glm::rotate(model, (float)SDL_GetTicks() / 1000, glm::vec3(0.5f, 1.0f, 0.0f));
-  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-  projection = glm::perspective(
+  float radius = 10.0f;
+  cameraPos.x = static_cast<float>(sin(/*SDL_GetTicks() / 100*/ 0.f) * radius);
+  cameraPos.y = static_cast<float>(cos(/*SDL_GetTicks() / 100*/ 0.f) * radius);
+  view = glm::lookAt(cameraPos, position,
+                     glm::vec3(0.0f, 1.0f, 0.0f));
+  // calculate the model matrix for each object and pass it to shader before
+  // drawing
+  glm::mat4 model = glm::mat4(1.0f);
+  model = glm::translate(model, position);
+  float angle = 20.0f * 0;
+  model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+  glm::mat4 projection = glm::perspective(
       glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+
   glm::mat4 bytes[3] = {model, view, projection};
   transform->UpdateData(bytes, sizeof(glm::mat4) * 3);
 
