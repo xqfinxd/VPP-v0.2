@@ -134,10 +134,10 @@ void Application::OnStart() {
   tex2 = new impl::SamplerTexture();
   Image::Reader reader;
   reader.Load("awesomeface.png", 4);
-  tex1->SetImage2D(vk::Format::eR8G8B8A8Srgb, reader.width(), reader.height(),
+  tex1->SetImage2D(vk::Format::eR8G8B8A8Unorm, reader.width(), reader.height(),
                    4, reader.pixel());
   reader.Load("container.jpg", 4);
-  tex2->SetImage2D(vk::Format::eR8G8B8A8Srgb, reader.width(), reader.height(),
+  tex2->SetImage2D(vk::Format::eR8G8B8A8Unorm, reader.width(), reader.height(),
                    4, reader.pixel());
 
   transform = new impl::UniformBuffer();

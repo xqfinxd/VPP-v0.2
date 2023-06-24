@@ -51,8 +51,8 @@ static std::vector<const char*> GetWindowExtensions(SDL_Window* window) {
 }
 
 Device::Device(Window* window) {
-  CreateInstance(window->window_);
-  CreateSurface(window->window_);
+  CreateInstance(window->window());
+  CreateSurface(window->window());
   SetGpuAndIndices();
   CreateDevice();
   GetQueues();
@@ -127,8 +127,8 @@ void Device::set_cmd(const DrawParam& cmd) {
 }
 
 void Device::Draw() {
-  device_.waitForFences(1, &fences_[frame_index_], VK_TRUE, UINT64_MAX);
-  device_.resetFences(1, &fences_[frame_index_]);
+  device_.waitForFences(1, &fences_[0], VK_TRUE, UINT64_MAX);
+  device_.resetFences(1, &fences_[0]);
 
   auto& curBuf = current_buffer_;
 
@@ -147,6 +147,8 @@ void Device::Draw() {
     }
   } while (result != vk::Result::eSuccess);
 
+  cmd_->Call(commands_[0], framebuffers_[curBuf], render_pass_);
+
   vk::PipelineStageFlags pipeStageFlags =
       vk::PipelineStageFlagBits::eColorAttachmentOutput;
   auto const submitInfo =
@@ -155,11 +157,11 @@ void Device::Draw() {
           .setWaitSemaphoreCount(1)
           .setPWaitSemaphores(&image_acquired_[frame_index_])
           .setCommandBufferCount(1)
-          .setPCommandBuffers(&commands_[curBuf])
+          .setPCommandBuffers(&commands_[0])
           .setSignalSemaphoreCount(1)
           .setPSignalSemaphores(&render_complete_[frame_index_]);
 
-  result = graphics_queue_.submit(1, &submitInfo, fences_[frame_index_]);
+  result = graphics_queue_.submit(1, &submitInfo, fences_[0]);
   assert(result == vk::Result::eSuccess);
 
   auto const presentInfo =
@@ -436,7 +438,7 @@ void Device::CreateCommandBuffers() {
   vk::Result result;
 
   auto cmdPoolCI =
-      vk::CommandPoolCreateInfo().setQueueFamilyIndex(graphics_index_);
+      vk::CommandPoolCreateInfo().setQueueFamilyIndex(graphics_index_).setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
   result = device_.createCommandPool(&cmdPoolCI, nullptr, &command_pool_);
   assert(result == vk::Result::eSuccess);
 

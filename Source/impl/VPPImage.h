@@ -20,7 +20,7 @@ public:
   uint32_t width() const { return width_; }
   uint32_t height() const { return height_; }
   uint32_t channel() const { return channel_; }
-  size_t size() const { return width_ * height_ * channel_ * sizeof(uint8_t); }
+  size_t size() const { return sizeof(uint8_t) * width_ * height_ * channel_; }
 
 private:
   void* pixel_ = nullptr;

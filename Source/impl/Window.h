@@ -16,8 +16,6 @@ struct WindowFrameData {
 };
 
 class Window {
-  friend class Device;
-
 public:
   Window();
   ~Window();
@@ -33,6 +31,7 @@ public:
   }
 
   bool IsMinimized() const;
+  SDL_Window* window() { return window_; }
 
 private:
   bool running_flag_ = false;
