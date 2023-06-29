@@ -113,17 +113,11 @@ void Device::ReCreateSwapchain() {
   DestroySwapchainResource();
   vk::SwapchainKHR oldSwapchain = swapchain_;
   CreateSwapchainResource(oldSwapchain);
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
-    cmd_->Call(commands_[i], framebuffers_[i], render_pass_);
-  }
   device_.destroy(oldSwapchain);
 }
 
 void Device::set_cmd(const DrawParam& cmd) {
   cmd_ = &cmd;
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
-    cmd_->Call(commands_[i], framebuffers_[i], render_pass_);
-  }
 }
 
 void Device::Draw() {
@@ -147,8 +141,8 @@ void Device::Draw() {
     }
   } while (result != vk::Result::eSuccess);
 
-  cmd_->Call(commands_[0], framebuffers_[curBuf], render_pass_);
-
+  cmd_->Call(commands_[0], framebuffers_, render_pass_);
+  
   vk::PipelineStageFlags pipeStageFlags =
       vk::PipelineStageFlagBits::eColorAttachmentOutput;
   auto const submitInfo =
@@ -163,6 +157,8 @@ void Device::Draw() {
 
   result = graphics_queue_.submit(1, &submitInfo, fences_[0]);
   assert(result == vk::Result::eSuccess);
+
+  cmd_->Present(swapchain_images_[curBuf]);
 
   auto const presentInfo =
       vk::PresentInfoKHR()
@@ -215,7 +211,8 @@ void Device::CreateSwapchainResource(vk::SwapchainKHR oldSwapchain) {
                     .setImageFormat(surfaceFormat[0].format)
                     .setImageColorSpace(surfaceFormat[0].colorSpace)
                     .setImageExtent(caps.currentExtent)
-                    .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
+                    .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment |
+                                   vk::ImageUsageFlagBits::eTransferDst)
                     .setPreTransform(caps.currentTransform)
                     .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
                     .setPresentMode(presentModes[0]);
@@ -239,21 +236,21 @@ void Device::CreateSwapchainResource(vk::SwapchainKHR oldSwapchain) {
   GetSwapchainImages();
   CreateSwapchainImageViews(surfaceFormat[0].format);
   CreateDepthbuffer(caps.currentExtent);
-  CreateRenderPass(surfaceFormat[0].format);
+  CreateRenderPass(vk::Format::eB8G8R8A8Unorm);
   CreateFramebuffers(caps.currentExtent);
   CreateCommandBuffers();
 }
 
 void Device::DestroySwapchainResource() {
   for (uint32_t i = 0; i < swapchain_image_count_; ++i) {
-    if (framebuffers_[i]) {
-      device_.destroy(framebuffers_[i]);
-    }
-
     if (swapchain_imageviews_[i]) {
       device_.destroy(swapchain_imageviews_[i]);
     }
   }
+  if (framebuffers_) {
+    device_.destroy(framebuffers_);
+  }
+
   if (command_pool_) {
     device_.destroy(command_pool_);
   }
@@ -272,6 +269,18 @@ void Device::DestroySwapchainResource() {
 
   if (depth_memory_) {
     device_.free(depth_memory_);
+  }
+  
+  if (color_image_) {
+    device_.destroy(color_image_);
+  }
+
+  if (color_imageview_) {
+    device_.destroy(color_imageview_);
+  }
+
+  if (color_memory_) {
+    device_.free(color_memory_);
   }
 }
 
@@ -335,30 +344,72 @@ void Device::CreateDepthbuffer(vk::Extent2D extent) {
     indices.push_back(present_index_);
   }
   imageCI.setQueueFamilyIndices(indices);
-  result = device_.createImage(&imageCI, nullptr, &depth_image_);
-  assert(result == vk::Result::eSuccess);
 
-  vk::MemoryAllocateInfo memoryAI;
-  vk::MemoryRequirements memReq;
-  device_.getImageMemoryRequirements(depth_image_, &memReq);
-  memoryAI.setAllocationSize(memReq.size);
-  auto pass = FindMemoryType(memReq.memoryTypeBits,
-                             vk::MemoryPropertyFlagBits::eDeviceLocal,
-                             memoryAI.memoryTypeIndex);
-  assert(pass);
-  result = device_.allocateMemory(&memoryAI, nullptr, &depth_memory_);
-  assert(result == vk::Result::eSuccess);
+  {
+    imageCI.setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
+    imageCI.setFormat(vk::Format::eD16Unorm);
+    result = device_.createImage(&imageCI, nullptr, &depth_image_);
+    assert(result == vk::Result::eSuccess);
+  }
 
-  device_.bindImageMemory(depth_image_, depth_memory_, 0);
+  {
+    imageCI.setUsage(vk::ImageUsageFlagBits::eColorAttachment |
+                     vk::ImageUsageFlagBits::eTransferSrc);
+    imageCI.setFormat(vk::Format::eB8G8R8A8Unorm);
+    result = device_.createImage(&imageCI, nullptr, &color_image_);
+    assert(result == vk::Result::eSuccess);
+  }
+
+  {
+    vk::MemoryAllocateInfo memoryAI;
+    vk::MemoryRequirements memReq;
+    device_.getImageMemoryRequirements(depth_image_, &memReq);
+    memoryAI.setAllocationSize(memReq.size);
+    auto pass = FindMemoryType(memReq.memoryTypeBits,
+                               vk::MemoryPropertyFlagBits::eDeviceLocal,
+                               memoryAI.memoryTypeIndex);
+    assert(pass);
+    result = device_.allocateMemory(&memoryAI, nullptr, &depth_memory_);
+    assert(result == vk::Result::eSuccess);
+    device_.bindImageMemory(depth_image_, depth_memory_, 0);
+  }
+
+  {
+    vk::MemoryAllocateInfo memoryAI;
+    vk::MemoryRequirements memReq;
+    device_.getImageMemoryRequirements(color_image_, &memReq);
+    memoryAI.setAllocationSize(memReq.size);
+    auto pass = FindMemoryType(memReq.memoryTypeBits,
+                               vk::MemoryPropertyFlagBits::eDeviceLocal,
+                               memoryAI.memoryTypeIndex);
+    assert(pass);
+    result = device_.allocateMemory(&memoryAI, nullptr, &color_memory_);
+    assert(result == vk::Result::eSuccess);
+    device_.bindImageMemory(color_image_, color_memory_, 0);
+  }
+
   auto imageViewCI = vk::ImageViewCreateInfo()
-                         .setImage(depth_image_)
-                         .setViewType(vk::ImageViewType::e2D)
-                         .setFormat(vk::Format::eD16Unorm)
-                         .setSubresourceRange(vk::ImageSubresourceRange(
-                             vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1))
-                         .setPNext(nullptr);
-  result = device_.createImageView(&imageViewCI, nullptr, &depth_imageview_);
-  assert(result == vk::Result::eSuccess);
+                         .setViewType(vk::ImageViewType::e2D);
+  imageViewCI.subresourceRange.baseMipLevel = 0;
+  imageViewCI.subresourceRange.baseArrayLayer = 0;
+  imageViewCI.subresourceRange.levelCount = 1;
+  imageViewCI.subresourceRange.layerCount = 1;
+
+  {
+    imageViewCI.setImage(depth_image_);
+    imageViewCI.setFormat(vk::Format::eD16Unorm);
+    imageViewCI.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    result = device_.createImageView(&imageViewCI, nullptr, &depth_imageview_);
+    assert(result == vk::Result::eSuccess);
+  }
+
+  {
+    imageViewCI.setImage(color_image_);
+    imageViewCI.setFormat(vk::Format::eB8G8R8A8Unorm);
+    imageViewCI.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    result = device_.createImageView(&imageViewCI, nullptr, &color_imageview_);
+    assert(result == vk::Result::eSuccess);
+  }
 }
 
 void Device::CreateRenderPass(vk::Format format) {
@@ -373,7 +424,7 @@ void Device::CreateRenderPass(vk::Format format) {
           .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
           .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
           .setInitialLayout(vk::ImageLayout::eUndefined)
-          .setFinalLayout(vk::ImageLayout::ePresentSrcKHR),
+          .setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal),
       vk::AttachmentDescription()
           .setFormat(vk::Format::eD16Unorm)
           .setSamples(vk::SampleCountFlagBits::e1)
@@ -413,8 +464,6 @@ void Device::CreateRenderPass(vk::Format format) {
 }
 
 void Device::CreateFramebuffers(vk::Extent2D extent) {
-  framebuffers_ = NewArray<vk::Framebuffer>(swapchain_image_count_);
-
   vk::ImageView attachments[2];
   attachments[1] = depth_imageview_;
 
@@ -426,12 +475,10 @@ void Device::CreateFramebuffers(vk::Extent2D extent) {
                            .setHeight(extent.height)
                            .setLayers(1);
 
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
-    attachments[0] = swapchain_imageviews_[i];
-    auto result =
-        device_.createFramebuffer(&frameBufferCI, nullptr, &framebuffers_[i]);
-    assert(result == vk::Result::eSuccess);
-  }
+  attachments[0] = color_imageview_;
+  auto result =
+      device_.createFramebuffer(&frameBufferCI, nullptr, &framebuffers_);
+  assert(result == vk::Result::eSuccess);
 }
 
 void Device::CreateCommandBuffers() {
@@ -656,6 +703,80 @@ bool DeviceResource::CopyBuffer2Image(const vk::Buffer& srcBuffer,
   cmd.copyBufferToImage(srcBuffer, dstImage,
                         vk::ImageLayout::eTransferDstOptimal, 1, &region);
   SetImageForShader(cmd, dstImage);
+  EndOnceCmd(cmd);
+  return true;
+}
+
+bool DeviceResource::CopyPresent(const vk::Image& to) const {
+  auto cmd = BeginOnceCmd();
+
+  if (!cmd) {
+    return false;
+  }
+
+  {
+    auto barrier = vk::ImageMemoryBarrier()
+                       .setOldLayout(vk::ImageLayout::eColorAttachmentOptimal)
+                       .setNewLayout(vk::ImageLayout::eTransferSrcOptimal)
+                       .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                       .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                       .setImage(parent_->color_image_)
+                       .setSubresourceRange(vk::ImageSubresourceRange{
+                           vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1})
+                       .setSrcAccessMask((vk::AccessFlags)0)
+                       .setDstAccessMask(vk::AccessFlagBits::eMemoryRead);
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe,
+                        vk::PipelineStageFlagBits::eTransfer,
+                        (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
+                        &barrier);
+  }
+  {
+    auto barrier = vk::ImageMemoryBarrier()
+                       .setOldLayout(vk::ImageLayout::eUndefined)
+                       .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
+                       .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                       .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                       .setImage(to)
+                       .setSubresourceRange(vk::ImageSubresourceRange{
+                           vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1})
+                       .setSrcAccessMask((vk::AccessFlags)0)
+                       .setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+                        vk::PipelineStageFlagBits::eTransfer,
+                        (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
+                        &barrier);
+  }
+
+  const auto& extent = parent_->extent_;
+  auto region = vk::ImageCopy().setExtent(vk::Extent3D{extent, 1});
+  region.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+  region.srcSubresource.mipLevel = 0;
+  region.srcSubresource.layerCount = 1;
+  region.srcSubresource.baseArrayLayer = 0;
+  region.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+  region.dstSubresource.mipLevel = 0;
+  region.dstSubresource.layerCount = 1;
+  region.dstSubresource.baseArrayLayer = 0;
+  cmd.copyImage(parent_->color_image_, vk::ImageLayout::eTransferSrcOptimal, to,
+                vk::ImageLayout::eTransferDstOptimal, 1, &region);
+
+  {
+    auto barrier = vk::ImageMemoryBarrier()
+                       .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
+                       .setNewLayout(vk::ImageLayout::ePresentSrcKHR)
+                       .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                       .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+                       .setImage(to)
+                       .setSubresourceRange(vk::ImageSubresourceRange{
+                           vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1})
+                       .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
+                       .setDstAccessMask(vk::AccessFlagBits::eMemoryRead);
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                        vk::PipelineStageFlagBits::eBottomOfPipe,
+                        (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
+                        &barrier);
+  }
+
   EndOnceCmd(cmd);
   return true;
 }

@@ -71,12 +71,16 @@ private:
   uarray<vk::Image> swapchain_images_{};
   uarray<vk::ImageView> swapchain_imageviews_{};
 
+  vk::Image color_image_{};
+  vk::ImageView color_imageview_{};
+  vk::DeviceMemory color_memory_{};
+
   vk::Image depth_image_{};
   vk::ImageView depth_imageview_{};
   vk::DeviceMemory depth_memory_{};
 
   vk::RenderPass render_pass_{};
-  uarray<vk::Framebuffer> framebuffers_{};
+  vk::Framebuffer framebuffers_{};
 
   vk::CommandPool command_pool_{};
   uarray<vk::CommandBuffer> commands_{};
@@ -101,6 +105,8 @@ protected:
   bool CopyBuffer2Image(const vk::Buffer& srcBuffer, const vk::Image& dstBuffer,
                         uint32_t width, uint32_t height,
                         uint32_t channel) const;
+
+  bool CopyPresent(const vk::Image& to) const;
 
 private:
   vk::CommandBuffer BeginOnceCmd() const;
