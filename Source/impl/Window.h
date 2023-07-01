@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "Singleton.hpp"
-
 namespace VPP {
 namespace impl {
 struct WindowFrameData {

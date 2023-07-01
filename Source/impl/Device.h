@@ -2,7 +2,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "UniqueArray.hpp"
 #include "Window.h"
 
 namespace VPP {
@@ -58,9 +57,9 @@ private:
 
   uint32_t frame_count_{0};
   uint32_t frame_index_{};
-  uarray<vk::Fence> fences_{};
-  uarray<vk::Semaphore> image_acquired_{};
-  uarray<vk::Semaphore> render_complete_{};
+  std::unique_ptr<vk::Fence[]> fences_{};
+  std::unique_ptr<vk::Semaphore[]> image_acquired_{};
+  std::unique_ptr<vk::Semaphore[]> render_complete_{};
 
   vk::SwapchainKHR swapchain_{};
   vk::Extent2D extent_{};
@@ -68,8 +67,8 @@ private:
   uint32_t swapchain_image_count_{};
 
   uint32_t current_buffer_{};
-  uarray<vk::Image> swapchain_images_{};
-  uarray<vk::ImageView> swapchain_imageviews_{};
+  std::unique_ptr<vk::Image[]> swapchain_images_{};
+  std::unique_ptr<vk::ImageView[]> swapchain_imageviews_{};
 
   vk::Image color_image_{};
   vk::ImageView color_imageview_{};
@@ -83,7 +82,7 @@ private:
   vk::Framebuffer framebuffers_{};
 
   vk::CommandPool command_pool_{};
-  uarray<vk::CommandBuffer> commands_{};
+  std::unique_ptr<vk::CommandBuffer[]> commands_{};
 
   const DrawParam* cmd_;
 };
