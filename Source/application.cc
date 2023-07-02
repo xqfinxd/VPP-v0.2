@@ -42,7 +42,9 @@ Application::~Application() {}
 
 void Application::Run() {
   impl::g_Window = new impl::Window;
-  impl::g_Device = new impl::Device(impl::g_Window);
+
+  impl::DeviceOption deviceOption{true};
+  impl::g_Device = new impl::Device(impl::g_Window, deviceOption);
   frameData = new impl::WindowFrameData();
 
   OnStart();
