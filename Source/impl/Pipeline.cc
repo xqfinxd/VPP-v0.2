@@ -7,11 +7,11 @@ namespace VPP {
 
 namespace impl {
 
-Pipeline::Pipeline() : DeviceResource() {}
+Pipeline::Pipeline(Device* parent) : DeviceResource(parent) {}
 
 Pipeline::~Pipeline() {
-  if (pipeline_) {
-    device().destroy(pipeline_);
+  for (auto& pipe : pipelines_) {
+    device().destroy(pipe);
   }
   if (pipe_layout_) {
     device().destroy(pipe_layout_);
@@ -111,16 +111,18 @@ void Pipeline::SetVertexAttrib(uint32_t location, uint32_t binding,
                                    .setOffset(offset));
 }
 
-bool Pipeline::Enable(const VertexArray& vertices) {
-  if (pipeline_) {
-    return true;
-  }
+void Pipeline::SetVertexBinding(uint32_t binding, uint32_t stride,
+                                vk::VertexInputRate inputRate) {
+  vertex_bindings_.emplace_back(vk::VertexInputBindingDescription()
+                                   .setBinding(binding)
+                                   .setStride(stride)
+                                   .setInputRate(inputRate));
+}
 
+vk::Pipeline Pipeline::CreateForRenderPass(vk::RenderPass renderpass) {
   if (shaders_.empty()) {
-    return false;
+    return VK_NULL_HANDLE;
   }
-
-  vertex_bindings_ = vertices.GetBindings();
 
   std::vector<vk::PipelineShaderStageCreateInfo> shaderStageInfo{};
   for (const auto& e : shaders_) {
@@ -138,16 +140,8 @@ bool Pipeline::Enable(const VertexArray& vertices) {
       vk::PipelineInputAssemblyStateCreateInfo().setTopology(
           vk::PrimitiveTopology::eTriangleList);
 
-  auto& extent = surface_extent();
-  std::vector<vk::Viewport> viewports = {vk::Viewport()
-                                             .setWidth((float)extent.width)
-                                             .setHeight((float)extent.height)
-                                             .setMinDepth((float)0.0f)
-                                             .setMaxDepth((float)1.0f)};
-  std::vector<vk::Rect2D> scissors = {vk::Rect2D{vk::Offset2D(0, 0), extent}};
   auto viewportInfo =
-      vk::PipelineViewportStateCreateInfo().setViewports(viewports).setScissors(
-          scissors);
+      vk::PipelineViewportStateCreateInfo();
 
   auto rasterizationInfo = vk::PipelineRasterizationStateCreateInfo()
                                .setDepthClampEnable(VK_FALSE)
@@ -199,19 +193,13 @@ bool Pipeline::Enable(const VertexArray& vertices) {
                         .setPColorBlendState(&colorBlendInfo)
                         .setPDynamicState(&dynamicStateInfo)
                         .setLayout(pipe_layout_)
-                        .setRenderPass(render_pass());
-  auto result = device().createGraphicsPipelines(VK_NULL_HANDLE, 1, &pipelineCI,
-                                                 nullptr, &pipeline_);
-  return result == vk::Result::eSuccess;
-}
-
-void Pipeline::BindCmd(const vk::CommandBuffer& buf) const {
-  buf.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
-  if (!descriptor_sets_.empty()) {
-    std::vector<uint32_t> offset{};
-    buf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipe_layout_, 0,
-                           descriptor_sets_, offset);
+                        .setRenderPass(renderpass);
+  auto result = device().createGraphicsPipeline(VK_NULL_HANDLE, pipelineCI);
+  if (result.result != vk::Result::eSuccess) {
+    return VK_NULL_HANDLE;
   }
+  pipelines_.push_back(result.value);
+  return result.value;
 }
 
 } // namespace impl

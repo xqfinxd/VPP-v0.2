@@ -20,7 +20,7 @@ public:
   }
   void set_vertices(VertexArray& vertex) { vertices_ = &vertex; }
   void set_pipeline(Pipeline& pipeline) {
-    if (vertices_ && pipeline.Enable(*vertices_))
+    if (vertices_ && pipeline.UseVertexArray(*vertices_))
       pipeline_ = &pipeline;
   }
   void add_sampler_texture(uint32_t slot, SamplerTexture& tex) {
