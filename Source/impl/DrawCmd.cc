@@ -7,35 +7,36 @@ namespace VPP {
 namespace impl {
 
 void DrawParam::Call(const vk::CommandBuffer& buf,
-                     const vk::Framebuffer& framebuffer,
-                     const vk::RenderPass& renderpass) const {
-  if (!pipeline_ || !vertices_ || !buf) {
+                     const vk::Framebuffer&   framebuffer,
+                     const vk::RenderPass& renderpass, uint32_t subpass,
+                     vk::Rect2D area, vk::Viewport viewport, vk::Rect2D scissor,
+                     const VertexArray* vertices) const {
+  if (!vertices || !buf) {
     return;
   }
+  if (pipeline_) {
+    buf.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
+  }
+  if (!descriptor_sets_.empty()) {
+    std::vector<uint32_t> offset{};
+    buf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipe_layout_, 0,
+                           descriptor_sets_, offset);
+  }
+
   auto beginInfo = vk::CommandBufferBeginInfo();
   buf.begin(beginInfo);
 
-  const auto rpBegin =
-      vk::RenderPassBeginInfo()
-          .setRenderPass(renderpass)
-          .setFramebuffer(framebuffer)
-          .setRenderArea(vk::Rect2D(vk::Offset2D{0, 0}, surface_extent()))
-          .setClearValues(clear_values_);
+  const auto rpBegin = vk::RenderPassBeginInfo()
+                           .setRenderPass(renderpass)
+                           .setFramebuffer(framebuffer)
+                           .setRenderArea(area)
+                           .setClearValues(clear_values_);
   buf.beginRenderPass(rpBegin, vk::SubpassContents::eInline);
 
-  auto extent = surface_extent();
-  std::vector<vk::Viewport> viewports = {vk::Viewport()
-                                             .setWidth((float)extent.width)
-                                             .setHeight((float)extent.height)
-                                             .setMinDepth((float)0.0f)
-                                             .setMaxDepth((float)1.0f)};
+  std::vector<vk::Viewport> viewports = {viewport};
   buf.setViewport(0, viewports);
-  std::vector<vk::Rect2D> scissors = {vk::Rect2D{vk::Offset2D(0, 0), extent}};
+  std::vector<vk::Rect2D> scissors = {scissor};
   buf.setScissor(0, scissors);
-
-  pipeline_->BindCmd(buf);
-  vertices_->BindCmd(buf);
-  vertices_->DrawAtCmd(buf);
 
   buf.endRenderPass();
   buf.end();
@@ -58,7 +59,7 @@ bool DrawParam::BindTexture(uint32_t slot, uint32_t set, uint32_t binding) {
   auto write = vk::WriteDescriptorSet()
                    .setDescriptorCount(1)
                    .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
-                   .setDstSet(pipeline_->descriptor_sets_[set])
+                   .setDstSet(descriptor_sets_[set])
                    .setDstBinding(binding)
                    .setPImageInfo(&imageInfo);
   device().updateDescriptorSets(1, &write, 0, nullptr);
@@ -66,27 +67,32 @@ bool DrawParam::BindTexture(uint32_t slot, uint32_t set, uint32_t binding) {
 }
 
 bool DrawParam::BindBlock(uint32_t slot, uint32_t set, uint32_t binding) {
-    auto iter = std::find_if(
-        uniform_buffers_.begin(), uniform_buffers_.end(),
-        [slot](const std::pair<uint32_t, const UniformBuffer*>& e) {
-        return e.first == slot;
-    });
-    if (iter == uniform_buffers_.end()) {
-        return false;
-    }
-    auto bufferInfo = vk::DescriptorBufferInfo()
-        .setBuffer(iter->second->buffer())
-        .setOffset(0)
-        .setRange(iter->second->size());
+  auto iter =
+      std::find_if(uniform_buffers_.begin(), uniform_buffers_.end(),
+                   [slot](const std::pair<uint32_t, const UniformBuffer*>& e) {
+                     return e.first == slot;
+                   });
+  if (iter == uniform_buffers_.end()) {
+    return false;
+  }
+  auto bufferInfo = vk::DescriptorBufferInfo()
+                        .setBuffer(iter->second->buffer())
+                        .setOffset(0)
+                        .setRange(iter->second->size());
 
-    auto write = vk::WriteDescriptorSet()
-        .setDescriptorCount(1)
-        .setDescriptorType(vk::DescriptorType::eUniformBuffer)
-        .setDstSet(pipeline_->descriptor_sets_[set])
-        .setDstBinding(binding)
-        .setPBufferInfo(&bufferInfo);
-    device().updateDescriptorSets(1, &write, 0, nullptr);
-    return true;
+  auto write = vk::WriteDescriptorSet()
+                   .setDescriptorCount(1)
+                   .setDescriptorType(vk::DescriptorType::eUniformBuffer)
+                   .setDstSet(descriptor_sets_[set])
+                   .setDstBinding(binding)
+                   .setPBufferInfo(&bufferInfo);
+  device().updateDescriptorSets(1, &write, 0, nullptr);
+  return true;
+}
+
+void DrawParam::UseProgram(const Program* program) {
+  descriptor_pool_ = program->CreateDescriptorPool();
+  descriptor_sets_ = program->AllocateDescriptorSets(descriptor_pool_);
 }
 
 } // namespace impl

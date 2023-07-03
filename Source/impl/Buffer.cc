@@ -111,6 +111,10 @@ void VertexArray::BindBuffer(const VertexBuffer& vertex) {
 void VertexArray::BindBuffer(const IndexBuffer& index) { index_ = &index; }
 
 void VertexArray::BindCmd(const vk::CommandBuffer& buf) const {
+  
+}
+
+void VertexArray::DrawAtCmd(const vk::CommandBuffer& buf) const {
   std::vector<vk::Buffer> buffers{};
   for (const auto& e : vertices_) {
     buffers.emplace_back(e->buffer());
@@ -122,32 +126,14 @@ void VertexArray::BindCmd(const vk::CommandBuffer& buf) const {
   buf.bindVertexBuffers(0, buffers, offsets);
   if (index_) {
     buf.bindIndexBuffer(index_->buffer(), 0, vk::IndexType::eUint32);
-  }
-}
-
-void VertexArray::DrawAtCmd(const vk::CommandBuffer& buf) const {
-  if (index_) {
     buf.drawIndexed(index_->count(), 2, 0, 0, 0);
   } else {
     uint32_t minVertexCount = UINT32_MAX;
     for (const auto* e : vertices_) {
       minVertexCount = std::min(minVertexCount, e->count());
     }
-    buf.draw(minVertexCount, 2, 0, 0);
+    buf.draw(minVertexCount, 1, 0, 0);
   }
-}
-
-std::vector<vk::VertexInputBindingDescription>
-VertexArray::GetBindings() const {
-  std::vector<vk::VertexInputBindingDescription> bindings{};
-  uint32_t                                       index = 0;
-  for (const auto& e : vertices_) {
-    bindings.emplace_back(vk::VertexInputBindingDescription()
-                              .setBinding(index++)
-                              .setStride(e->stride())
-                              .setInputRate(vk::VertexInputRate::eVertex));
-  }
-  return bindings;
 }
 
 } // namespace impl
