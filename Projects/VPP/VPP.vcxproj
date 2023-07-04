@@ -13,10 +13,11 @@
   <ItemGroup>
     <ClCompile Include="..\..\source\Application.cc" />
     <ClCompile Include="..\..\Source\impl\Buffer.cc" />
-    <ClCompile Include="..\..\Source\impl\DrawCmd.cc" />
+    <ClCompile Include="..\..\Source\impl\DrawParam.cc" />
     <ClCompile Include="..\..\Source\impl\Image.cc" />
     <ClCompile Include="..\..\Source\impl\Device.cc" />
-    <ClCompile Include="..\..\Source\impl\Pipeline.cc" />
+    <ClCompile Include="..\..\Source\impl\Program.cc" />
+    <ClCompile Include="..\..\Source\impl\RenderPass.cc" />
     <ClCompile Include="..\..\Source\impl\Window.cc" />
   </ItemGroup>
   <ItemGroup>
@@ -30,9 +31,10 @@
   <ItemGroup>
     <ClInclude Include="..\..\Source\impl\Buffer.h" />
     <ClInclude Include="..\..\Source\impl\Device.h" />
-    <ClInclude Include="..\..\Source\impl\DrawCmd.h" />
+    <ClInclude Include="..\..\Source\impl\DrawParam.h" />
     <ClInclude Include="..\..\Source\impl\Image.h" />
-    <ClInclude Include="..\..\Source\impl\Pipeline.h" />
+    <ClInclude Include="..\..\Source\impl\Program.h" />
+    <ClInclude Include="..\..\Source\impl\RenderPass.h" />
     <ClInclude Include="..\..\Source\impl\ShaderData.h" />
     <ClInclude Include="..\..\Source\impl\Window.h" />
   </ItemGroup>

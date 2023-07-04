@@ -110,30 +110,17 @@ void VertexArray::BindBuffer(const VertexBuffer& vertex) {
 
 void VertexArray::BindBuffer(const IndexBuffer& index) { index_ = &index; }
 
-void VertexArray::BindCmd(const vk::CommandBuffer& buf) const {
-  
-}
-
-void VertexArray::DrawAtCmd(const vk::CommandBuffer& buf) const {
-  std::vector<vk::Buffer> buffers{};
-  for (const auto& e : vertices_) {
-    buffers.emplace_back(e->buffer());
-  }
-
-  std::vector<vk::DeviceSize> offsets{};
-  offsets.assign(buffers.size(), 0);
-
-  buf.bindVertexBuffers(0, buffers, offsets);
-  if (index_) {
-    buf.bindIndexBuffer(index_->buffer(), 0, vk::IndexType::eUint32);
-    buf.drawIndexed(index_->count(), 2, 0, 0, 0);
-  } else {
-    uint32_t minVertexCount = UINT32_MAX;
-    for (const auto* e : vertices_) {
-      minVertexCount = std::min(minVertexCount, e->count());
+bool VertexArray::Compatible(
+    const std::vector<vk::VertexInputBindingDescription>& bindings) const {
+  for (const auto& e : bindings) {
+    if (e.binding >= vertices_.size()) {
+      return false;
     }
-    buf.draw(minVertexCount, 1, 0, 0);
+    if (vertices_[e.binding]->stride() != e.stride) {
+      return false;
+    }
   }
+  return true;
 }
 
 } // namespace impl

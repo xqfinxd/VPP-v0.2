@@ -30,17 +30,17 @@
     <ClCompile Include="..\..\Source\impl\Image.cc">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\impl\Pipeline.cc">
+    <ClCompile Include="..\..\Source\impl\DrawParam.cc">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\impl\DrawCmd.cc">
+    <ClCompile Include="..\..\Source\impl\Program.cc">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\impl\RenderPass.cc">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\impl\Pipeline.h">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\impl\ShaderData.h">
       <Filter>Header</Filter>
     </ClInclude>
@@ -53,10 +53,16 @@
     <ClInclude Include="..\..\Source\impl\Device.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\impl\DrawCmd.h">
+    <ClInclude Include="..\..\Source\impl\DrawParam.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\impl\Image.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\Program.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\impl\RenderPass.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>
