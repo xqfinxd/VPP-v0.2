@@ -33,6 +33,7 @@ struct SwapchainObject {
 
 struct DepthBufferObject {
   vk::Image        image{};
+  vk::ImageView    imageview{};
   vk::DeviceMemory memory{};
   vk::Format       format;
   vk::Extent2D     extent;
@@ -47,6 +48,7 @@ public:
 
   void ReCreateSwapchain();
 
+  void set_cmd(const DrawParam& cmd);
   void Draw();
   void EndDraw();
 
@@ -54,15 +56,18 @@ private:
   void CreateInstanceAndSurface(SDL_Window* window, bool enableDbg);
   void SetGpuAndIndices();
   void CreateDeviceAndQueue(bool enableDbg);
-  void CreateCommandPools();
 
   bool CreateSwapchainObject(SwapchainObject&    swapchain,
                              vk::ImageUsageFlags usages);
-  void CreateSyncObject();
-  void CreateDepthbuffer(vk::Extent2D extent);
-  void DestroyDepthbuffer();
   void DestroySwapchainObject(SwapchainObject& swapchain);
 
+  void DestroySwapchainResource();
+  void CreateSyncObject();
+  void CreateSwapchainImageViews(vk::Format format);
+  void CreateDepthbuffer(vk::Extent2D extent);
+  void CreateRenderPass(vk::Format format);
+  void CreateFramebuffers(vk::Extent2D extent);
+  void CreateCommandBuffers();
   bool FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
                       uint32_t& typeIndex) const;
 
@@ -79,32 +84,32 @@ private:
   QueueReference transfer_;
   QueueReference present_;
 
+  uint32_t                         frame_count_{0};
+  uint32_t                         frame_index_{};
   std::unique_ptr<vk::Fence[]>     fences_{};
   std::unique_ptr<vk::Semaphore[]> image_acquired_{};
   std::unique_ptr<vk::Semaphore[]> render_complete_{};
 
   SwapchainObject                  swapchain_;
-  DepthBufferObject                depth_;
+  std::unique_ptr<vk::ImageView[]> swapchain_imageviews_;
 
   uint32_t current_buffer_{};
 
-  vk::CommandPool reset_command_pool_{};
-  vk::CommandPool once_command_pool_{};
-};
+  vk::Image        color_image_{};
+  vk::ImageView    color_imageview_{};
+  vk::DeviceMemory color_memory_{};
 
-class StageBuffer : public DeviceResource {
-public:
-  StageBuffer(Device* parent, const void* data, size_t size);
-  ~StageBuffer();
-  bool CopyToBuffer(const vk::Buffer& dstBuffer, size_t size);
-  bool CopyToImage(const vk::Image& dstImage, uint32_t width, uint32_t height,
-                   uint32_t channel);
+  vk::Image        depth_image_{};
+  vk::ImageView    depth_imageview_{};
+  vk::DeviceMemory depth_memory_{};
 
-  operator bool() const { return buffer_ && memory_; }
+  vk::RenderPass  render_pass_{};
+  vk::Framebuffer framebuffers_{};
 
-private:
-  vk::Buffer       buffer_{};
-  vk::DeviceMemory memory_{};
+  vk::CommandPool                      command_pool_{};
+  std::unique_ptr<vk::CommandBuffer[]> commands_{};
+
+  const DrawParam* cmd_;
 };
 
 class DeviceResource {
@@ -113,33 +118,46 @@ protected:
   ~DeviceResource();
 
   const vk::Device&         device() const { return parent_->device_; }
-  
+  const vk::PhysicalDevice& gpu() const { return parent_->gpu_; }
+  const vk::RenderPass& render_pass() const { return parent_->render_pass_; }
+  const vk::Extent2D&   surface_extent() const {
+    return parent_->swapchain_.extent;
+  }
   vk::DeviceMemory CreateMemory(const vk::MemoryRequirements& req,
                                 vk::MemoryPropertyFlags       flags) const;
   vk::Buffer       CreateBuffer(vk::BufferUsageFlags flags, size_t size) const;
+  bool             CopyBuffer2Buffer(const vk::Buffer& srcBuffer,
+                                     const vk::Buffer& dstBuffer, size_t size) const;
+  bool CopyBuffer2Image(const vk::Buffer& srcBuffer, const vk::Image& dstBuffer,
+                        uint32_t width, uint32_t height,
+                        uint32_t channel) const;
 
   bool CopyPresent(const vk::Image& to) const;
 
-  std::unique_ptr<StageBuffer> CreateStageBuffer(const void* data,
-                                                 size_t      size) {
-    auto stageBuffer = std::make_unique<StageBuffer>(parent_, data, size);
-    if (!*stageBuffer) {
-      return nullptr;
-    }
-    return stageBuffer;
-  }
-
-  bool CheckFormatTilingOptimal(vk::Format             format,
-                                vk::FormatFeatureFlags flags) {
-    auto prop = parent_->gpu_.getFormatProperties(format);
-    return (prop.optimalTilingFeatures & flags) != (vk::FormatFeatureFlags)0;
-  }
-
+private:
   vk::CommandBuffer BeginOnceCmd() const;
-  void EndOnceCmd(vk::CommandBuffer& cmd) const;
+  void              EndOnceCmd(vk::CommandBuffer& cmd) const;
+  void              SetImageForTransfer(const vk::CommandBuffer& cmd,
+                                        const vk::Image&         image) const;
+  void              SetImageForShader(const vk::CommandBuffer& cmd,
+                                      const vk::Image&         image) const;
 
 private:
   Device* parent_ = nullptr;
+};
+
+class StageBuffer : public DeviceResource {
+public:
+  StageBuffer(const void* data, size_t size);
+  ~StageBuffer();
+  bool CopyTo(const vk::Buffer& dstBuffer);
+  bool CopyTo(const vk::Image& dstImage, uint32_t width, uint32_t height,
+              uint32_t channel);
+
+private:
+  size_t           size_ = 0;
+  vk::Buffer       buffer_{};
+  vk::DeviceMemory memory_{};
 };
 
 } // namespace impl

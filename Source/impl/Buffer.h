@@ -9,25 +9,22 @@ namespace impl {
 
 class CommonBuffer : public DeviceResource {
 public:
-  const vk::Buffer&       buffer() const { return buffer_; }
+  const vk::Buffer& buffer() const { return buffer_; }
   const vk::DeviceMemory& memory() const { return memory_; }
 
 protected:
-  CommonBuffer(Device* parent);
+  CommonBuffer();
   ~CommonBuffer();
-  bool SetStaticData(vk::BufferUsageFlags usage, const void* data, size_t size);
-  bool SetDynamicData(vk::BufferUsageFlags usage, const void* data,
-                      size_t size);
+  bool SetLocalData(vk::BufferUsageFlags usage, const void* data, size_t size);
+  bool SetGlobalData(vk::BufferUsageFlags usage, const void* data, size_t size);
 
 private:
-  vk::Buffer       buffer_{};
+  vk::Buffer buffer_{};
   vk::DeviceMemory memory_{};
 };
 
 class VertexBuffer : public CommonBuffer {
 public:
-  VertexBuffer(Device* parent);
-
   bool SetData(uint32_t stride, uint32_t count, const void* data, size_t size);
 
   uint32_t stride() const { return stride_; }
@@ -35,13 +32,11 @@ public:
 
 private:
   uint32_t stride_ = 0;
-  uint32_t count_  = 0;
+  uint32_t count_ = 0;
 };
 
 class IndexBuffer : public CommonBuffer {
 public:
-  IndexBuffer(Device* parent);
-
   bool SetData(uint32_t count, const void* data, size_t size);
 
   uint32_t count() const { return count_; }
@@ -61,19 +56,17 @@ public:
 
 private:
   std::vector<const VertexBuffer*> vertices_{};
-  const IndexBuffer*               index_ = nullptr;
+  const IndexBuffer* index_ = nullptr;
 };
 
 class UniformBuffer : public CommonBuffer {
 public:
-  UniformBuffer(Device* parent);
-
-  bool   SetData(size_t size);
+  bool SetData(size_t size);
   size_t size() const { return size_; }
-  void   UpdateData(void* data, size_t size);
+  void UpdateData(void* data, size_t size);
 
 private:
-  size_t               size_ = 0;
+  size_t size_ = 0;
   std::vector<uint8_t> data_{};
 };
 } // namespace impl

@@ -2,7 +2,7 @@
 
 namespace VPP {
 namespace impl {
-SamplerTexture::SamplerTexture(Device* parent) : DeviceResource(parent) {}
+SamplerTexture::SamplerTexture() : DeviceResource() {}
 
 SamplerTexture::~SamplerTexture() {
   if (sampler_) {
@@ -27,9 +27,12 @@ bool SamplerTexture::SetImage2D(vk::Format format, uint32_t width,
   format_ = format;
 
   size_t size = width_ * height_ * channel;
-  if (CheckFormatTilingOptimal(format,
-                               vk::FormatFeatureFlagBits::eSampledImage |
-                                   vk::FormatFeatureFlagBits::eTransferDst)) {
+  auto prop = gpu().getFormatProperties(format_);
+  if (!(prop.optimalTilingFeatures &
+        vk::FormatFeatureFlagBits::eSampledImage)) {
+    return false;
+  }
+  if (!(prop.optimalTilingFeatures & vk::FormatFeatureFlagBits::eTransferDst)) {
     return false;
   }
 
@@ -60,8 +63,8 @@ bool SamplerTexture::SetImage2D(vk::Format format, uint32_t width,
   }
   device().bindImageMemory(image_, memory_, 0);
 
-  auto stageBuffer = CreateStageBuffer(data, size);
-  if (!stageBuffer->CopyToImage(image_, width_, height_, channel)) {
+  StageBuffer stageBuffer(data, size);
+  if (!stageBuffer.CopyTo(image_, width_, height_, channel)) {
     return false;
   }
 

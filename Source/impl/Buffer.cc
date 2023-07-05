@@ -3,7 +3,7 @@
 namespace VPP {
 namespace impl {
 
-CommonBuffer::CommonBuffer(Device* parent) : DeviceResource(parent) {}
+CommonBuffer::CommonBuffer() : DeviceResource() {}
 
 CommonBuffer::~CommonBuffer() {
   if (buffer_) {
@@ -14,8 +14,8 @@ CommonBuffer::~CommonBuffer() {
   }
 }
 
-bool CommonBuffer::SetStaticData(vk::BufferUsageFlags usage, const void* data,
-                                 size_t size) {
+bool CommonBuffer::SetLocalData(vk::BufferUsageFlags usage, const void* data,
+                           size_t size) {
   buffer_ = CreateBuffer(usage | vk::BufferUsageFlagBits::eTransferDst, size);
   if (!buffer_) {
     return false;
@@ -29,15 +29,11 @@ bool CommonBuffer::SetStaticData(vk::BufferUsageFlags usage, const void* data,
 
   device().bindBufferMemory(buffer_, memory_, 0);
 
-  auto stageBuffer = CreateStageBuffer(data, size);
-  if (!stageBuffer) {
-    return false;
-  }
-  return stageBuffer->CopyToBuffer(buffer_, size);
+  StageBuffer stageBuffer(data, size);
+  return stageBuffer.CopyTo(buffer_);
 }
 
-bool CommonBuffer::SetDynamicData(vk::BufferUsageFlags usage, const void* data,
-                                  size_t size) {
+bool CommonBuffer::SetGlobalData(vk::BufferUsageFlags usage, const void* data, size_t size) {
   auto result = vk::Result::eSuccess;
 
   buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eUniformBuffer, size);
@@ -67,41 +63,35 @@ bool CommonBuffer::SetDynamicData(vk::BufferUsageFlags usage, const void* data,
   return true;
 }
 
-VertexBuffer::VertexBuffer(Device* parent) : CommonBuffer(parent) {}
-
 bool VertexBuffer::SetData(uint32_t stride, uint32_t count, const void* data,
                            size_t size) {
   stride_ = stride;
-  count_  = count;
+  count_ = count;
 
-  return SetStaticData(vk::BufferUsageFlagBits::eVertexBuffer, data, size);
+  return SetLocalData(vk::BufferUsageFlagBits::eVertexBuffer, data,
+                               size);
 }
-
-IndexBuffer::IndexBuffer(Device* parent) : CommonBuffer(parent) {}
 
 bool IndexBuffer::SetData(uint32_t count, const void* data, size_t size) {
   count_ = count;
 
-  return SetStaticData(vk::BufferUsageFlagBits::eIndexBuffer, data, size);
+  return SetLocalData(vk::BufferUsageFlagBits::eIndexBuffer, data,
+                               size);
 }
-
-UniformBuffer::UniformBuffer(Device* parent) : CommonBuffer(parent) {}
 
 bool UniformBuffer::SetData(size_t size) {
   size_ = size;
 
   auto result = vk::Result::eSuccess;
-  return SetDynamicData(vk::BufferUsageFlagBits::eUniformBuffer, nullptr, size);
+  return SetGlobalData(vk::BufferUsageFlagBits::eUniformBuffer, nullptr, size);
 }
 
 void UniformBuffer::UpdateData(void* data, size_t size) {
-  if (!data || !size) {
-    return;
-  }
-  auto   mapData  = device().mapMemory(memory(), 0, size_);
-  size_t safeSize = std::min(size_, size);
-  memcpy(mapData, data, safeSize);
-  device().unmapMemory(memory());
+    if (!data || !size) { return; }
+    auto mapData = device().mapMemory(memory(), 0, size_);
+    size_t safeSize = std::min(size_, size);
+    memcpy(mapData, data, safeSize);
+    device().unmapMemory(memory());
 }
 
 void VertexArray::BindBuffer(const VertexBuffer& vertex) {
@@ -140,7 +130,7 @@ void VertexArray::DrawAtCmd(const vk::CommandBuffer& buf) const {
 std::vector<vk::VertexInputBindingDescription>
 VertexArray::GetBindings() const {
   std::vector<vk::VertexInputBindingDescription> bindings{};
-  uint32_t                                       index = 0;
+  uint32_t index = 0;
   for (const auto& e : vertices_) {
     bindings.emplace_back(vk::VertexInputBindingDescription()
                               .setBinding(index++)
