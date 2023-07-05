@@ -7,13 +7,19 @@ namespace VPP {
 
 namespace impl {
 
-Program::Program(Device* parent) : DeviceResource(parent) {}
+Pipeline::Pipeline(Device* parent) : DeviceResource(parent) {}
 
-Program::~Program() {
-  if (pipeline_layout_) {
-    device().destroy(pipeline_layout_);
+Pipeline::~Pipeline() {
+  for (auto& pipe : pipelines_) {
+    device().destroy(pipe);
   }
-  for (auto& e : descriptor_set_layout_) {
+  if (pipe_layout_) {
+    device().destroy(pipe_layout_);
+  }
+  if (descriptor_pool_) {
+    device().destroy(descriptor_pool_);
+  }
+  for (auto& e : desc_layout_) {
     if (e) {
       device().destroy(e);
     }
@@ -25,9 +31,9 @@ Program::~Program() {
   }
 }
 
-bool Program::SetShader(const Shader::MetaData& data) {
+bool Pipeline::SetShader(const Shader::MetaData& data) {
   std::map<uint32_t, std::vector<const Shader::Uniform*>> dataMap{};
-  std::map<vk::DescriptorType, uint32_t>                  poolMap{};
+  std::map<vk::DescriptorType, uint32_t> poolMap{};
   for (const auto& e : data.uniforms) {
     dataMap[e.set].push_back(&e);
     poolMap[e.type] += e.count;
@@ -40,9 +46,8 @@ bool Program::SetShader(const Shader::MetaData& data) {
       bindings.emplace_back(*e);
     }
     auto info = vk::DescriptorSetLayoutCreateInfo().setBindings(bindings);
-    descriptor_set_layout_.emplace_back(
-        device().createDescriptorSetLayout(info));
-    if (!descriptor_set_layout_.back()) {
+    desc_layout_.emplace_back(device().createDescriptorSetLayout(info));
+    if (!desc_layout_.back()) {
       return false;
     }
   }
@@ -51,25 +56,42 @@ bool Program::SetShader(const Shader::MetaData& data) {
     pushRanges.emplace_back(e);
   }
   auto layoutCI = vk::PipelineLayoutCreateInfo()
-                      .setSetLayouts(descriptor_set_layout_)
+                      .setSetLayouts(desc_layout_)
                       .setPushConstantRanges(pushRanges);
-  pipeline_layout_ = device().createPipelineLayout(layoutCI);
-  if (!pipeline_layout_) {
+  pipe_layout_ = device().createPipelineLayout(layoutCI);
+  if (!pipe_layout_) {
     return false;
   }
 
   if (!poolMap.empty()) {
+    std::vector<vk::DescriptorPoolSize> poolSizes{};
     for (const auto& e : poolMap) {
-      descriptor_pool_sizes_.emplace_back(
+      poolSizes.emplace_back(
           vk::DescriptorPoolSize().setType(e.first).setDescriptorCount(
               e.second));
+    }
+    auto poolCI = vk::DescriptorPoolCreateInfo()
+                      .setMaxSets((uint32_t)dataMap.size())
+                      .setPoolSizes(poolSizes);
+    descriptor_pool_ = device().createDescriptorPool(poolCI);
+    if (!descriptor_pool_) {
+      return false;
+    }
+
+    auto descAI = vk::DescriptorSetAllocateInfo()
+                      .setDescriptorPool(descriptor_pool_)
+                      .setSetLayouts(desc_layout_);
+    descriptor_sets_.resize(dataMap.size());
+    if (device().allocateDescriptorSets(&descAI, descriptor_sets_.data()) !=
+        vk::Result::eSuccess) {
+      return false;
     }
   }
 
   for (const auto& e : data.spvs) {
-    ShaderObject shader{};
-    auto         muduleCI = vk::ShaderModuleCreateInfo().setCode(e.data);
-    shader.shader         = device().createShaderModule(muduleCI);
+    Module shader{};
+    auto muduleCI = vk::ShaderModuleCreateInfo().setCode(e.data);
+    shader.shader = device().createShaderModule(muduleCI);
     if (!shader.shader) {
       return false;
     }
@@ -80,7 +102,7 @@ bool Program::SetShader(const Shader::MetaData& data) {
   return true;
 }
 
-void Program::SetVertexAttrib(uint32_t location, uint32_t binding,
+void Pipeline::SetVertexAttrib(uint32_t location, uint32_t binding,
                                vk::Format format, uint32_t offset) {
   vertex_attribs_.emplace_back(vk::VertexInputAttributeDescription()
                                    .setLocation(location)
@@ -89,15 +111,15 @@ void Program::SetVertexAttrib(uint32_t location, uint32_t binding,
                                    .setOffset(offset));
 }
 
-void Program::SetVertexBinding(uint32_t binding, uint32_t stride,
+void Pipeline::SetVertexBinding(uint32_t binding, uint32_t stride,
                                 vk::VertexInputRate inputRate) {
   vertex_bindings_.emplace_back(vk::VertexInputBindingDescription()
-                                    .setBinding(binding)
-                                    .setStride(stride)
-                                    .setInputRate(inputRate));
+                                   .setBinding(binding)
+                                   .setStride(stride)
+                                   .setInputRate(inputRate));
 }
 
-vk::Pipeline Program::CreateForRenderPass(vk::RenderPass renderpass) const {
+vk::Pipeline Pipeline::CreateForRenderPass(vk::RenderPass renderpass) {
   if (shaders_.empty()) {
     return VK_NULL_HANDLE;
   }
@@ -118,7 +140,8 @@ vk::Pipeline Program::CreateForRenderPass(vk::RenderPass renderpass) const {
       vk::PipelineInputAssemblyStateCreateInfo().setTopology(
           vk::PrimitiveTopology::eTriangleList);
 
-  auto viewportInfo = vk::PipelineViewportStateCreateInfo();
+  auto viewportInfo =
+      vk::PipelineViewportStateCreateInfo();
 
   auto rasterizationInfo = vk::PipelineRasterizationStateCreateInfo()
                                .setDepthClampEnable(VK_FALSE)
@@ -169,35 +192,14 @@ vk::Pipeline Program::CreateForRenderPass(vk::RenderPass renderpass) const {
                         .setPDepthStencilState(&depthStencilInfo)
                         .setPColorBlendState(&colorBlendInfo)
                         .setPDynamicState(&dynamicStateInfo)
-                        .setLayout(pipeline_layout_)
+                        .setLayout(pipe_layout_)
                         .setRenderPass(renderpass);
   auto result = device().createGraphicsPipeline(VK_NULL_HANDLE, pipelineCI);
   if (result.result != vk::Result::eSuccess) {
     return VK_NULL_HANDLE;
   }
+  pipelines_.push_back(result.value);
   return result.value;
-}
-
-vk::DescriptorPool Program::CreateDescriptorPool() const {
-  auto poolCI = vk::DescriptorPoolCreateInfo()
-                    .setMaxSets((uint32_t)descriptor_set_layout_.size())
-                    .setPoolSizes(descriptor_pool_sizes_);
-  return device().createDescriptorPool(poolCI);
-}
-
-std::vector<vk::DescriptorSet>
-Program::AllocateDescriptorSets(const vk::DescriptorPool& pool) const {
-  std::vector<vk::DescriptorSet> descSets;
-
-  auto descAI =
-      vk::DescriptorSetAllocateInfo().setDescriptorPool(pool).setSetLayouts(
-          descriptor_set_layout_);
-  descSets.resize(descriptor_set_layout_.size());
-  if (device().allocateDescriptorSets(&descAI, descSets.data()) ==
-      vk::Result::eSuccess) {
-    return descSets;
-  }
-  return {};
 }
 
 } // namespace impl

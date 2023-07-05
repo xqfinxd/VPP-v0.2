@@ -27,7 +27,7 @@ Device* g_Device = nullptr;
 } // namespace impl
 
 static impl::WindowFrameData* frameData = nullptr;
-static impl::Program* basicPipe = nullptr;
+static impl::Pipeline* basicPipe = nullptr;
 static impl::VertexBuffer* vertexBuffer = nullptr;
 static impl::VertexArray* vertexArray = nullptr;
 static impl::IndexBuffer* indexBuffer = nullptr;
@@ -145,7 +145,7 @@ void Application::OnStart() {
   transform = new impl::UniformBuffer();
   transform->SetData(sizeof(glm::mat4) * 3);
 
-  basicPipe = new impl::Program();
+  basicPipe = new impl::Pipeline();
   {
     Shader::Reader reader({"basic.vert", "basic.frag"});
     Shader::MetaData data{};
