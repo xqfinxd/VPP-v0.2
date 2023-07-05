@@ -3,10 +3,11 @@
 Language: Cpp
 BasedOnStyle: LLVM
 
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: 'false'
+
 ColumnLimit: 80
 PointerAlignment: Left
-FixNamespaceComments: true
-AlwaysBreakTemplateDeclarations: Yes
-SortIncludes: false
-AlignConsecutiveAssignments: Consecutive
-AlignConsecutiveDeclarations: Consecutive
+FixNamespaceComments: 'true'
