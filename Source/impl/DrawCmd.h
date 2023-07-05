@@ -36,25 +36,23 @@ public:
     }
   }
   void add_uniform_buffer(uint32_t slot, UniformBuffer& buf) {
-    auto iter = std::find_if(
-        uniform_buffers_.begin(), uniform_buffers_.end(),
-        [slot](const std::pair<uint32_t, const UniformBuffer*>& e) {
+      auto iter = std::find_if(
+          uniform_buffers_.begin(), uniform_buffers_.end(),
+          [slot](const std::pair<uint32_t, const UniformBuffer*>& e) {
           return e.first == slot;
-        });
-    if (iter == uniform_buffers_.end()) {
-      uniform_buffers_.emplace_back(std::make_pair(slot, &buf));
-    } else {
-      iter->second = &buf;
-    }
+      });
+      if (iter == uniform_buffers_.end()) {
+          uniform_buffers_.emplace_back(std::make_pair(slot, &buf));
+      } else {
+          iter->second = &buf;
+      }
   }
 
   bool BindTexture(uint32_t slot, uint32_t set, uint32_t binding);
-  bool BindBlock(uint32_t slot, uint32_t set,
-                 uint32_t binding); // 警告：descriptorCount被忽略
+  bool BindBlock(uint32_t slot, uint32_t set, uint32_t binding); // 警告：descriptorCount被忽略
 
   void Call(const vk::CommandBuffer& buf, const vk::Framebuffer& framebuffer,
             const vk::RenderPass& renderpass) const;
-  void Present(const vk::Image& to) const { CopyPresent(to); }
 
 private:
   const VertexArray* vertices_ = nullptr;
