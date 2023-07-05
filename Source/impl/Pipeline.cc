@@ -1,4 +1,4 @@
-#include "Program.h"
+#include "Pipeline.h"
 #include "Buffer.h"
 
 #include <map>
@@ -25,9 +25,9 @@ Program::~Program() {
   }
 }
 
-bool Program::SetShader(const glsl::MetaData& data) {
-  std::map<uint32_t, std::vector<const glsl::Uniform*>> dataMap{};
-  std::map<vk::DescriptorType, uint32_t>                poolMap{};
+bool Program::SetShader(const Shader::MetaData& data) {
+  std::map<uint32_t, std::vector<const Shader::Uniform*>> dataMap{};
+  std::map<vk::DescriptorType, uint32_t>                  poolMap{};
   for (const auto& e : data.uniforms) {
     dataMap[e.set].push_back(&e);
     poolMap[e.type] += e.count;
@@ -68,9 +68,8 @@ bool Program::SetShader(const glsl::MetaData& data) {
 
   for (const auto& e : data.spvs) {
     ShaderObject shader{};
-
-    auto muduleCI = vk::ShaderModuleCreateInfo().setCode(e.data);
-    shader.shader = device().createShaderModule(muduleCI);
+    auto         muduleCI = vk::ShaderModuleCreateInfo().setCode(e.data);
+    shader.shader         = device().createShaderModule(muduleCI);
     if (!shader.shader) {
       return false;
     }
@@ -82,7 +81,7 @@ bool Program::SetShader(const glsl::MetaData& data) {
 }
 
 void Program::SetVertexAttrib(uint32_t location, uint32_t binding,
-                              vk::Format format, uint32_t offset) {
+                               vk::Format format, uint32_t offset) {
   vertex_attribs_.emplace_back(vk::VertexInputAttributeDescription()
                                    .setLocation(location)
                                    .setBinding(binding)
@@ -91,18 +90,14 @@ void Program::SetVertexAttrib(uint32_t location, uint32_t binding,
 }
 
 void Program::SetVertexBinding(uint32_t binding, uint32_t stride,
-                               vk::VertexInputRate inputRate) {
+                                vk::VertexInputRate inputRate) {
   vertex_bindings_.emplace_back(vk::VertexInputBindingDescription()
                                     .setBinding(binding)
                                     .setStride(stride)
                                     .setInputRate(inputRate));
 }
 
-bool Program::Compatible(const VertexArray* vertexArray) const {
-  return vertexArray->Compatible(vertex_bindings_);
-}
-
-vk::Pipeline Program::CreatePipeline(vk::RenderPass renderpass) const {
+vk::Pipeline Program::CreateForRenderPass(vk::RenderPass renderpass) const {
   if (shaders_.empty()) {
     return VK_NULL_HANDLE;
   }
@@ -184,9 +179,6 @@ vk::Pipeline Program::CreatePipeline(vk::RenderPass renderpass) const {
 }
 
 vk::DescriptorPool Program::CreateDescriptorPool() const {
-  if (descriptor_set_layout_.empty()) {
-    return VK_NULL_HANDLE;
-  }
   auto poolCI = vk::DescriptorPoolCreateInfo()
                     .setMaxSets((uint32_t)descriptor_set_layout_.size())
                     .setPoolSizes(descriptor_pool_sizes_);
@@ -195,9 +187,6 @@ vk::DescriptorPool Program::CreateDescriptorPool() const {
 
 std::vector<vk::DescriptorSet>
 Program::AllocateDescriptorSets(const vk::DescriptorPool& pool) const {
-  if (!pool || descriptor_set_layout_.empty()) {
-    return {};
-  }
   std::vector<vk::DescriptorSet> descSets;
 
   auto descAI =

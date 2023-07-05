@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include "DrawParam.h"
+#include "DrawCmd.h"
 #include "VPP_Config.h"
 
 namespace VPP {

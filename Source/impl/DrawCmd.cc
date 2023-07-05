@@ -1,20 +1,10 @@
-#include "DrawParam.h"
+#include "DrawCmd.h"
 
-#include "Program.h"
+#include "Pipeline.h"
 
 namespace VPP {
 
 namespace impl {
-
-DrawParam::~DrawParam() {
-  if (pipeline_) {
-    device().destroy(pipeline_);
-  }
-  if (descriptor_pool_) {
-    device().destroy(descriptor_pool_);
-  }
-}
-DrawParam::DrawParam(Device* parent) : DeviceResource(parent) {}
 
 void DrawParam::Call(const vk::CommandBuffer& buf,
                      const vk::Framebuffer&   framebuffer,
@@ -100,21 +90,9 @@ bool DrawParam::BindBlock(uint32_t slot, uint32_t set, uint32_t binding) {
   return true;
 }
 
-DrawParam* DrawParam::Create(Device* parent, const vk::RenderPass& renderpass,
-                             const Program*     program,
-                             const VertexArray* vertexArray) {
-  auto param = std::make_unique<DrawParam>(parent);
-
-  if (!program->Compatible(vertexArray)) {
-    return nullptr;
-  }
-  param->pipeline_        = program->CreatePipeline(renderpass);
-  if (!param->pipeline_) {
-    return nullptr;
-  }
-  param->descriptor_pool_ = program->CreateDescriptorPool();
-  param->descriptor_sets_ =
-      program->AllocateDescriptorSets(param->descriptor_pool_);
+void DrawParam::UseProgram(const Program* program) {
+  descriptor_pool_ = program->CreateDescriptorPool();
+  descriptor_sets_ = program->AllocateDescriptorSets(descriptor_pool_);
 }
 
 } // namespace impl

@@ -3,7 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 namespace VPP {
-namespace glsl {
+namespace Shader {
 
 struct Uniform {
   uint32_t set = 0;
@@ -59,10 +59,10 @@ struct SpvData {
 };
 
 struct MetaData {
-  std::vector<glsl::Uniform> uniforms{};
-  std::vector<glsl::PushConstant> pushes{};
-  std::vector<glsl::SpvData> spvs{};
-  std::vector<glsl::Input> inputs{};
+  std::vector<Shader::Uniform> uniforms{};
+  std::vector<Shader::PushConstant> pushes{};
+  std::vector<Shader::SpvData> spvs{};
+  std::vector<Shader::Input> inputs{};
 
   void Swap(MetaData&& other) {
     uniforms.swap(other.uniforms);
@@ -72,5 +72,5 @@ struct MetaData {
   }
 };
 
-} // namespace glsl
+} // namespace Shader
 } // namespace VPP

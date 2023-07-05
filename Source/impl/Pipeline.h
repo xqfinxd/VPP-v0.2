@@ -4,26 +4,24 @@
 
 #include "Device.h"
 #include "ShaderData.h"
-#include "Buffer.h"
 
 namespace VPP {
 
 namespace impl {
 
 class Program : public DeviceResource {
+  friend class DrawParam;
+
 public:
   Program(Device* parent);
   ~Program();
 
-  bool SetShader(const glsl::MetaData& data);
+  bool SetShader(const Shader::MetaData& data);
   void SetVertexAttrib(uint32_t location, uint32_t binding, vk::Format format,
                        uint32_t offset);
   void SetVertexBinding(uint32_t binding, uint32_t stride,
                         vk::VertexInputRate inputRate);
-
-  bool Compatible(const VertexArray* vertexArray) const;
-
-  vk::Pipeline       CreatePipeline(vk::RenderPass renderpass) const;
+  vk::Pipeline       CreateForRenderPass(vk::RenderPass renderpass) const;
   vk::DescriptorPool CreateDescriptorPool() const;
   std::vector<vk::DescriptorSet>
   AllocateDescriptorSets(const vk::DescriptorPool& pool) const;

@@ -8,9 +8,9 @@
 
 #include "impl/Buffer.h"
 #include "impl/Device.h"
-#include "impl/DrawParam.h"
+#include "impl/DrawCmd.h"
 #include "impl/Image.h"
-#include "impl/Program.h"
+#include "impl/Pipeline.h"
 #include "impl/ShaderData.h"
 #include "impl/VPPImage.h"
 #include "impl/VPPShader.h"
@@ -147,8 +147,8 @@ void Application::OnStart() {
 
   basicPipe = new impl::Program();
   {
-    glsl::Reader reader({"basic.vert", "basic.frag"});
-    glsl::MetaData data{};
+    Shader::Reader reader({"basic.vert", "basic.frag"});
+    Shader::MetaData data{};
     if (reader.GetData(&data))
       basicPipe->SetShader(data);
     basicPipe->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);

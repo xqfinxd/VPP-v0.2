@@ -54,9 +54,7 @@ class VertexArray : public DeviceResource {
 public:
   void BindBuffer(const VertexBuffer& vertex);
   void BindBuffer(const IndexBuffer& index);
-
-  bool Compatible(
-      const std::vector<vk::VertexInputBindingDescription>& bindings) const;
+  void DrawAtCmd(const vk::CommandBuffer& buf) const;
 
 private:
   std::vector<const VertexBuffer*> vertices_{};

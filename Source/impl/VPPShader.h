@@ -9,7 +9,7 @@
 #endif // SHADER_EXPORTS
 
 namespace VPP {
-namespace glsl {
+namespace Shader {
 
 struct MetaData;
 struct ReaderImpl;
@@ -26,5 +26,5 @@ private:
   ReaderImpl* impl_ = nullptr;
 };
 
-} // namespace glsl
+} // namespace Shader
 } // namespace VPP

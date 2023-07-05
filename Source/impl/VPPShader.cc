@@ -26,7 +26,7 @@
 #pragma comment(lib, "SPIRV-Tools.lib")
 #endif
 namespace VPP {
-namespace glsl {
+namespace Shader {
 
 const int kGlslVersion = 400;
 const glslang::EShSource kSourceLanguage = glslang::EShSourceGlsl;
@@ -317,7 +317,7 @@ static inline bool GetVkType(const glslang::TType* ttype,
   return false;
 }
 
-static void AddUniform(std::vector<glsl::Uniform>& uniforms,
+static void AddUniform(std::vector<Shader::Uniform>& uniforms,
                        const glslang::TObjectReflection& obj,
                        const glslang::TType* ttype) {
   vk::DescriptorType descType = (vk::DescriptorType)~0;
@@ -326,7 +326,7 @@ static void AddUniform(std::vector<glsl::Uniform>& uniforms,
     return;
   }
 
-  glsl::Uniform uniform{};
+  Shader::Uniform uniform{};
   {
     const auto& q = ttype->getQualifier();
     uniform.set = q.hasSet() ? q.layoutSet : 0;
@@ -337,7 +337,7 @@ static void AddUniform(std::vector<glsl::Uniform>& uniforms,
   }
 
   auto iter = std::find_if(uniforms.begin(), uniforms.end(),
-                           [&uniform](const glsl::Uniform& e) {
+                           [&uniform](const Shader::Uniform& e) {
                              return e.IsSame(uniform);
                            });
   if (iter == uniforms.end()) {
@@ -396,8 +396,8 @@ struct ReaderImpl {
     return false;
   }
 
-  void Query(glsl::MetaData& data_) const {
-    glsl::MetaData data{};
+  void Query(Shader::MetaData& data_) const {
+    Shader::MetaData data{};
 
     for (int32_t i = 0; i < program_->getNumUniformVariables(); i++) {
       auto& obj = program_->getUniform(i);
@@ -411,7 +411,7 @@ struct ReaderImpl {
       auto* ttype = obj.getType();
 
       if (ttype && ttype->getQualifier().isPushConstant()) {
-        glsl::PushConstant pushCons{};
+        Shader::PushConstant pushCons{};
         pushCons.size = obj.size;
         pushCons.stages = GetStages(obj.stages);
 
@@ -456,7 +456,7 @@ struct ReaderImpl {
       if (!ttype) {
         continue;
       }
-      glsl::Input input{};
+      Shader::Input input{};
       {
         const auto& q = ttype->getQualifier();
         if (q.hasLocation()) {
@@ -517,5 +517,5 @@ bool Reader::GetData(MetaData* data) {
   return true;
 }
 
-} // namespace glsl
+} // namespace Shader
 } // namespace VPP
