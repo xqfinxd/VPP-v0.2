@@ -65,7 +65,7 @@ bool DrawParam::BindTexture(uint32_t slot, uint32_t set, uint32_t binding) {
   return true;
 }
 
-bool DrawParam::BindBlock(uint32_t slot, uint32_t set, uint32_t binding) {
+bool DrawParam::BindUniform(uint32_t slot, uint32_t set, uint32_t binding) {
     auto iter = std::find_if(
         uniform_buffers_.begin(), uniform_buffers_.end(),
         [slot](const std::pair<uint32_t, const UniformBuffer*>& e) {

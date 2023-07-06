@@ -5,7 +5,7 @@
 #undef STB_IMAGE_IMPLEMENTATION
 
 namespace VPP {
-namespace Image {
+namespace stb {
 
 Reader::~Reader() {
   if (pixel_) {
@@ -24,5 +24,5 @@ bool Reader::Load(const char* file, uint32_t channel) {
   return pixel_ != nullptr;
 }
 
-} // namespace Image
+} // namespace stb
 } // namespace VPP

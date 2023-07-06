@@ -9,7 +9,7 @@
 #include <cstdint>
 
 namespace VPP {
-namespace Image {
+namespace stb {
 
 class IMAGE_API Reader {
 public:
@@ -29,5 +29,5 @@ private:
   uint32_t channel_ = 0;
 };
 
-} // namespace Image
+} // namespace stb
 } // namespace VPP

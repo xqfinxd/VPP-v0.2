@@ -42,7 +42,7 @@ void Application::Run() {
 
   OnStart();
 
-  while (g_Window->running()) {
+  while (!g_Window->ShouldClose()) {
     g_Window->StartFrame(*frameData);
 
     if (!g_Window->IsMinimized()) {
@@ -127,7 +127,7 @@ void Application::OnStart() {
 
   tex1 = new impl::SamplerTexture(g_Device);
   tex2 = new impl::SamplerTexture(g_Device);
-  Image::Reader reader;
+  stb::Reader reader;
   reader.Load("awesomeface.png", 4);
   tex1->SetImage2D(vk::Format::eR8G8B8A8Unorm, reader.width(), reader.height(),
                    4, reader.pixel());
@@ -140,8 +140,8 @@ void Application::OnStart() {
 
   basicPipe = new impl::Pipeline(g_Device);
   {
-    Shader::Reader reader({"basic.vert", "basic.frag"});
-    Shader::MetaData data{};
+    glsl::Reader reader({"basic.vert", "basic.frag"});
+    glsl::MetaData data{};
     if (reader.GetData(&data))
       basicPipe->SetShader(data);
     basicPipe->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);
@@ -152,23 +152,23 @@ void Application::OnStart() {
   }
 
   cmd = new impl::DrawParam(g_Device);
-  cmd->set_vertices(*vertexArray);
+  cmd->SetVertexArray(*vertexArray);
 
-  cmd->set_pipeline(*basicPipe);
+  cmd->SetPipeline(*basicPipe);
 
-  cmd->add_sampler_texture(0, *tex1);
-  cmd->add_sampler_texture(1, *tex2);
+  cmd->SetTexture(0, *tex1);
+  cmd->SetTexture(1, *tex2);
   cmd->BindTexture(0, 0, 0);
   cmd->BindTexture(1, 0, 1);
 
-  cmd->add_uniform_buffer(0, *transform);
-  cmd->BindBlock(0, 1, 0);
+  cmd->SetUniform(0, *transform);
+  cmd->BindUniform(0, 1, 0);
 
   std::vector<vk::ClearValue> clearValues = {
       vk::ClearValue().setColor(vk::ClearColorValue{0.2f, 0.3f, 0.3f, 1.0f}),
       vk::ClearValue().setDepthStencil(vk::ClearDepthStencilValue{1.0f, 0}),
   };
-  cmd->set_clear_values(clearValues);
+  cmd->SetClearValues(clearValues);
   g_Device->set_cmd(*cmd);
 }
 

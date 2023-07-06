@@ -23,9 +23,9 @@ public:
   void StartFrame(WindowFrameData& frame);
   void EndFrame(WindowFrameData& frame);
 
-  void set_fps(int fps);
-  bool running() const {
-    return running_flag_;
+  void ChangeFps(int fps);
+  bool ShouldClose() const {
+    return !running_flag_;
   }
 
   bool IsMinimized() const;

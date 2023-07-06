@@ -31,8 +31,8 @@ Pipeline::~Pipeline() {
   }
 }
 
-bool Pipeline::SetShader(const Shader::MetaData& data) {
-  std::map<uint32_t, std::vector<const Shader::Uniform*>> dataMap{};
+bool Pipeline::SetShader(const glsl::MetaData& data) {
+  std::map<uint32_t, std::vector<const glsl::Uniform*>> dataMap{};
   std::map<vk::DescriptorType, uint32_t> poolMap{};
   for (const auto& e : data.uniforms) {
     dataMap[e.set].push_back(&e);

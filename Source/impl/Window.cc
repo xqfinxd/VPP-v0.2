@@ -19,7 +19,7 @@ Window::Window() {
       SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
   assert(window_);
   running_flag_ = true;
-  set_fps(WINDOW_FPS);
+  ChangeFps(WINDOW_FPS);
 }
 
 Window::~Window() {
@@ -53,7 +53,7 @@ void Window::EndFrame(WindowFrameData& frame) {
   }
 }
 
-void Window::set_fps(int fps) {
+void Window::ChangeFps(int fps) {
   if (fps) {
     frame_duration_ = 1000 / fps;
   }

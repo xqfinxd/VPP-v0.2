@@ -17,15 +17,15 @@ class DrawParam : public DeviceResource {
 public:
   DrawParam(Device* parent) : DeviceResource(parent) {}
 
-  void set_clear_values(std::vector<vk::ClearValue>& clearValues) {
+  void SetClearValues(std::vector<vk::ClearValue>& clearValues) {
     clear_values_.swap(clearValues);
   }
-  void set_vertices(VertexArray& vertex) { vertices_ = &vertex; }
-  void set_pipeline(Pipeline& pipeline) {
+  void SetVertexArray(VertexArray& vertex) { vertices_ = &vertex; }
+  void SetPipeline(Pipeline& pipeline) {
     if (vertices_ && pipeline.Enable(*vertices_))
       pipeline_ = &pipeline;
   }
-  void add_sampler_texture(uint32_t slot, SamplerTexture& tex) {
+  void SetTexture(uint32_t slot, SamplerTexture& tex) {
     auto iter = std::find_if(
         sampler_textures_.begin(), sampler_textures_.end(),
         [slot](const std::pair<uint32_t, const SamplerTexture*>& e) {
@@ -37,7 +37,7 @@ public:
       iter->second = &tex;
     }
   }
-  void add_uniform_buffer(uint32_t slot, UniformBuffer& buf) {
+  void SetUniform(uint32_t slot, UniformBuffer& buf) {
       auto iter = std::find_if(
           uniform_buffers_.begin(), uniform_buffers_.end(),
           [slot](const std::pair<uint32_t, const UniformBuffer*>& e) {
@@ -51,7 +51,7 @@ public:
   }
 
   bool BindTexture(uint32_t slot, uint32_t set, uint32_t binding);
-  bool BindBlock(uint32_t slot, uint32_t set, uint32_t binding); // 警告：descriptorCount被忽略
+  bool BindUniform(uint32_t slot, uint32_t set, uint32_t binding); // 警告：descriptorCount被忽略
 
   void Call(const vk::CommandBuffer& buf, const vk::Framebuffer& framebuffer,
             const vk::RenderPass& renderpass) const;

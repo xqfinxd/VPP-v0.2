@@ -18,7 +18,7 @@ public:
   Pipeline(Device* parent);
   ~Pipeline();
 
-  bool SetShader(const Shader::MetaData& data);
+  bool SetShader(const glsl::MetaData& data);
   void SetVertexAttrib(uint32_t location, uint32_t binding, vk::Format format,
                        uint32_t offset);
   bool Enable(const VertexArray& array);
