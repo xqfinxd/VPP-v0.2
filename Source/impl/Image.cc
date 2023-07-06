@@ -2,7 +2,7 @@
 
 namespace VPP {
 namespace impl {
-SamplerTexture::SamplerTexture() : DeviceResource() {}
+SamplerTexture::SamplerTexture(Device* parent) : DeviceResource(parent) {}
 
 SamplerTexture::~SamplerTexture() {
   if (sampler_) {
@@ -63,8 +63,8 @@ bool SamplerTexture::SetImage2D(vk::Format format, uint32_t width,
   }
   device().bindImageMemory(image_, memory_, 0);
 
-  StageBuffer stageBuffer(data, size);
-  if (!stageBuffer.CopyTo(image_, width_, height_, channel)) {
+  auto stageBuffer = CreateStageBuffer(data, size);
+  if (!stageBuffer->CopyToImage(image_, width_, height_, channel)) {
     return false;
   }
 

@@ -13,7 +13,7 @@ public:
   const vk::DeviceMemory& memory() const { return memory_; }
 
 protected:
-  CommonBuffer();
+  CommonBuffer(Device* parent);
   ~CommonBuffer();
   bool SetLocalData(vk::BufferUsageFlags usage, const void* data, size_t size);
   bool SetGlobalData(vk::BufferUsageFlags usage, const void* data, size_t size);
@@ -25,6 +25,7 @@ private:
 
 class VertexBuffer : public CommonBuffer {
 public:
+  VertexBuffer(Device* parent) : CommonBuffer(parent) {}
   bool SetData(uint32_t stride, uint32_t count, const void* data, size_t size);
 
   uint32_t stride() const { return stride_; }
@@ -37,6 +38,7 @@ private:
 
 class IndexBuffer : public CommonBuffer {
 public:
+  IndexBuffer(Device* parent) : CommonBuffer(parent) {}
   bool SetData(uint32_t count, const void* data, size_t size);
 
   uint32_t count() const { return count_; }
@@ -47,6 +49,8 @@ private:
 
 class VertexArray : public DeviceResource {
 public:
+  VertexArray(Device* parent) : DeviceResource(parent) {}
+
   void BindBuffer(const VertexBuffer& vertex);
   void BindBuffer(const IndexBuffer& index);
   void BindCmd(const vk::CommandBuffer& buf) const;
@@ -61,6 +65,8 @@ private:
 
 class UniformBuffer : public CommonBuffer {
 public:
+  UniformBuffer(Device* parent) : CommonBuffer(parent) {}
+
   bool SetData(size_t size);
   size_t size() const { return size_; }
   void UpdateData(void* data, size_t size);

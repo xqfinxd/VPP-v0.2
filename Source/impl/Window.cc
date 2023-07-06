@@ -64,7 +64,5 @@ bool Window::IsMinimized() const {
   return (flags & SDL_WINDOW_MINIMIZED) != 0;
 }
 
-extern Window* g_Window;
-Window* GetWindow() { return g_Window; }
 } // namespace impl
 } // namespace VPP

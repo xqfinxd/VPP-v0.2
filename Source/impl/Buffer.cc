@@ -3,7 +3,7 @@
 namespace VPP {
 namespace impl {
 
-CommonBuffer::CommonBuffer() : DeviceResource() {}
+CommonBuffer::CommonBuffer(Device* parent) : DeviceResource(parent) {}
 
 CommonBuffer::~CommonBuffer() {
   if (buffer_) {
@@ -29,8 +29,8 @@ bool CommonBuffer::SetLocalData(vk::BufferUsageFlags usage, const void* data,
 
   device().bindBufferMemory(buffer_, memory_, 0);
 
-  StageBuffer stageBuffer(data, size);
-  return stageBuffer.CopyTo(buffer_);
+  auto stageBuffer = CreateStageBuffer(data, size);
+  return stageBuffer->CopyToBuffer(buffer_);
 }
 
 bool CommonBuffer::SetGlobalData(vk::BufferUsageFlags usage, const void* data, size_t size) {

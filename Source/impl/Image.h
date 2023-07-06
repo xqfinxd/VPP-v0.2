@@ -8,7 +8,7 @@ namespace VPP {
 namespace impl {
 class SamplerTexture : public DeviceResource {
 public:
-  SamplerTexture();
+  SamplerTexture(Device* parent);
   ~SamplerTexture();
 
   bool SetImage2D(vk::Format format, uint32_t width, uint32_t height,

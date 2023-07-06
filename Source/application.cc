@@ -19,13 +19,8 @@
 
 namespace VPP {
 
-namespace impl {
-
-Window* g_Window = nullptr;
-Device* g_Device = nullptr;
-
-} // namespace impl
-
+static impl::Window* g_Window = nullptr;
+static impl::Device* g_Device = nullptr;
 static impl::WindowFrameData* frameData = nullptr;
 static impl::Pipeline* basicPipe = nullptr;
 static impl::VertexBuffer* vertexBuffer = nullptr;
@@ -41,30 +36,30 @@ Application::Application() {}
 Application::~Application() {}
 
 void Application::Run() {
-  impl::g_Window = new impl::Window;
-  impl::g_Device = new impl::Device(impl::g_Window);
+  g_Window = new impl::Window;
+  g_Device = new impl::Device(g_Window);
   frameData = new impl::WindowFrameData();
 
   OnStart();
 
-  while (impl::g_Window->running()) {
-    impl::g_Window->StartFrame(*frameData);
+  while (g_Window->running()) {
+    g_Window->StartFrame(*frameData);
 
-    if (!impl::g_Window->IsMinimized()) {
+    if (!g_Window->IsMinimized()) {
       OnLoop();
     }
 
-    impl::g_Window->EndFrame(*frameData);
+    g_Window->EndFrame(*frameData);
   }
-  impl::g_Device->EndDraw();
+  g_Device->EndDraw();
   OnEnd();
 
   delete frameData;
   frameData = nullptr;
-  delete impl::g_Device;
-  impl::g_Device = nullptr;
-  delete impl::g_Window;
-  impl::g_Window = nullptr;
+  delete g_Device;
+  g_Device = nullptr;
+  delete g_Window;
+  g_Window = nullptr;
 }
 
 void Application::OnStart() {
@@ -118,20 +113,20 @@ void Application::OnStart() {
       1, 2, 3  // second triangle
   };
 
-  vertexBuffer = new impl::VertexBuffer();
+  vertexBuffer = new impl::VertexBuffer(g_Device);
   vertexBuffer->SetData((uint32_t)sizeof(float) * 5, 36, vertices.data(),
                         vertices.size() * sizeof(float));
 
-  indexBuffer = new impl::IndexBuffer();
+  indexBuffer = new impl::IndexBuffer(g_Device);
   indexBuffer->SetData((uint32_t)indices.size(), indices.data(),
                        indices.size() * sizeof(uint32_t));
 
-  vertexArray = new impl::VertexArray();
+  vertexArray = new impl::VertexArray(g_Device);
   vertexArray->BindBuffer(*vertexBuffer);
   //vertexArray->BindBuffer(*indexBuffer);
 
-  tex1 = new impl::SamplerTexture();
-  tex2 = new impl::SamplerTexture();
+  tex1 = new impl::SamplerTexture(g_Device);
+  tex2 = new impl::SamplerTexture(g_Device);
   Image::Reader reader;
   reader.Load("awesomeface.png", 4);
   tex1->SetImage2D(vk::Format::eR8G8B8A8Unorm, reader.width(), reader.height(),
@@ -140,10 +135,10 @@ void Application::OnStart() {
   tex2->SetImage2D(vk::Format::eR8G8B8A8Unorm, reader.width(), reader.height(),
                    4, reader.pixel());
 
-  transform = new impl::UniformBuffer();
+  transform = new impl::UniformBuffer(g_Device);
   transform->SetData(sizeof(glm::mat4) * 3);
 
-  basicPipe = new impl::Pipeline();
+  basicPipe = new impl::Pipeline(g_Device);
   {
     Shader::Reader reader({"basic.vert", "basic.frag"});
     Shader::MetaData data{};
@@ -156,7 +151,7 @@ void Application::OnStart() {
                                (6 * sizeof(float)));*/
   }
 
-  cmd = new impl::DrawParam();
+  cmd = new impl::DrawParam(g_Device);
   cmd->set_vertices(*vertexArray);
 
   cmd->set_pipeline(*basicPipe);
@@ -174,7 +169,7 @@ void Application::OnStart() {
       vk::ClearValue().setDepthStencil(vk::ClearDepthStencilValue{1.0f, 0}),
   };
   cmd->set_clear_values(clearValues);
-  impl::g_Device->set_cmd(*cmd);
+  g_Device->set_cmd(*cmd);
 }
 
 void Application::OnLoop() {
@@ -224,7 +219,7 @@ void Application::OnLoop() {
   glm::mat4 bytes[3] = {model, view, projection};
   transform->UpdateData(bytes, sizeof(glm::mat4) * 3);
 
-  impl::g_Device->Draw();
+  g_Device->Draw();
 }
 
 void Application::OnEnd() {

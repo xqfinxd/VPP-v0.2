@@ -15,7 +15,7 @@ class Pipeline : public DeviceResource {
   friend class DrawParam;
 
 public:
-  Pipeline();
+  Pipeline(Device* parent);
   ~Pipeline();
 
   bool SetShader(const Shader::MetaData& data);

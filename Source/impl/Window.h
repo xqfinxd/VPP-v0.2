@@ -37,6 +37,5 @@ private:
   SDL_Window* window_ = nullptr;
 };
 
-Window* GetWindow();
 } // namespace impl
 } // namespace VPP

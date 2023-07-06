@@ -281,7 +281,7 @@ void Device::GetSwapchainImages() {
   result = device_.getSwapchainImagesKHR(swapchain_, &swapchain_image_count_,
                                          nullptr);
   assert(result == vk::Result::eSuccess);
-  swapchain_images_ = NewArray<vk::Image>(swapchain_image_count_);
+  swapchain_images_ = std::make_unique<vk::Image[]>(swapchain_image_count_);
   result = device_.getSwapchainImagesKHR(swapchain_, &swapchain_image_count_,
                                          swapchain_images_.get());
   assert(result == vk::Result::eSuccess);
@@ -297,7 +297,8 @@ void Device::CreateSwapchainImageViews(vk::Format format) {
                       .setLevelCount(1)
                       .setBaseMipLevel(0);
 
-  swapchain_imageviews_ = NewArray<vk::ImageView>(swapchain_image_count_);
+  swapchain_imageviews_ =
+      std::make_unique<vk::ImageView[]>(swapchain_image_count_);
 
   for (uint32_t i = 0; i < swapchain_image_count_; i++) {
     vk::ImageViewCreateInfo imageViewCI =
@@ -413,7 +414,7 @@ void Device::CreateRenderPass(vk::Format format) {
 }
 
 void Device::CreateFramebuffers(vk::Extent2D extent) {
-  framebuffers_ = NewArray<vk::Framebuffer>(swapchain_image_count_);
+  framebuffers_ = std::make_unique<vk::Framebuffer[]>(swapchain_image_count_);
 
   vk::ImageView attachments[2];
   attachments[1] = depth_imageview_;
@@ -447,7 +448,7 @@ void Device::CreateCommandBuffers() {
                    .setLevel(vk::CommandBufferLevel::ePrimary)
                    .setCommandBufferCount(1);
 
-  commands_ = NewArray<vk::CommandBuffer>(swapchain_image_count_);
+  commands_ = std::make_unique<vk::CommandBuffer[]>(swapchain_image_count_);
   for (size_t i = 0; i < swapchain_image_count_; i++) {
     result = device_.allocateCommandBuffers(&cmdAI, &commands_[i]);
     assert(result == vk::Result::eSuccess);
@@ -580,9 +581,9 @@ void Device::CreateSyncObject() {
   auto fenceCI =
       vk::FenceCreateInfo().setFlags(vk::FenceCreateFlagBits::eSignaled);
 
-  fences_ = NewArray<vk::Fence>(frame_count_);
-  image_acquired_ = NewArray<vk::Semaphore>(frame_count_);
-  render_complete_ = NewArray<vk::Semaphore>(frame_count_);
+  fences_ = std::make_unique<vk::Fence[]>(frame_count_);
+  image_acquired_ = std::make_unique<vk::Semaphore[]>(frame_count_);
+  render_complete_ = std::make_unique<vk::Semaphore[]>(frame_count_);
 
   for (uint32_t i = 0; i < frame_count_; i++) {
     result = device_.createFence(&fenceCI, nullptr, &fences_[i]);
@@ -660,6 +661,11 @@ bool DeviceResource::CopyBuffer2Image(const vk::Buffer& srcBuffer,
   return true;
 }
 
+std::unique_ptr<VPP::impl::StageBuffer>
+DeviceResource::CreateStageBuffer(const void* data, size_t size) {
+  return std::make_unique<StageBuffer>(parent_, data, size);
+}
+
 vk::CommandBuffer DeviceResource::BeginOnceCmd() const {
   auto cmdAI = vk::CommandBufferAllocateInfo()
                    .setCommandPool(parent_->command_pool_)
@@ -727,8 +733,8 @@ void DeviceResource::SetImageForShader(const vk::CommandBuffer& cmd,
                       &barrier);
 }
 
-StageBuffer::StageBuffer(const void* data, size_t size)
-    : DeviceResource(), size_(size) {
+StageBuffer::StageBuffer(Device* parent, const void* data, size_t size)
+    : DeviceResource(parent), size_(size) {
   buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eTransferSrc, size_);
   if (!buffer_) {
     return;
@@ -754,19 +760,16 @@ StageBuffer::~StageBuffer() {
   }
 }
 
-bool StageBuffer::CopyTo(const vk::Buffer& dstBuffer) {
+bool StageBuffer::CopyToBuffer(const vk::Buffer& dstBuffer) {
   return CopyBuffer2Buffer(buffer_, dstBuffer, size_);
 }
 
-bool StageBuffer::CopyTo(const vk::Image& dstImage, uint32_t width,
+bool StageBuffer::CopyToImage(const vk::Image& dstImage, uint32_t width,
                          uint32_t height, uint32_t channel) {
   return CopyBuffer2Image(buffer_, dstImage, width, height, channel);
 }
 
-extern Device* g_Device;
-Device* GetDevice() { return g_Device; }
-
-DeviceResource::DeviceResource() { parent_ = g_Device; }
+DeviceResource::DeviceResource(Device* parent) : parent_(parent) { }
 
 DeviceResource::~DeviceResource() {}
 

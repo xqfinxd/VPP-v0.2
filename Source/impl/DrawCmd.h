@@ -15,6 +15,8 @@ namespace impl {
 
 class DrawParam : public DeviceResource {
 public:
+  DrawParam(Device* parent) : DeviceResource(parent) {}
+
   void set_clear_values(std::vector<vk::ClearValue>& clearValues) {
     clear_values_.swap(clearValues);
   }

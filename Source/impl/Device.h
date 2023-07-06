@@ -75,7 +75,7 @@ private:
   vk::DeviceMemory depth_memory_{};
 
   vk::RenderPass render_pass_{};
-  uarray<vk::Framebuffer> framebuffers_{};
+  std::unique_ptr<vk::Framebuffer[]> framebuffers_{};
 
   vk::CommandPool command_pool_{};
   std::unique_ptr<vk::CommandBuffer[]> commands_{};
@@ -83,11 +83,13 @@ private:
   const DrawParam* cmd_;
 };
 
+class StageBuffer;
+
 class DeviceResource {
 protected:
-  DeviceResource();
+  DeviceResource(Device* parent);
   ~DeviceResource();
-
+  
   const vk::Device& device() const { return parent_->device_; }
   const vk::PhysicalDevice& gpu() const { return parent_->gpu_; }
   const vk::RenderPass& render_pass() const { return parent_->render_pass_; }
@@ -100,6 +102,8 @@ protected:
   bool CopyBuffer2Image(const vk::Buffer& srcBuffer, const vk::Image& dstBuffer,
                         uint32_t width, uint32_t height,
                         uint32_t channel) const;
+
+  std::unique_ptr<StageBuffer> CreateStageBuffer(const void* data, size_t size);
 
 private:
   vk::CommandBuffer BeginOnceCmd() const;
@@ -115,10 +119,10 @@ private:
 
 class StageBuffer : public DeviceResource {
 public:
-  StageBuffer(const void* data, size_t size);
+  StageBuffer(Device* parent, const void* data, size_t size);
   ~StageBuffer();
-  bool CopyTo(const vk::Buffer& dstBuffer);
-  bool CopyTo(const vk::Image& dstImage, uint32_t width, uint32_t height,
+  bool CopyToBuffer(const vk::Buffer& dstBuffer);
+  bool CopyToImage(const vk::Image& dstImage, uint32_t width, uint32_t height,
               uint32_t channel);
 
 private:
@@ -126,8 +130,6 @@ private:
   vk::Buffer buffer_{};
   vk::DeviceMemory memory_{};
 };
-
-Device* GetDevice();
 
 } // namespace impl
 } // namespace VPP
