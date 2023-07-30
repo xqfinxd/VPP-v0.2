@@ -15,17 +15,17 @@
 #include "impl/VPPImage.h"
 #include "impl/VPPShader.h"
 #include "impl/Window.h"
-#include "VPP_Config.h"
 
 namespace VPP {
 
 static impl::Window* g_Window = nullptr;
 static impl::Device* g_Device = nullptr;
-static impl::WindowFrameData* frameData = nullptr;
-static impl::Pipeline* basicPipe = nullptr;
+static impl::FrameData* frameData = nullptr;
+static impl::PipelineInfo* basicPipe = nullptr;
 static impl::VertexBuffer* vertexBuffer = nullptr;
 static impl::VertexArray* vertexArray = nullptr;
 static impl::IndexBuffer* indexBuffer = nullptr;
+static impl::RenderPath* renderPath = nullptr;
 static impl::DrawParam* cmd = nullptr;
 static impl::SamplerTexture* tex1 = nullptr;
 static impl::SamplerTexture* tex2 = nullptr;
@@ -36,9 +36,14 @@ Application::Application() {}
 Application::~Application() {}
 
 void Application::Run() {
-  g_Window = new impl::Window;
+  impl::WindowOption options;
+  options.width = 1280;
+  options.height = 900;
+  options.fps = 30;
+  strcpy_s<64>(options.title, "VPP");
+  g_Window = new impl::Window(options);
   g_Device = new impl::Device(g_Window);
-  frameData = new impl::WindowFrameData();
+  frameData = new impl::FrameData();
 
   OnStart();
 
@@ -123,7 +128,12 @@ void Application::OnStart() {
 
   vertexArray = new impl::VertexArray(g_Device);
   vertexArray->BindBuffer(*vertexBuffer);
+  vertexArray->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);
+  vertexArray->SetVertexAttrib(1, 0, vk::Format::eR32G32Sfloat,
+                             (3 * sizeof(float)));
   //vertexArray->BindBuffer(*indexBuffer);
+  /*vertexArray->SetVertexAttrib(2, 0, vk::Format::eR32G32Sfloat,
+                               (6 * sizeof(float)));*/
 
   tex1 = new impl::SamplerTexture(g_Device);
   tex2 = new impl::SamplerTexture(g_Device);
@@ -138,38 +148,29 @@ void Application::OnStart() {
   transform = new impl::UniformBuffer(g_Device);
   transform->SetData(sizeof(glm::mat4) * 3);
 
-  basicPipe = new impl::Pipeline(g_Device);
+  basicPipe = new impl::PipelineInfo(g_Device);
   {
     glsl::Reader reader({"basic.vert", "basic.frag"});
     glsl::MetaData data{};
     if (reader.GetData(&data))
       basicPipe->SetShader(data);
-    basicPipe->SetVertexAttrib(0, 0, vk::Format::eR32G32B32Sfloat, 0);
-    basicPipe->SetVertexAttrib(1, 0, vk::Format::eR32G32Sfloat,
-                               (3 * sizeof(float)));
-    /*basicPipe->SetVertexAttrib(2, 0, vk::Format::eR32G32Sfloat,
-                               (6 * sizeof(float)));*/
   }
 
+  renderPath = new impl::RenderPath(g_Device);
+
+  g_Device->InitRenderPath(renderPath);
   cmd = new impl::DrawParam(g_Device);
-  cmd->SetVertexArray(*vertexArray);
+  cmd->Bind(basicPipe, vertexArray, renderPath);
 
-  cmd->SetPipeline(*basicPipe);
-
-  cmd->SetTexture(0, *tex1);
-  cmd->SetTexture(1, *tex2);
-  cmd->BindTexture(0, 0, 0);
-  cmd->BindTexture(1, 0, 1);
-
-  cmd->SetUniform(0, *transform);
-  cmd->BindUniform(0, 1, 0);
+  cmd->SetTexture(0, tex1);
+  cmd->SetTexture(1, tex2);
+  cmd->SetUniform(0, transform);
 
   std::vector<vk::ClearValue> clearValues = {
       vk::ClearValue().setColor(vk::ClearColorValue{0.2f, 0.3f, 0.3f, 1.0f}),
       vk::ClearValue().setDepthStencil(vk::ClearDepthStencilValue{1.0f, 0}),
   };
   cmd->SetClearValues(clearValues);
-  g_Device->set_cmd(*cmd);
 }
 
 void Application::OnLoop() {
@@ -213,13 +214,17 @@ void Application::OnLoop() {
   model = glm::translate(model, position);
   float angle = 20.0f * 0;
   model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+  int winWidth = 0, winHeight = 0;
+  g_Window->GetSize(winWidth, winHeight);
   glm::mat4 projection = glm::perspective(
-      glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+      glm::radians(45.0f), (float)winWidth / (float)winHeight, 0.1f, 100.0f);
 
   glm::mat4 bytes[3] = {model, view, projection};
   transform->UpdateData(bytes, sizeof(glm::mat4) * 3);
-
-  g_Device->Draw();
+  g_Device->PrepareRender();
+  g_Device->Render(cmd);
+  g_Device->Render(cmd);
+  g_Device->FinishRender();
 }
 
 void Application::OnEnd() {
@@ -230,5 +235,7 @@ void Application::OnEnd() {
   delete vertexArray;
   delete indexBuffer;
   delete vertexBuffer;
+  delete cmd;
+  delete renderPath;
 }
 } // namespace VPP

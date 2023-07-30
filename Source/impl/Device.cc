@@ -6,7 +6,6 @@
 #include <set>
 
 #include "DrawCmd.h"
-#include "VPP_Config.h"
 
 namespace VPP {
 namespace impl {
@@ -106,24 +105,15 @@ bool Device::FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
 void Device::ReCreateSwapchain() {
   device_.waitIdle();
 
-  for (int i = 0; i < FRAME_LAG; i++) {
+  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
     device_.waitForFences(1, &fences_[i], VK_TRUE, UINT64_MAX);
   }
 
   DestroySwapchainResource();
   vk::SwapchainKHR oldSwapchain = swapchain_;
   CreateSwapchainResource(oldSwapchain);
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
-    cmd_->Call(commands_[i], framebuffers_[i], render_pass_);
-  }
+  
   device_.destroy(oldSwapchain);
-}
-
-void Device::set_cmd(const DrawParam& cmd) {
-  cmd_ = &cmd;
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
-    cmd_->Call(commands_[i], framebuffers_[i], render_pass_);
-  }
 }
 
 void Device::Draw() {
@@ -146,8 +136,6 @@ void Device::Draw() {
     } else {
     }
   } while (result != vk::Result::eSuccess);
-
-  cmd_->Call(commands_[0], framebuffers_[curBuf], render_pass_);
 
   vk::PipelineStageFlags pipeStageFlags =
       vk::PipelineStageFlagBits::eColorAttachmentOutput;
@@ -174,7 +162,76 @@ void Device::Draw() {
 
   result = present_queue_.presentKHR(&presentInfo);
   frame_index_ += 1;
-  frame_index_ %= FRAME_LAG;
+  frame_index_ %= swapchain_image_count_;
+  if (result == vk::Result::eErrorOutOfDateKHR) {
+    ReCreateSwapchain();
+    return;
+  } else if (result == vk::Result::eSuboptimalKHR) {
+    ReCreateSwapchain();
+    return;
+  } else {
+  }
+}
+
+void Device::InitRenderPath(RenderPath* path) {
+  path->CreateRenderPass(colorFormat, depthFormat);
+  path->CreateFrameBuffer(extent_, swapchain_image_count_, swapchain_imageviews_.get(), depth_imageview_);
+}
+
+void Device::PrepareRender() {
+  device_.waitForFences(1, &fences_[0], VK_TRUE, UINT64_MAX);
+  device_.resetFences(1, &fences_[0]);
+
+  auto& curBuf = current_buffer_;
+
+  vk::Result result;
+  do {
+    result = device_.acquireNextImageKHR(swapchain_, UINT64_MAX,
+                                         image_acquired_[frame_index_],
+                                         vk::Fence(), &curBuf);
+    if (result == vk::Result::eErrorOutOfDateKHR) {
+      ReCreateSwapchain();
+      return;
+    } else if (result == vk::Result::eSuboptimalKHR) {
+      ReCreateSwapchain();
+      return;
+    } else {
+    }
+  } while (result != vk::Result::eSuccess);
+}
+
+void Device::Render(DrawParam* param) {
+  
+  param->Render(commands_[current_buffer_], current_buffer_);
+}
+
+void Device::FinishRender() {
+  vk::PipelineStageFlags pipeStageFlags =
+      vk::PipelineStageFlagBits::eColorAttachmentOutput;
+  auto const submitInfo =
+      vk::SubmitInfo()
+          .setPWaitDstStageMask(&pipeStageFlags)
+          .setWaitSemaphoreCount(1)
+          .setPWaitSemaphores(&image_acquired_[frame_index_])
+          .setCommandBufferCount(1)
+          .setPCommandBuffers(&commands_[current_buffer_])
+          .setSignalSemaphoreCount(1)
+          .setPSignalSemaphores(&render_complete_[frame_index_]);
+  vk::Result result;
+  result = graphics_queue_.submit(1, &submitInfo, fences_[0]);
+  assert(result == vk::Result::eSuccess);
+
+  auto const presentInfo =
+      vk::PresentInfoKHR()
+          .setWaitSemaphoreCount(1)
+          .setPWaitSemaphores(&render_complete_[frame_index_])
+          .setSwapchainCount(1)
+          .setPSwapchains(&swapchain_)
+          .setPImageIndices(&current_buffer_);
+
+  result = present_queue_.presentKHR(&presentInfo);
+  frame_index_ += 1;
+  frame_index_ %= swapchain_image_count_;
   if (result == vk::Result::eErrorOutOfDateKHR) {
     ReCreateSwapchain();
     return;
@@ -188,7 +245,7 @@ void Device::Draw() {
 void Device::EndDraw() {
   device_.waitIdle();
 
-  for (int i = 0; i < FRAME_LAG; i++) {
+  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
     device_.waitForFences(1, &fences_[i], VK_TRUE, UINT64_MAX);
     device_.destroy(fences_[i]);
     device_.destroy(image_acquired_[i]);
@@ -235,6 +292,7 @@ void Device::CreateSwapchainResource(vk::SwapchainKHR oldSwapchain) {
   assert(result == vk::Result::eSuccess);
 
   extent_ = caps.currentExtent;
+  colorFormat = surfaceFormat[0].format;
 
   GetSwapchainImages();
   CreateSwapchainImageViews(surfaceFormat[0].format);
@@ -338,6 +396,7 @@ void Device::CreateDepthbuffer(vk::Extent2D extent) {
   imageCI.setQueueFamilyIndices(indices);
   result = device_.createImage(&imageCI, nullptr, &depth_image_);
   assert(result == vk::Result::eSuccess);
+  depthFormat = vk::Format::eD16Unorm;
 
   vk::MemoryAllocateInfo memoryAI;
   vk::MemoryRequirements memReq;
@@ -575,7 +634,7 @@ void Device::GetQueues() {
 void Device::CreateSyncObject() {
   vk::Result result;
 
-  frame_count_ = FRAME_LAG;
+  frame_count_ = swapchain_image_count_;
 
   auto semaphoreCreateInfo = vk::SemaphoreCreateInfo();
   auto fenceCI =

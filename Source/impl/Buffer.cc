@@ -127,18 +127,5 @@ void VertexArray::DrawAtCmd(const vk::CommandBuffer& buf) const {
   }
 }
 
-std::vector<vk::VertexInputBindingDescription>
-VertexArray::GetBindings() const {
-  std::vector<vk::VertexInputBindingDescription> bindings{};
-  uint32_t index = 0;
-  for (const auto& e : vertices_) {
-    bindings.emplace_back(vk::VertexInputBindingDescription()
-                              .setBinding(index++)
-                              .setStride(e->stride())
-                              .setInputRate(vk::VertexInputRate::eVertex));
-  }
-  return bindings;
-}
-
 } // namespace impl
 } // namespace VPP

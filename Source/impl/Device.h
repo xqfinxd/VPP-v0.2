@@ -8,6 +8,7 @@ namespace VPP {
 namespace impl {
 
 class DrawParam;
+class RenderPath;
 
 class Device {
   friend class DeviceResource;
@@ -20,8 +21,13 @@ public:
 
   uint32_t GetDrawCount() const { return swapchain_image_count_; }
 
-  void set_cmd(const DrawParam& cmd);
   void Draw();
+
+  void InitRenderPath(RenderPath* path);
+  void PrepareRender();
+  void Render(DrawParam* param);
+  void FinishRender();
+
   void EndDraw();
 
 private:
@@ -63,6 +69,8 @@ private:
 
   vk::SwapchainKHR swapchain_{};
   vk::Extent2D extent_{};
+  vk::Format colorFormat;
+  vk::Format depthFormat;
 
   uint32_t swapchain_image_count_{};
 
@@ -79,8 +87,6 @@ private:
 
   vk::CommandPool command_pool_{};
   std::unique_ptr<vk::CommandBuffer[]> commands_{};
-
-  const DrawParam* cmd_;
 };
 
 class StageBuffer;

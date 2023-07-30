@@ -56,11 +56,33 @@ public:
   void BindCmd(const vk::CommandBuffer& buf) const;
   void DrawAtCmd(const vk::CommandBuffer& buf) const;
 
-  std::vector<vk::VertexInputBindingDescription> GetBindings() const;
+  std::vector<vk::VertexInputBindingDescription> GetBindings() const {
+    std::vector<vk::VertexInputBindingDescription> bindings{};
+    uint32_t index = 0;
+    for (const auto& e : vertices_) {
+      bindings.emplace_back(vk::VertexInputBindingDescription()
+                                .setBinding(index++)
+                                .setStride(e->stride())
+                                .setInputRate(vk::VertexInputRate::eVertex));
+    }
+    return bindings;
+  }
+  std::vector<vk::VertexInputAttributeDescription> GetAttrib() const {
+    return vertex_attribs_;
+  }
+  void SetVertexAttrib(uint32_t location, uint32_t binding, vk::Format format,
+    uint32_t offset) {
+    vertex_attribs_.emplace_back(vk::VertexInputAttributeDescription()
+                                     .setLocation(location)
+                                     .setBinding(binding)
+                                     .setFormat(format)
+                                     .setOffset(offset));
+  }
 
 private:
   std::vector<const VertexBuffer*> vertices_{};
   const IndexBuffer* index_ = nullptr;
+  std::vector<vk::VertexInputAttributeDescription> vertex_attribs_{};
 };
 
 class UniformBuffer : public CommonBuffer {
