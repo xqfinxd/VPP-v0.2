@@ -55,8 +55,8 @@ bool SamplerTexture::SetImage2D(vk::Format format, uint32_t width,
   }
   device().bindImageMemory(image_, memory_, 0);
 
-  auto stageBuffer = CreateStageBuffer(data, size);
-  if (!stageBuffer->CopyToImage(image_, width_, height_, channel)) {
+  StageBuffer stageBuffer(this, data, size);
+  if (!stageBuffer.CopyToImage(image_, width_, height_, channel)) {
     return false;
   }
 

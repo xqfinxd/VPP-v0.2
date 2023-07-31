@@ -90,15 +90,15 @@ private:
   std::unique_ptr<vk::CommandBuffer[]> commands_{};
 };
 
-class StageBuffer;
-
 class DeviceResource {
 public:
-  Device* parent() { return parent_; }
-  const Device* parent() const { return parent_; }
+  Device* GetParent() { return parent_; }
+  const Device* GetParent() const {
+    return parent_;
+  }
 
 protected:
-  DeviceResource(Device* parent);
+  DeviceResource(Device* pParent);
   ~DeviceResource();
   
   const vk::Device& device() const { return parent_->device_; }
@@ -111,8 +111,6 @@ protected:
   bool CopyBuffer2Image(const vk::Buffer& srcBuffer, const vk::Image& dstBuffer,
                         uint32_t width, uint32_t height,
                         uint32_t channel) const;
-
-  std::unique_ptr<StageBuffer> CreateStageBuffer(const void* data, size_t size);
 
 private:
   vk::CommandBuffer BeginOnceCmd() const;

@@ -580,11 +580,6 @@ bool DeviceResource::CopyBuffer2Image(const vk::Buffer& srcBuffer,
   return true;
 }
 
-std::unique_ptr<VPP::impl::StageBuffer>
-DeviceResource::CreateStageBuffer(const void* data, size_t size) {
-  return std::make_unique<StageBuffer>(parent_, data, size);
-}
-
 vk::CommandBuffer DeviceResource::BeginOnceCmd() const {
   auto cmdAI = vk::CommandBufferAllocateInfo()
                    .setCommandPool(parent_->command_pool_)
@@ -653,7 +648,7 @@ void DeviceResource::SetImageForShader(const vk::CommandBuffer& cmd,
 }
 
 StageBuffer::StageBuffer(DeviceResource* dst, const void* data, size_t size)
-    : DeviceResource(dst->parent()), size_(size) {
+    : DeviceResource(dst->GetParent()), size_(size) {
   do {
     buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eTransferSrc, size_);
     if (!buffer_) break;

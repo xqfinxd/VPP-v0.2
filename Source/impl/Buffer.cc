@@ -29,8 +29,8 @@ bool CommonBuffer::SetLocalData(vk::BufferUsageFlags usage, const void* data,
 
   device().bindBufferMemory(buffer_, memory_, 0);
 
-  auto stageBuffer = CreateStageBuffer(data, size);
-  return stageBuffer->CopyToBuffer(buffer_);
+  StageBuffer stageBuffer(this, data, size);
+  return stageBuffer.CopyToBuffer(buffer_);
 }
 
 bool CommonBuffer::SetGlobalData(vk::BufferUsageFlags usage, const void* data, size_t size) {
