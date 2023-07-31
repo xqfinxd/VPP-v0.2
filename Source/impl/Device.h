@@ -19,10 +19,6 @@ public:
 
   void ReCreateSwapchain();
 
-  uint32_t GetDrawCount() const { return swapchain_image_count_; }
-
-  void Draw();
-
   void InitRenderPath(RenderPath* path);
   void PrepareRender();
   void Render(DrawParam* param);
@@ -33,17 +29,15 @@ public:
 private:
   void CreateInstance(SDL_Window* window);
   void CreateSurface(SDL_Window* window);
-  void SetGpuAndIndices();
+  void SelectPhysicalDevice();
+  void SelectQueueIndex();
   void CreateDevice();
   void GetQueues();
   void CreateSyncObject();
   void CreateSwapchainResource(vk::SwapchainKHR oldSwapchain);
   void DestroySwapchainResource();
-  void GetSwapchainImages();
   void CreateSwapchainImageViews(vk::Format format);
   void CreateDepthbuffer(vk::Extent2D extent);
-  void CreateRenderPass(vk::Format format);
-  void CreateFramebuffers(vk::Extent2D extent);
   void CreateCommandBuffers();
   bool FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
                       uint32_t& typeIndex) const;
@@ -55,11 +49,15 @@ private:
   vk::Device device_{};
   vk::PhysicalDeviceProperties property_{};
 
-  uint32_t graphics_index_{UINT32_MAX};
-  uint32_t present_index_{UINT32_MAX};
+  struct {
+    uint32_t graphics = UINT32_MAX;
+    uint32_t present = UINT32_MAX;
+  } indices_{};
 
-  vk::Queue graphics_queue_{};
-  vk::Queue present_queue_{};
+  struct {
+    vk::Queue graphics;
+    vk::Queue present;
+  } queues_{};
 
   uint32_t frame_count_{0};
   uint32_t frame_index_{};
@@ -67,23 +65,26 @@ private:
   std::unique_ptr<vk::Semaphore[]> image_acquired_{};
   std::unique_ptr<vk::Semaphore[]> render_complete_{};
 
-  vk::SwapchainKHR swapchain_{};
-  vk::Extent2D extent_{};
-  vk::Format colorFormat;
-  vk::Format depthFormat;
+  struct {
+    vk::SwapchainKHR handle;
+    vk::Extent2D image_extent;
+    vk::Format image_format = vk::Format::eUndefined;
+  } swapchain_{};
 
-  uint32_t swapchain_image_count_{};
+  struct {
+    uint32_t count = 0;
+    std::unique_ptr<vk::Image[]> images;
+    std::unique_ptr<vk::ImageView[]> imageviews;
+  } swapbuffers_{};
 
   uint32_t current_buffer_{};
-  std::unique_ptr<vk::Image[]> swapchain_images_{};
-  std::unique_ptr<vk::ImageView[]> swapchain_imageviews_{};
-
-  vk::Image depth_image_{};
-  vk::ImageView depth_imageview_{};
-  vk::DeviceMemory depth_memory_{};
-
-  vk::RenderPass render_pass_{};
-  std::unique_ptr<vk::Framebuffer[]> framebuffers_{};
+  
+  struct {
+    vk::Format format = vk::Format::eUndefined;
+    vk::Image image{};
+    vk::ImageView imageview{};
+    vk::DeviceMemory memory{};
+  } depth_{};
 
   vk::CommandPool command_pool_{};
   std::unique_ptr<vk::CommandBuffer[]> commands_{};
@@ -92,14 +93,16 @@ private:
 class StageBuffer;
 
 class DeviceResource {
+public:
+  Device* parent() { return parent_; }
+  const Device* parent() const { return parent_; }
+
 protected:
   DeviceResource(Device* parent);
   ~DeviceResource();
   
   const vk::Device& device() const { return parent_->device_; }
-  const vk::PhysicalDevice& gpu() const { return parent_->gpu_; }
-  const vk::RenderPass& render_pass() const { return parent_->render_pass_; }
-  const vk::Extent2D& surface_extent() const { return parent_->extent_; }
+
   vk::DeviceMemory CreateMemory(const vk::MemoryRequirements& req,
                                 vk::MemoryPropertyFlags flags) const;
   vk::Buffer CreateBuffer(vk::BufferUsageFlags flags, size_t size) const;
@@ -125,7 +128,7 @@ private:
 
 class StageBuffer : public DeviceResource {
 public:
-  StageBuffer(Device* parent, const void* data, size_t size);
+  StageBuffer(DeviceResource* dst, const void* data, size_t size);
   ~StageBuffer();
   bool CopyToBuffer(const vk::Buffer& dstBuffer);
   bool CopyToImage(const vk::Image& dstImage, uint32_t width, uint32_t height,

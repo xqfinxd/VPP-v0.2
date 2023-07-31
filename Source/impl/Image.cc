@@ -27,15 +27,7 @@ bool SamplerTexture::SetImage2D(vk::Format format, uint32_t width,
   format_ = format;
 
   size_t size = width_ * height_ * channel;
-  auto prop = gpu().getFormatProperties(format_);
-  if (!(prop.optimalTilingFeatures &
-        vk::FormatFeatureFlagBits::eSampledImage)) {
-    return false;
-  }
-  if (!(prop.optimalTilingFeatures & vk::FormatFeatureFlagBits::eTransferDst)) {
-    return false;
-  }
-
+  
   auto imageCI = vk::ImageCreateInfo()
                      .setImageType(vk::ImageType::e2D)
                      .setFormat(format_)

@@ -7,6 +7,8 @@
 
 #include "DrawCmd.h"
 
+#define FRAME_LAG 2
+
 namespace VPP {
 namespace impl {
 static std::vector<const char*> kEnabledLayers{"VK_LAYER_KHRONOS_validation"};
@@ -52,7 +54,8 @@ static std::vector<const char*> GetWindowExtensions(SDL_Window* window) {
 Device::Device(Window* window) {
   CreateInstance(window->window());
   CreateSurface(window->window());
-  SetGpuAndIndices();
+  SelectPhysicalDevice();
+  SelectQueueIndex();
   CreateDevice();
   GetQueues();
   CreateSwapchainResource(VK_NULL_HANDLE);
@@ -62,8 +65,8 @@ Device::Device(Window* window) {
 Device::~Device() {
   device_.waitIdle();
   if (device_) {
-    if (swapchain_) {
-      device_.destroy(swapchain_);
+    if (swapchain_.handle) {
+      device_.destroy(swapchain_.handle);
     }
     DestroySwapchainResource();
 
@@ -105,77 +108,20 @@ bool Device::FindMemoryType(uint32_t memType, vk::MemoryPropertyFlags mask,
 void Device::ReCreateSwapchain() {
   device_.waitIdle();
 
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
+  for (uint32_t i = 0; i < swapbuffers_.count; i++) {
     device_.waitForFences(1, &fences_[i], VK_TRUE, UINT64_MAX);
   }
 
   DestroySwapchainResource();
-  vk::SwapchainKHR oldSwapchain = swapchain_;
+  vk::SwapchainKHR oldSwapchain = swapchain_.handle;
   CreateSwapchainResource(oldSwapchain);
   
   device_.destroy(oldSwapchain);
 }
 
-void Device::Draw() {
-  device_.waitForFences(1, &fences_[0], VK_TRUE, UINT64_MAX);
-  device_.resetFences(1, &fences_[0]);
-
-  auto& curBuf = current_buffer_;
-
-  vk::Result result;
-  do {
-    result = device_.acquireNextImageKHR(swapchain_, UINT64_MAX,
-                                         image_acquired_[frame_index_],
-                                         vk::Fence(), &curBuf);
-    if (result == vk::Result::eErrorOutOfDateKHR) {
-      ReCreateSwapchain();
-      return;
-    } else if (result == vk::Result::eSuboptimalKHR) {
-      ReCreateSwapchain();
-      return;
-    } else {
-    }
-  } while (result != vk::Result::eSuccess);
-
-  vk::PipelineStageFlags pipeStageFlags =
-      vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  auto const submitInfo =
-      vk::SubmitInfo()
-          .setPWaitDstStageMask(&pipeStageFlags)
-          .setWaitSemaphoreCount(1)
-          .setPWaitSemaphores(&image_acquired_[frame_index_])
-          .setCommandBufferCount(1)
-          .setPCommandBuffers(&commands_[0])
-          .setSignalSemaphoreCount(1)
-          .setPSignalSemaphores(&render_complete_[frame_index_]);
-
-  result = graphics_queue_.submit(1, &submitInfo, fences_[0]);
-  assert(result == vk::Result::eSuccess);
-
-  auto const presentInfo =
-      vk::PresentInfoKHR()
-          .setWaitSemaphoreCount(1)
-          .setPWaitSemaphores(&render_complete_[frame_index_])
-          .setSwapchainCount(1)
-          .setPSwapchains(&swapchain_)
-          .setPImageIndices(&curBuf);
-
-  result = present_queue_.presentKHR(&presentInfo);
-  frame_index_ += 1;
-  frame_index_ %= swapchain_image_count_;
-  if (result == vk::Result::eErrorOutOfDateKHR) {
-    ReCreateSwapchain();
-    return;
-  } else if (result == vk::Result::eSuboptimalKHR) {
-    ReCreateSwapchain();
-    return;
-  } else {
-  }
-}
-
 void Device::InitRenderPath(RenderPath* path) {
-  path->CreateRenderPass(colorFormat, depthFormat);
-  path->CreateFrameBuffer(extent_, swapchain_image_count_, swapchain_imageviews_.get(), depth_imageview_);
+  path->CreateRenderPass(swapchain_.image_format, depth_.format);
+  path->CreateFrameBuffer(swapchain_.image_extent, swapbuffers_.count, swapbuffers_.imageviews.get(), depth_.imageview);
 }
 
 void Device::PrepareRender() {
@@ -186,7 +132,7 @@ void Device::PrepareRender() {
 
   vk::Result result;
   do {
-    result = device_.acquireNextImageKHR(swapchain_, UINT64_MAX,
+    result = device_.acquireNextImageKHR(swapchain_.handle, UINT64_MAX,
                                          image_acquired_[frame_index_],
                                          vk::Fence(), &curBuf);
     if (result == vk::Result::eErrorOutOfDateKHR) {
@@ -218,7 +164,7 @@ void Device::FinishRender() {
           .setSignalSemaphoreCount(1)
           .setPSignalSemaphores(&render_complete_[frame_index_]);
   vk::Result result;
-  result = graphics_queue_.submit(1, &submitInfo, fences_[0]);
+  result = queues_.graphics.submit(1, &submitInfo, fences_[0]);
   assert(result == vk::Result::eSuccess);
 
   auto const presentInfo =
@@ -226,12 +172,12 @@ void Device::FinishRender() {
           .setWaitSemaphoreCount(1)
           .setPWaitSemaphores(&render_complete_[frame_index_])
           .setSwapchainCount(1)
-          .setPSwapchains(&swapchain_)
+          .setPSwapchains(&swapchain_.handle)
           .setPImageIndices(&current_buffer_);
 
-  result = present_queue_.presentKHR(&presentInfo);
+  result = queues_.present.presentKHR(&presentInfo);
   frame_index_ += 1;
-  frame_index_ %= swapchain_image_count_;
+  frame_index_ %= swapbuffers_.count;
   if (result == vk::Result::eErrorOutOfDateKHR) {
     ReCreateSwapchain();
     return;
@@ -245,7 +191,7 @@ void Device::FinishRender() {
 void Device::EndDraw() {
   device_.waitIdle();
 
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
+  for (uint32_t i = 0; i < swapbuffers_.count; i++) {
     device_.waitForFences(1, &fences_[i], VK_TRUE, UINT64_MAX);
     device_.destroy(fences_[i]);
     device_.destroy(image_acquired_[i]);
@@ -277,76 +223,61 @@ void Device::CreateSwapchainResource(vk::SwapchainKHR oldSwapchain) {
                     .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
                     .setPresentMode(presentModes[0]);
 
-  std::vector<uint32_t> indices = {graphics_index_};
-  if (graphics_index_ == present_index_) {
+  std::vector<uint32_t> indices = {indices_.graphics};
+  if (indices_.graphics == indices_.present) {
     swapCI.setImageSharingMode(vk::SharingMode::eExclusive);
   } else {
     swapCI.setImageSharingMode(vk::SharingMode::eConcurrent);
-    indices.push_back(present_index_);
+    indices.push_back(indices_.present);
   }
   swapCI.setQueueFamilyIndices(indices);
 
   swapCI.setOldSwapchain(oldSwapchain);
 
-  result = device_.createSwapchainKHR(&swapCI, nullptr, &swapchain_);
+  result = device_.createSwapchainKHR(&swapCI, nullptr, &swapchain_.handle);
   assert(result == vk::Result::eSuccess);
 
-  extent_ = caps.currentExtent;
-  colorFormat = surfaceFormat[0].format;
+  swapchain_.image_extent = caps.currentExtent;
+  swapchain_.image_format = surfaceFormat[0].format;
 
-  GetSwapchainImages();
   CreateSwapchainImageViews(surfaceFormat[0].format);
   CreateDepthbuffer(caps.currentExtent);
-  CreateRenderPass(surfaceFormat[0].format);
-  CreateFramebuffers(caps.currentExtent);
   CreateCommandBuffers();
 }
 
 void Device::DestroySwapchainResource() {
-  for (uint32_t i = 0; i < swapchain_image_count_; ++i) {
-    if (framebuffers_[i]) {
-      device_.destroy(framebuffers_[i]);
-    }
-
-    if (swapchain_imageviews_[i]) {
-      device_.destroy(swapchain_imageviews_[i]);
+  for (uint32_t i = 0; i < swapbuffers_.count; ++i) {
+    if (swapbuffers_.imageviews[i]) {
+      device_.destroy(swapbuffers_.imageviews[i]);
     }
   }
   if (command_pool_) {
     device_.destroy(command_pool_);
   }
 
-  if (render_pass_) {
-    device_.destroy(render_pass_);
+  if (depth_.image) {
+    device_.destroy(depth_.image);
   }
 
-  if (depth_image_) {
-    device_.destroy(depth_image_);
+  if (depth_.imageview) {
+    device_.destroy(depth_.imageview);
   }
 
-  if (depth_imageview_) {
-    device_.destroy(depth_imageview_);
+  if (depth_.memory) {
+    device_.free(depth_.memory);
   }
-
-  if (depth_memory_) {
-    device_.free(depth_memory_);
-  }
-}
-
-void Device::GetSwapchainImages() {
-  vk::Result result = vk::Result::eSuccess;
-
-  result = device_.getSwapchainImagesKHR(swapchain_, &swapchain_image_count_,
-                                         nullptr);
-  assert(result == vk::Result::eSuccess);
-  swapchain_images_ = std::make_unique<vk::Image[]>(swapchain_image_count_);
-  result = device_.getSwapchainImagesKHR(swapchain_, &swapchain_image_count_,
-                                         swapchain_images_.get());
-  assert(result == vk::Result::eSuccess);
 }
 
 void Device::CreateSwapchainImageViews(vk::Format format) {
   vk::Result result = vk::Result::eSuccess;
+
+  result = device_.getSwapchainImagesKHR(swapchain_.handle, &swapbuffers_.count,
+                                         nullptr);
+  assert(result == vk::Result::eSuccess);
+  swapbuffers_.images = std::make_unique<vk::Image[]>(swapbuffers_.count);
+  result = device_.getSwapchainImagesKHR(swapchain_.handle, &swapbuffers_.count,
+                                         swapbuffers_.images.get());
+  assert(result == vk::Result::eSuccess);
 
   auto resRange = vk::ImageSubresourceRange()
                       .setAspectMask(vk::ImageAspectFlagBits::eColor)
@@ -355,19 +286,19 @@ void Device::CreateSwapchainImageViews(vk::Format format) {
                       .setLevelCount(1)
                       .setBaseMipLevel(0);
 
-  swapchain_imageviews_ =
-      std::make_unique<vk::ImageView[]>(swapchain_image_count_);
+  swapbuffers_.imageviews =
+      std::make_unique<vk::ImageView[]>(swapbuffers_.count);
 
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
+  for (uint32_t i = 0; i < swapbuffers_.count; i++) {
     vk::ImageViewCreateInfo imageViewCI =
         vk::ImageViewCreateInfo()
             .setViewType(vk::ImageViewType::e2D)
             .setFormat(format)
             .setPNext(nullptr)
             .setSubresourceRange(resRange);
-    imageViewCI.setImage(swapchain_images_[i]);
+    imageViewCI.setImage(swapbuffers_.images[i]);
     result = device_.createImageView(&imageViewCI, nullptr,
-                                     &swapchain_imageviews_[i]);
+                                     &swapbuffers_.imageviews[i]);
     assert(result == vk::Result::eSuccess);
   }
 }
@@ -386,119 +317,46 @@ void Device::CreateDepthbuffer(vk::Extent2D extent) {
                      .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
                      .setInitialLayout(vk::ImageLayout::eUndefined);
 
-  std::vector<uint32_t> indices = {graphics_index_};
-  if (graphics_index_ == present_index_) {
+  std::vector<uint32_t> indices = {indices_.graphics};
+  if (indices_.graphics == indices_.present) {
     imageCI.setSharingMode(vk::SharingMode::eExclusive);
   } else {
     imageCI.setSharingMode(vk::SharingMode::eConcurrent);
-    indices.push_back(present_index_);
+    indices.push_back(indices_.present);
   }
   imageCI.setQueueFamilyIndices(indices);
-  result = device_.createImage(&imageCI, nullptr, &depth_image_);
+  result = device_.createImage(&imageCI, nullptr, &depth_.image);
   assert(result == vk::Result::eSuccess);
-  depthFormat = vk::Format::eD16Unorm;
+  depth_.format = vk::Format::eD16Unorm;
 
   vk::MemoryAllocateInfo memoryAI;
   vk::MemoryRequirements memReq;
-  device_.getImageMemoryRequirements(depth_image_, &memReq);
+  device_.getImageMemoryRequirements(depth_.image, &memReq);
   memoryAI.setAllocationSize(memReq.size);
   auto pass = FindMemoryType(memReq.memoryTypeBits,
                              vk::MemoryPropertyFlagBits::eDeviceLocal,
                              memoryAI.memoryTypeIndex);
   assert(pass);
-  result = device_.allocateMemory(&memoryAI, nullptr, &depth_memory_);
+  result = device_.allocateMemory(&memoryAI, nullptr, &depth_.memory);
   assert(result == vk::Result::eSuccess);
 
-  device_.bindImageMemory(depth_image_, depth_memory_, 0);
+  device_.bindImageMemory(depth_.image, depth_.memory, 0);
   auto imageViewCI = vk::ImageViewCreateInfo()
-                         .setImage(depth_image_)
+                         .setImage(depth_.image)
                          .setViewType(vk::ImageViewType::e2D)
                          .setFormat(vk::Format::eD16Unorm)
                          .setSubresourceRange(vk::ImageSubresourceRange(
                              vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1))
                          .setPNext(nullptr);
-  result = device_.createImageView(&imageViewCI, nullptr, &depth_imageview_);
+  result = device_.createImageView(&imageViewCI, nullptr, &depth_.imageview);
   assert(result == vk::Result::eSuccess);
-}
-
-void Device::CreateRenderPass(vk::Format format) {
-  vk::Result result = vk::Result::eSuccess;
-
-  std::vector<vk::AttachmentDescription> attachments = {
-      vk::AttachmentDescription()
-          .setFormat(format)
-          .setSamples(vk::SampleCountFlagBits::e1)
-          .setLoadOp(vk::AttachmentLoadOp::eClear)
-          .setStoreOp(vk::AttachmentStoreOp::eStore)
-          .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
-          .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-          .setInitialLayout(vk::ImageLayout::eUndefined)
-          .setFinalLayout(vk::ImageLayout::ePresentSrcKHR),
-      vk::AttachmentDescription()
-          .setFormat(vk::Format::eD16Unorm)
-          .setSamples(vk::SampleCountFlagBits::e1)
-          .setLoadOp(vk::AttachmentLoadOp::eClear)
-          .setStoreOp(vk::AttachmentStoreOp::eDontCare)
-          .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
-          .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-          .setInitialLayout(vk::ImageLayout::eUndefined)
-          .setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)};
-
-  auto colorReference = vk::AttachmentReference().setAttachment(0).setLayout(
-      vk::ImageLayout::eColorAttachmentOptimal);
-
-  auto depthReference = vk::AttachmentReference().setAttachment(1).setLayout(
-      vk::ImageLayout::eDepthStencilAttachmentOptimal);
-
-  auto subpass = vk::SubpassDescription()
-                     .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
-                     .setInputAttachmentCount(0)
-                     .setPInputAttachments(nullptr)
-                     .setColorAttachmentCount(1)
-                     .setPColorAttachments(&colorReference)
-                     .setPResolveAttachments(nullptr)
-                     .setPDepthStencilAttachment(&depthReference)
-                     .setPreserveAttachmentCount(0)
-                     .setPPreserveAttachments(nullptr);
-
-  auto renderPassCI = vk::RenderPassCreateInfo()
-                          .setAttachments(attachments)
-                          .setSubpassCount(1)
-                          .setPSubpasses(&subpass)
-                          .setDependencyCount(0)
-                          .setPDependencies(nullptr);
-
-  result = device_.createRenderPass(&renderPassCI, nullptr, &render_pass_);
-  assert(result == vk::Result::eSuccess);
-}
-
-void Device::CreateFramebuffers(vk::Extent2D extent) {
-  framebuffers_ = std::make_unique<vk::Framebuffer[]>(swapchain_image_count_);
-
-  vk::ImageView attachments[2];
-  attachments[1] = depth_imageview_;
-
-  auto frameBufferCI = vk::FramebufferCreateInfo()
-                           .setRenderPass(render_pass_)
-                           .setAttachmentCount(2)
-                           .setPAttachments(attachments)
-                           .setWidth(extent.width)
-                           .setHeight(extent.height)
-                           .setLayers(1);
-
-  for (uint32_t i = 0; i < swapchain_image_count_; i++) {
-    attachments[0] = swapchain_imageviews_[i];
-    auto result =
-        device_.createFramebuffer(&frameBufferCI, nullptr, &framebuffers_[i]);
-    assert(result == vk::Result::eSuccess);
-  }
 }
 
 void Device::CreateCommandBuffers() {
   vk::Result result;
 
   auto cmdPoolCI =
-      vk::CommandPoolCreateInfo().setQueueFamilyIndex(graphics_index_).setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+      vk::CommandPoolCreateInfo().setQueueFamilyIndex(indices_.graphics).setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
   result = device_.createCommandPool(&cmdPoolCI, nullptr, &command_pool_);
   assert(result == vk::Result::eSuccess);
 
@@ -507,8 +365,8 @@ void Device::CreateCommandBuffers() {
                    .setLevel(vk::CommandBufferLevel::ePrimary)
                    .setCommandBufferCount(1);
 
-  commands_ = std::make_unique<vk::CommandBuffer[]>(swapchain_image_count_);
-  for (size_t i = 0; i < swapchain_image_count_; i++) {
+  commands_ = std::make_unique<vk::CommandBuffer[]>(swapbuffers_.count);
+  for (size_t i = 0; i < swapbuffers_.count; i++) {
     result = device_.allocateCommandBuffers(&cmdAI, &commands_[i]);
     assert(result == vk::Result::eSuccess);
   }
@@ -556,7 +414,7 @@ void Device::CreateSurface(SDL_Window* window) {
   assert(surface_);
 }
 
-void Device::SetGpuAndIndices() {
+void Device::SelectPhysicalDevice() {
   auto availableGPUs = instance_.enumeratePhysicalDevices();
   bool found = false;
 
@@ -571,6 +429,10 @@ void Device::SetGpuAndIndices() {
   }
   assert(found);
 
+  property_ = gpu_.getProperties();
+}
+
+void Device::SelectQueueIndex() {
   auto queueProperties = gpu_.getQueueFamilyProperties();
   uint32_t indexCount = (uint32_t)queueProperties.size();
 
@@ -581,27 +443,25 @@ void Device::SetGpuAndIndices() {
 
   for (uint32_t i = 0; i < indexCount; ++i) {
     if (queueProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) {
-      graphics_index_ = i;
+      indices_.graphics = i;
     }
 
     if (supportsPresent[i] == VK_TRUE) {
-      present_index_ = i;
+      indices_.present = i;
     }
 
-    if (graphics_index_ != UINT32_MAX && present_index_ != UINT32_MAX) {
+    if (indices_.graphics != UINT32_MAX && indices_.present != UINT32_MAX) {
       break;
     }
   }
-  assert(graphics_index_ != UINT32_MAX && present_index_ != UINT32_MAX);
-
-  property_ = gpu_.getProperties();
+  assert(indices_.graphics != UINT32_MAX && indices_.present != UINT32_MAX);
 }
 
 void Device::CreateDevice() {
   vk::Result result = vk::Result::eSuccess;
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos{};
-  std::set<uint32_t> queueFamilies = {graphics_index_, present_index_};
+  std::set<uint32_t> queueFamilies = {indices_.graphics, indices_.present};
 
   float queuePriority = 1.0f;
   for (uint32_t queueFamily : queueFamilies) {
@@ -627,14 +487,14 @@ void Device::CreateDevice() {
 }
 
 void Device::GetQueues() {
-  graphics_queue_ = device_.getQueue(graphics_index_, 0);
-  present_queue_ = device_.getQueue(present_index_, 0);
+  queues_.graphics = device_.getQueue(indices_.graphics, 0);
+  queues_.present = device_.getQueue(indices_.present, 0);
 }
 
 void Device::CreateSyncObject() {
   vk::Result result;
 
-  frame_count_ = swapchain_image_count_;
+  frame_count_ = FRAME_LAG;
 
   auto semaphoreCreateInfo = vk::SemaphoreCreateInfo();
   auto fenceCI =
@@ -746,11 +606,11 @@ vk::CommandBuffer DeviceResource::BeginOnceCmd() const {
 void DeviceResource::EndOnceCmd(vk::CommandBuffer& cmd) const {
   cmd.end();
 
-  parent_->graphics_queue_.waitIdle();
+  parent_->queues_.graphics.waitIdle();
   auto submitInfo =
       vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&cmd);
-  parent_->graphics_queue_.submit(1, &submitInfo, VK_NULL_HANDLE);
-  parent_->graphics_queue_.waitIdle();
+  parent_->queues_.graphics.submit(1, &submitInfo, VK_NULL_HANDLE);
+  parent_->queues_.graphics.waitIdle();
 
   device().free(parent_->command_pool_, 1, &cmd);
   cmd = VK_NULL_HANDLE;
@@ -792,22 +652,24 @@ void DeviceResource::SetImageForShader(const vk::CommandBuffer& cmd,
                       &barrier);
 }
 
-StageBuffer::StageBuffer(Device* parent, const void* data, size_t size)
-    : DeviceResource(parent), size_(size) {
-  buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eTransferSrc, size_);
-  if (!buffer_) {
-    return;
-  }
-  memory_ = CreateMemory(device().getBufferMemoryRequirements(buffer_),
-                         vk::MemoryPropertyFlagBits::eHostVisible |
-                             vk::MemoryPropertyFlagBits::eHostCoherent);
-  if (!memory_) {
-    return;
-  }
-  device().bindBufferMemory(buffer_, memory_, 0);
-  auto* mapData = device().mapMemory(memory_, 0, size_);
-  memcpy(mapData, data, size_);
-  device().unmapMemory(memory_);
+StageBuffer::StageBuffer(DeviceResource* dst, const void* data, size_t size)
+    : DeviceResource(dst->parent()), size_(size) {
+  do {
+    buffer_ = CreateBuffer(vk::BufferUsageFlagBits::eTransferSrc, size_);
+    if (!buffer_) break;
+
+    memory_ = CreateMemory(device().getBufferMemoryRequirements(buffer_),
+                           vk::MemoryPropertyFlagBits::eHostVisible |
+                               vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    if (!memory_)
+      break;
+
+    device().bindBufferMemory(buffer_, memory_, 0);
+    auto* mapData = device().mapMemory(memory_, 0, size_);
+    memcpy(mapData, data, size_);
+    device().unmapMemory(memory_);
+  } while (false);
 }
 
 StageBuffer::~StageBuffer() {

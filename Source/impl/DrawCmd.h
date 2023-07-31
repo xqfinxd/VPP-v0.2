@@ -32,7 +32,7 @@ public:
   const std::vector<vk::Framebuffer>& frame_buffers() const {
     return frame_buffers_;
   }
-  vk::Extent2D extent() const { return surface_extent(); }
+  const vk::Extent2D& extent() const { return extent_; }
 
 protected:
   void CreateFrameBuffer(vk::Extent2D surfaceExtent,
@@ -59,6 +59,8 @@ protected:
       res[i] = device().createFramebuffer(frameBufferCI);
     }
     frame_buffers_ = res;
+
+    extent_ = surfaceExtent;
   }
 
   void CreateRenderPass(vk::Format colorFormat, vk::Format depthFormat) {
@@ -114,6 +116,7 @@ protected:
 private:
   vk::RenderPass render_pass_;
   std::vector<vk::Framebuffer> frame_buffers_;
+  vk::Extent2D extent_;
 };
 
 class DrawParam : public DeviceResource {
@@ -150,7 +153,7 @@ public:
         vk::PipelineInputAssemblyStateCreateInfo().setTopology(
             vk::PrimitiveTopology::eTriangleList);
 
-    auto& extent = surface_extent();
+    auto extent = render_path_->extent();
     std::vector<vk::Viewport> viewports = {vk::Viewport()
                                                .setWidth((float)extent.width)
                                                .setHeight((float)extent.height)
