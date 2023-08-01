@@ -25,7 +25,7 @@ static impl::PipelineInfo* basicPipe = nullptr;
 static impl::VertexBuffer* vertexBuffer = nullptr;
 static impl::VertexArray* vertexArray = nullptr;
 static impl::IndexBuffer* indexBuffer = nullptr;
-static impl::RenderPath* renderPath = nullptr;
+static impl::ShaderPass* renderPath = nullptr;
 static impl::DrawParam* cmd = nullptr;
 static impl::SamplerTexture* tex1 = nullptr;
 static impl::SamplerTexture* tex2 = nullptr;
@@ -156,7 +156,7 @@ void Application::OnStart() {
       basicPipe->SetShader(data);
   }
 
-  renderPath = new impl::RenderPath(g_Device);
+  renderPath = new impl::ShaderPass(g_Device);
 
   g_Device->InitRenderPath(renderPath);
   cmd = new impl::DrawParam(g_Device);

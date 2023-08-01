@@ -12,12 +12,12 @@
 namespace VPP {
 
 namespace impl {
-class RenderPath : public DeviceResource {
+class ShaderPass : public DeviceResource {
   friend class Device;
 
 public:
-  RenderPath(Device* parent) : DeviceResource(parent) {}
-  ~RenderPath() {
+  ShaderPass(Device* parent) : DeviceResource(parent) {}
+  ~ShaderPass() {
     if (render_pass_)
       device().destroy(render_pass_);
     for (auto& fb : frame_buffers_) {
@@ -129,7 +129,7 @@ public:
   }
 
   void Bind(PipelineInfo* pipeline, VertexArray* vertexArray,
-            RenderPath* renderPath) {
+            ShaderPass* renderPath) {
     pipeline_info_ = pipeline;
     vertices_ = vertexArray;
     render_path_ = renderPath;
@@ -292,7 +292,7 @@ public:
 private:
   const VertexArray* vertices_ = nullptr;
   const PipelineInfo* pipeline_info_ = nullptr;
-  const RenderPath* render_path_ = nullptr;
+  const ShaderPass* render_path_ = nullptr;
 
   std::map<uint32_t, const SamplerTexture*> textures_{};
   std::map<uint32_t, const UniformBuffer*> uniform_{};

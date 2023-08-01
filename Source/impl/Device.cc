@@ -115,13 +115,14 @@ void Device::ReCreateSwapchain() {
   DestroySwapchainResource();
   vk::SwapchainKHR oldSwapchain = swapchain_.handle;
   CreateSwapchainResource(oldSwapchain);
-  
+
   device_.destroy(oldSwapchain);
 }
 
-void Device::InitRenderPath(RenderPath* path) {
+void Device::InitRenderPath(ShaderPass* path) {
   path->CreateRenderPass(swapchain_.image_format, depth_.format);
-  path->CreateFrameBuffer(swapchain_.image_extent, swapbuffers_.count, swapbuffers_.imageviews.get(), depth_.imageview);
+  path->CreateFrameBuffer(swapchain_.image_extent, swapbuffers_.count,
+                          swapbuffers_.imageviews.get(), depth_.imageview);
 }
 
 void Device::PrepareRender() {
@@ -147,7 +148,7 @@ void Device::PrepareRender() {
 }
 
 void Device::Render(DrawParam* param) {
-  
+
   param->Render(commands_[current_buffer_], current_buffer_);
 }
 
@@ -254,6 +255,9 @@ void Device::DestroySwapchainResource() {
   if (command_pool_) {
     device_.destroy(command_pool_);
   }
+  if (once_cmd_pool_) {
+    device_.destroy(once_cmd_pool_);
+  }
 
   if (depth_.image) {
     device_.destroy(depth_.image);
@@ -356,8 +360,14 @@ void Device::CreateCommandBuffers() {
   vk::Result result;
 
   auto cmdPoolCI =
-      vk::CommandPoolCreateInfo().setQueueFamilyIndex(indices_.graphics).setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+      vk::CommandPoolCreateInfo()
+          .setQueueFamilyIndex(indices_.graphics)
+          .setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
   result = device_.createCommandPool(&cmdPoolCI, nullptr, &command_pool_);
+  assert(result == vk::Result::eSuccess);
+
+  cmdPoolCI.setFlags(vk::CommandPoolCreateFlagBits::eTransient);
+  result = device_.createCommandPool(&cmdPoolCI, nullptr, &once_cmd_pool_);
   assert(result == vk::Result::eSuccess);
 
   auto cmdAI = vk::CommandBufferAllocateInfo()
@@ -543,110 +553,6 @@ vk::Buffer DeviceResource::CreateBuffer(vk::BufferUsageFlags flags,
   return device().createBuffer(bufferCI);
 }
 
-bool DeviceResource::CopyBuffer2Buffer(const vk::Buffer& srcBuffer,
-                                       const vk::Buffer& dstBuffer,
-                                       size_t size) const {
-  auto cmd = BeginOnceCmd();
-  if (!cmd) {
-    return false;
-  }
-  auto copyRegion =
-      vk::BufferCopy().setDstOffset(0).setSrcOffset(0).setSize(size);
-  cmd.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
-  EndOnceCmd(cmd);
-  return true;
-}
-
-bool DeviceResource::CopyBuffer2Image(const vk::Buffer& srcBuffer,
-                                      const vk::Image& dstImage, uint32_t width,
-                                      uint32_t height, uint32_t channel) const {
-  auto cmd = BeginOnceCmd();
-  if (!cmd) {
-    return false;
-  }
-  SetImageForTransfer(cmd, dstImage);
-  auto region = vk::BufferImageCopy()
-                    .setBufferOffset(0)
-                    .setBufferRowLength(width)
-                    .setBufferImageHeight(height)
-                    .setImageSubresource(vk::ImageSubresourceLayers{
-                        vk::ImageAspectFlagBits::eColor, 0, 0, 1})
-                    .setImageOffset(vk::Offset3D{0, 0, 0})
-                    .setImageExtent(vk::Extent3D{width, height, 1});
-  cmd.copyBufferToImage(srcBuffer, dstImage,
-                        vk::ImageLayout::eTransferDstOptimal, 1, &region);
-  SetImageForShader(cmd, dstImage);
-  EndOnceCmd(cmd);
-  return true;
-}
-
-vk::CommandBuffer DeviceResource::BeginOnceCmd() const {
-  auto cmdAI = vk::CommandBufferAllocateInfo()
-                   .setCommandPool(parent_->command_pool_)
-                   .setLevel(vk::CommandBufferLevel::ePrimary)
-                   .setCommandBufferCount(1);
-
-  vk::CommandBuffer cmd = VK_NULL_HANDLE;
-  auto result = device().allocateCommandBuffers(&cmdAI, &cmd);
-  if (result != vk::Result::eSuccess) {
-    return cmd;
-  }
-
-  auto beginInfo = vk::CommandBufferBeginInfo().setFlags(
-      vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-  cmd.begin(beginInfo);
-  return cmd;
-}
-
-void DeviceResource::EndOnceCmd(vk::CommandBuffer& cmd) const {
-  cmd.end();
-
-  parent_->queues_.graphics.waitIdle();
-  auto submitInfo =
-      vk::SubmitInfo().setCommandBufferCount(1).setPCommandBuffers(&cmd);
-  parent_->queues_.graphics.submit(1, &submitInfo, VK_NULL_HANDLE);
-  parent_->queues_.graphics.waitIdle();
-
-  device().free(parent_->command_pool_, 1, &cmd);
-  cmd = VK_NULL_HANDLE;
-}
-
-void DeviceResource::SetImageForTransfer(const vk::CommandBuffer& cmd,
-                                         const vk::Image& image) const {
-  auto barrier = vk::ImageMemoryBarrier()
-                     .setOldLayout(vk::ImageLayout::eUndefined)
-                     .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
-                     .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                     .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                     .setImage(image)
-                     .setSubresourceRange(vk::ImageSubresourceRange{
-                         vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1})
-                     .setSrcAccessMask((vk::AccessFlags)0)
-                     .setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
-  cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
-                      vk::PipelineStageFlagBits::eTransfer,
-                      (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
-                      &barrier);
-}
-
-void DeviceResource::SetImageForShader(const vk::CommandBuffer& cmd,
-                                       const vk::Image& image) const {
-  auto barrier = vk::ImageMemoryBarrier()
-                     .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
-                     .setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
-                     .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                     .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-                     .setImage(image)
-                     .setSubresourceRange(vk::ImageSubresourceRange{
-                         vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1})
-                     .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
-                     .setDstAccessMask(vk::AccessFlagBits::eShaderRead);
-  cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-                      vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eVertexShader,
-                      (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
-                      &barrier);
-}
-
 StageBuffer::StageBuffer(DeviceResource* dst, const void* data, size_t size)
     : DeviceResource(dst->GetParent()), size_(size) {
   do {
@@ -657,8 +563,7 @@ StageBuffer::StageBuffer(DeviceResource* dst, const void* data, size_t size)
                            vk::MemoryPropertyFlagBits::eHostVisible |
                                vk::MemoryPropertyFlagBits::eHostCoherent);
 
-    if (!memory_)
-      break;
+    if (!memory_) break;
 
     device().bindBufferMemory(buffer_, memory_, 0);
     auto* mapData = device().mapMemory(memory_, 0, size_);
@@ -677,15 +582,23 @@ StageBuffer::~StageBuffer() {
 }
 
 bool StageBuffer::CopyToBuffer(const vk::Buffer& dstBuffer) {
-  return CopyBuffer2Buffer(buffer_, dstBuffer, size_);
+  CommandOnce cmd(this);
+  if (!cmd) return false;
+
+  cmd.CopyBuffer2Buffer(buffer_, dstBuffer, size_);
+  return true;
 }
 
 bool StageBuffer::CopyToImage(const vk::Image& dstImage, uint32_t width,
-                         uint32_t height, uint32_t channel) {
-  return CopyBuffer2Image(buffer_, dstImage, width, height, channel);
+                              uint32_t height, uint32_t channel) {
+  CommandOnce cmd(this);
+  if (!cmd) return false;
+
+  cmd.CopyBuffer2Image(buffer_, dstImage, width, height, channel);
+  return true;
 }
 
-DeviceResource::DeviceResource(Device* parent) : parent_(parent) { }
+DeviceResource::DeviceResource(Device* parent) : parent_(parent) {}
 
 DeviceResource::~DeviceResource() {}
 
