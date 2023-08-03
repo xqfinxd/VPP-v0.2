@@ -1,6 +1,8 @@
 #include "Pipeline.h"
 #include "Buffer.h"
 
+#include "VPPShader.h"
+
 #include <map>
 
 namespace VPP {
@@ -28,30 +30,25 @@ PipelineInfo::~PipelineInfo() {
   }
 }
 
-bool PipelineInfo::SetShader(const glsl::MetaData& data) {
-  std::map<uint32_t, std::vector<const glsl::Uniform*>> dataMap{};
+bool PipelineInfo::SetShader(const ShaderInterpreter* data) {
   std::map<vk::DescriptorType, uint32_t> poolMap{};
-  for (const auto& e : data.uniforms) {
-    dataMap[e.set].push_back(&e);
-    poolMap[e.type] += e.count;
-  }
+  
+  for (uint32_t i = 0; i < data->GetDescriptorSetCount(); i++) {
+    auto descriptorBindings = data->GetDescriptorSetBindings(i);
 
-  for (const auto& e : dataMap) {
-    std::vector<vk::DescriptorSetLayoutBinding> bindings{};
-    bindings.reserve(e.second.size());
-    for (const auto* e : e.second) {
-      bindings.emplace_back(*e);
+    for (const auto& e : descriptorBindings) {
+      poolMap[e.descriptorType] += e.descriptorCount;
     }
-    auto info = vk::DescriptorSetLayoutCreateInfo().setBindings(bindings);
+
+    auto info =
+        vk::DescriptorSetLayoutCreateInfo().setBindings(descriptorBindings);
     desc_layout_.emplace_back(device().createDescriptorSetLayout(info));
     if (!desc_layout_.back()) {
       return false;
     }
   }
+
   std::vector<vk::PushConstantRange> pushRanges{};
-  for (const auto& e : data.pushes) {
-    pushRanges.emplace_back(e);
-  }
   auto layoutCI = vk::PipelineLayoutCreateInfo()
                       .setSetLayouts(desc_layout_)
                       .setPushConstantRanges(pushRanges);
@@ -68,14 +65,16 @@ bool PipelineInfo::SetShader(const glsl::MetaData& data) {
     }
   }
 
-  for (const auto& e : data.spvs) {
+  auto stages = data->GetAllStages();
+  for (const auto& stage : stages) {
     vk::PipelineShaderStageCreateInfo shader{};
-    auto muduleCI = vk::ShaderModuleCreateInfo().setCode(e.data);
+    auto spv = data->GetStageSpirv(stage);
+    auto muduleCI = vk::ShaderModuleCreateInfo().setCode(spv);
     shader.module = device().createShaderModule(muduleCI);
     if (!shader.module) {
       return false;
     }
-    shader.stage = e.stage;
+    shader.stage = stage;
     shaders_.push_back(shader);
   }
 

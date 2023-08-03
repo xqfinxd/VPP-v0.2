@@ -150,10 +150,8 @@ void Application::OnStart() {
 
   basicPipe = new impl::PipelineInfo(g_Device);
   {
-    glsl::Reader reader({"basic.vert", "basic.frag"});
-    glsl::MetaData data{};
-    if (reader.GetData(&data))
-      basicPipe->SetShader(data);
+    if (auto data = ParseGlslShaders({"basic.vert", "basic.frag"}))
+      basicPipe->SetShader(data.get());
   }
 
   renderPath = new impl::ShaderPass(g_Device);
@@ -162,8 +160,8 @@ void Application::OnStart() {
   cmd = new impl::DrawParam(g_Device);
   cmd->Bind(basicPipe, vertexArray, renderPath);
 
-  cmd->SetTexture(0, tex1);
-  cmd->SetTexture(1, tex2);
+  cmd->SetTexture(1, tex1);
+  cmd->SetTexture(2, tex2);
   cmd->SetUniform(0, transform);
 
   std::vector<vk::ClearValue> clearValues = {

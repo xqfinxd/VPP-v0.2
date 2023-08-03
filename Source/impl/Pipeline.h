@@ -5,6 +5,8 @@
 #include "Device.h"
 #include "ShaderData.h"
 
+class ShaderInterpreter;
+
 namespace VPP {
 
 namespace impl {
@@ -24,7 +26,7 @@ public:
 
   vk::PipelineLayout pipeline_layout() const { return pipe_layout_; }
 
-  bool SetShader(const glsl::MetaData& data);
+  bool SetShader(const ShaderInterpreter* data);
   
   bool CreateDescriptorSets(vk::DescriptorPool& pool,
                             std::vector<vk::DescriptorSet>& sets) {

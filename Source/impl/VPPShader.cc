@@ -25,8 +25,8 @@
 #pragma comment(lib, "GenericCodeGen.lib")
 #pragma comment(lib, "SPIRV-Tools.lib")
 #endif
-namespace VPP {
-namespace glsl {
+
+namespace {
 
 const int kGlslVersion = 400;
 const glslang::EShSource kSourceLanguage = glslang::EShSourceGlsl;
@@ -39,7 +39,7 @@ const glslang::EShTargetLanguageVersion kTargetLanguageVersion =
 const EShMessages kMessages =
     (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules | EShMsgAST);
 
-static void InitResources(TBuiltInResource& res) {
+void InitResources(TBuiltInResource& res) {
   res.maxLights = 32;
   res.maxClipPlanes = 6;
   res.maxTextureUnits = 32;
@@ -134,7 +134,7 @@ static void InitResources(TBuiltInResource& res) {
   res.limits.generalConstantMatrixVectorIndexing = 1;
 }
 
-static bool LoadFile(const char* fn, std::string& ctx) {
+bool LoadFile(const char* fn, std::string& ctx) {
   std::ifstream file(fn); // 打开文件
   if (!file) {
     std::cerr << "Fail to open file: " << fn << std::endl;
@@ -151,7 +151,7 @@ static bool LoadFile(const char* fn, std::string& ctx) {
   return true;
 }
 
-static glslang::TShader* CreateShader(const char* filename, EShLanguage stage) {
+glslang::TShader* CreateShader(const char* filename, EShLanguage stage) {
   auto shader_ptr = std::make_unique<glslang::TShader>(stage);
   if (filename == nullptr) {
     return nullptr;
@@ -183,8 +183,7 @@ static glslang::TShader* CreateShader(const char* filename, EShLanguage stage) {
   return nullptr;
 }
 
-static glslang::TProgram*
-CreateProgram(std::vector<glslang::TShader*> shaders) {
+glslang::TProgram* CreateProgram(std::vector<glslang::TShader*> shaders) {
   if (shaders.empty()) {
     std::cerr << "None shader is added to program" << std::endl;
     return nullptr;
@@ -212,7 +211,7 @@ CreateProgram(std::vector<glslang::TShader*> shaders) {
   return nullptr;
 }
 
-static bool FindStage(const char* fn, EShLanguage& stage) {
+bool FindStage(const char* fn, EShLanguage& stage) {
   auto extName = strrchr(fn, '.');
   if (!extName || strlen(extName) <= 1) {
     return false;
@@ -242,7 +241,7 @@ static bool FindStage(const char* fn, EShLanguage& stage) {
   return false;
 }
 
-static vk::ShaderStageFlags GetStages(uint32_t mask) {
+vk::ShaderStageFlags GetStages(uint32_t mask) {
   const std::map<uint32_t, vk::ShaderStageFlagBits> table{
       {EShLangVertexMask, vk::ShaderStageFlagBits::eVertex},
       {EShLangTessControlMask, vk::ShaderStageFlagBits::eTessellationControl},
@@ -264,7 +263,7 @@ static vk::ShaderStageFlags GetStages(uint32_t mask) {
   return flags;
 }
 
-static vk::ShaderStageFlagBits GetStage(EShLanguage flag) {
+vk::ShaderStageFlagBits GetStage(EShLanguage flag) {
   switch (flag) {
   case EShLangVertex:
     return vk::ShaderStageFlagBits::eVertex;
@@ -283,74 +282,26 @@ static vk::ShaderStageFlagBits GetStage(EShLanguage flag) {
   return (vk::ShaderStageFlagBits)~0;
 }
 
-static inline bool GetVkType(const glslang::TType* ttype,
-                             vk::DescriptorType& type, bool* isSampler) {
-  if (!ttype) {
-    return false;
-  }
-  const auto& qualifier = ttype->getQualifier();
-  if (ttype->getBasicType() == glslang::EbtSampler) {
-    const auto& sampler = ttype->getSampler();
-    if (sampler.isCombined()) {
-      type = vk::DescriptorType::eCombinedImageSampler;
-      return true;
-    } else if (sampler.isTexture()) {
-      type = vk::DescriptorType::eSampledImage;
-      return true;
-    } else if (sampler.isImage()) {
-      type = vk::DescriptorType::eStorageImage;
-      return true;
-    } else if (sampler.isPureSampler()) {
-      type = vk::DescriptorType::eSampler;
-      return true;
+} // namespace
+
+
+class GlslInterpreter : public ShaderInterpreter {
+  friend std::unique_ptr<ShaderInterpreter>
+  ParseGlslShaders(const std::vector<const char*>& files);
+
+public:
+  GlslInterpreter(std::vector<const char*> files) : ShaderInterpreter(files) {
+    glslang::InitializeProcess();
+
+    for (auto fn : files) {
+      if (!AddShader(fn)) return;
     }
-  } else if (ttype->getBasicType() == glslang::EbtBlock) {
-    if (qualifier.storage == glslang::EvqUniform) {
-      type = vk::DescriptorType::eUniformBuffer;
-      return true;
-    } else if (qualifier.storage == glslang::EvqBuffer) {
-      type = vk::DescriptorType::eStorageBuffer;
-      return true;
-    }
+    if (!Link()) return;
+
+    success_ = true;
   }
 
-  return false;
-}
-
-static void AddUniform(std::vector<glsl::Uniform>& uniforms,
-                       const glslang::TObjectReflection& obj,
-                       const glslang::TType* ttype) {
-  vk::DescriptorType descType = (vk::DescriptorType)~0;
-  bool isSampler = false;
-  if (!GetVkType(ttype, descType, &isSampler)) {
-    return;
-  }
-
-  glsl::Uniform uniform{};
-  {
-    const auto& q = ttype->getQualifier();
-    uniform.set = q.hasSet() ? q.layoutSet : 0;
-    uniform.binding = q.hasBinding() ? q.layoutBinding : 0;
-    uniform.stages = GetStages(obj.stages);
-    uniform.type = descType;
-    uniform.count = isSampler ? obj.size : 1;
-  }
-
-  auto iter = std::find_if(uniforms.begin(), uniforms.end(),
-                           [&uniform](const glsl::Uniform& e) {
-                             return e.IsSame(uniform);
-                           });
-  if (iter == uniforms.end()) {
-    uniforms.push_back(uniform);
-  } else {
-    iter->count += uniform.count;
-  }
-}
-
-struct ReaderImpl {
-  ReaderImpl() { glslang::InitializeProcess(); }
-
-  ~ReaderImpl() {
+  virtual ~GlslInterpreter() {
     if (program_) {
       delete program_;
     }
@@ -365,157 +316,148 @@ struct ReaderImpl {
     glslang::FinalizeProcess();
   }
 
+  virtual uint32_t GetDescriptorSetCount() const {
+    return 2;
+  }
+
+  virtual Bindings GetDescriptorSetBindings(uint32_t index) const {
+    if (index >= descriptor_sets_.size()) return Bindings{};
+
+    return descriptor_sets_[index];
+  }
+
+  virtual Stages GetAllStages() const {
+    Stages stages; 
+    for (auto shader : shaders_) {
+      stages.push_back(GetStage(shader->getStage()));
+    }
+    return stages;
+  }
+
+  virtual Spirv GetStageSpirv(vk::ShaderStageFlagBits stage) const {
+    Spirv spirv;
+    for (const auto& shader : shaders_) {
+      auto _stage = shader->getStage();
+      if (GetStage(_stage) != stage) continue;
+
+      if (auto temp = program_->getIntermediate(_stage)) {
+        glslang::GlslangToSpv(*temp, spirv);
+        break;
+      }
+    }
+    return spirv;
+  }
+
+protected:
+  virtual bool Success() const {
+    return success_;
+  }
+
   bool AddShader(const char* fn) {
     EShLanguage stage;
 
     bool found = FindStage(fn, stage);
     if (!found) {
+      std::cerr << "Unsupported shader file : " << fn << "\n";
       return false;
     }
 
     for (const auto& shader : shaders_) {
       if (shader->getStage() == stage) {
+        std::cerr << "Stages of conflict" << fn << "\n";
         return false;
       }
     }
 
-    if (auto shader = CreateShader(fn, stage)) {
-      shaders_.push_back(shader);
-      return true;
-    }
+    auto shader = CreateShader(fn, stage);
+    if (!shader) return false;
 
-    return false;
+    shaders_.push_back(shader);
+    return true;
   }
 
   bool Link() {
-    if (auto program = CreateProgram(shaders_)) {
+    {
+      auto program = CreateProgram(shaders_);
+      if (!program) return false;
       program_ = program;
-      return true;
+    }
+    
+    // check sampler
+    for (int i = 0; i < program_->getNumUniformVariables(); i++) {
+      auto& uniform = program_->getUniform(i);
+      auto* ttype = uniform.getType();
+      if (!ttype) continue;
+
+      if (ttype->getBasicType() != glslang::EbtSampler) continue;
+
+      if (!ttype->getSampler().isCombined()) return false;
+
+      const auto& qualifier = ttype->getQualifier();
+      auto set = qualifier.hasSet() ? qualifier.layoutSet : 0;
+      auto binding = qualifier.hasBinding() ? qualifier.layoutBinding : 0;
+
+      if (set != 1 || binding <= 0) return false;
+
+      descriptor_sets_[1].emplace_back();
+      descriptor_sets_[1].back().binding = binding;
+      descriptor_sets_[1].back().descriptorCount = 1;
+      descriptor_sets_[1].back().descriptorType = vk::DescriptorType::eCombinedImageSampler;
+      descriptor_sets_[1].back().stageFlags = GetStages(uniform.stages);
     }
 
-    return false;
-  }
-
-  void Query(glsl::MetaData& data_) const {
-    glsl::MetaData data{};
-
-    for (int32_t i = 0; i < program_->getNumUniformVariables(); i++) {
-      auto& obj = program_->getUniform(i);
-      auto* ttype = obj.getType();
-
-      AddUniform(data.uniforms, obj, ttype);
-    }
-
+    // check unform block
     for (int i = 0; i < program_->getNumUniformBlocks(); i++) {
-      auto& obj = program_->getUniformBlock(i);
-      auto* ttype = obj.getType();
+      auto& uniformBlock = program_->getUniformBlock(i);
+      auto* ttype = uniformBlock.getType();
+      if (!ttype) continue;
 
-      if (ttype && ttype->getQualifier().isPushConstant()) {
-        glsl::PushConstant pushCons{};
-        pushCons.size = obj.size;
-        pushCons.stages = GetStages(obj.stages);
+      const auto& qualifier = ttype->getQualifier();
+      auto set = qualifier.hasSet() ? qualifier.layoutSet : 0;
+      auto binding = qualifier.hasBinding() ? qualifier.layoutBinding : 0;
 
-        data.pushes.push_back(pushCons);
-        continue;
-      }
+      if (qualifier.isPushConstant()) continue;
 
-      AddUniform(data.uniforms, obj, ttype);
-    }
+      if (qualifier.storage != glslang::EvqUniform) return false;
+      if (set != 0 && (set != 1 || binding == 0)) return false;
 
-    for (int i = 0; i < program_->getNumBufferBlocks(); i++) {
-      auto& obj = program_->getBufferBlock(i);
-      auto* ttype = obj.getType();
-
-      AddUniform(data.uniforms, obj, ttype);
-    }
-
-    std::sort(data.uniforms.begin(), data.uniforms.end());
-    if (!data.uniforms.empty() && data.uniforms[0].set != 0) {
-      return;
-    }
-    for (size_t i = 0; i + 1 < data.uniforms.size(); ++i) {
-      if (data.uniforms[i + 1].set - data.uniforms[i].set > 1) {
-        return;
-      }
-    }
-
-    for (const auto& shader : shaders_) {
-      auto stage = shader->getStage();
-      if (auto temp = program_->getIntermediate(stage)) {
-        data.spvs.emplace_back();
-        auto& spv = data.spvs.back();
-        spv.stage = GetStage(stage);
-        spv.data.clear();
-        glslang::GlslangToSpv(*temp, spv.data);
-      }
+      descriptor_sets_[0].emplace_back();
+      descriptor_sets_[0].back().binding = binding;
+      descriptor_sets_[0].back().descriptorCount = 1;
+      descriptor_sets_[0].back().descriptorType =
+          vk::DescriptorType::eUniformBuffer;
+      descriptor_sets_[0].back().stageFlags = GetStages(uniformBlock.stages);
     }
 
     for (int i = 0; i < program_->getNumPipeInputs(); ++i) {
       auto& obj = program_->getPipeInput(i);
       auto* ttype = obj.getType();
-      if (!ttype) {
-        continue;
-      }
-      glsl::Input input{};
-      {
-        const auto& q = ttype->getQualifier();
-        if (q.hasLocation()) {
-          input.location = q.layoutLocation;
-        }
-      }
-      data.inputs.push_back(input);
-    }
-    std::sort(data.inputs.begin(), data.inputs.end());
-    if (!data.inputs.empty() && data.inputs[0].location != 0) {
-      return;
-    }
-    for (size_t i = 0; i + 1 < data.inputs.size(); ++i) {
-      if (data.inputs[i + 1].location - data.inputs[i].location > 1) {
-        return;
-      }
+
+      if (!ttype) continue;
+
+      const auto& qualifier = ttype->getQualifier();
+      auto location = qualifier.hasLocation() ? qualifier.layoutLocation : 0;
+      
+      if (location >= VertexType::VertexMaxCount) return false;
+
+      locations_.push_back(location);
     }
 
-    data_.Swap(std::move(data));
+    return true;
   }
 
 private:
   std::vector<glslang::TShader*> shaders_{};
   glslang::TProgram* program_{};
+  std::array<Bindings, 2> descriptor_sets_;
+  std::vector<uint32_t> locations_;
+  bool success_;
 };
 
-Reader::Reader(std::vector<const char*> files) {
-  auto impl = std::make_unique<ReaderImpl>();
-  do {
-    for (auto fn : files) {
-      if (!impl->AddShader(fn)) {
-        break;
-      }
-    }
-
-    if (!impl->Link()) {
-      break;
-    }
-
-    impl_ = impl.release();
-  } while (false);
+std::unique_ptr<ShaderInterpreter>
+ParseGlslShaders(const std::vector<const char*>& files) {
+  auto interpreter = std::make_unique<GlslInterpreter>(files);
+  if (interpreter->Success()) return interpreter;
+  return nullptr;
 }
-
-Reader::Reader() : impl_(nullptr) {}
-
-Reader::~Reader() {
-  if (impl_) {
-    delete impl_;
-  }
-}
-
-bool Reader::GetData(MetaData* data) {
-  if (!impl_ || !data) {
-    return false;
-  }
-
-  impl_->Query(*data);
-  return true;
-}
-
-} // namespace glsl
-} // namespace VPP
+ 

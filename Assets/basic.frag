@@ -7,8 +7,8 @@ layout (location = 0) out vec4 FragColor;
 
 layout (location = 0) in vec2 TexCoord;
 
-layout (set=1, binding=0) uniform sampler2D texture1;
-layout (set=1, binding=1) uniform sampler2D texture2;
+layout (set=1, binding=1) uniform sampler2D texture1;
+layout (set=1, binding=2) uniform sampler2D texture2;
 
 void main()
 {
