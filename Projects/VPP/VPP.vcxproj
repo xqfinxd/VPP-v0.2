@@ -33,7 +33,6 @@
     <ClInclude Include="..\..\Source\impl\DrawCmd.h" />
     <ClInclude Include="..\..\Source\impl\Image.h" />
     <ClInclude Include="..\..\Source\impl\Pipeline.h" />
-    <ClInclude Include="..\..\Source\impl\ShaderData.h" />
     <ClInclude Include="..\..\Source\impl\Window.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

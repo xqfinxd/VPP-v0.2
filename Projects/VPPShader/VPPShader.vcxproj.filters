@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\impl\ShaderData.h">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\impl\VPPShader.h">
       <Filter>Header</Filter>
     </ClInclude>

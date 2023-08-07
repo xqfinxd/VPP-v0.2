@@ -6,8 +6,6 @@
 #include <fstream>
 #include <iostream>
 
-#include "ShaderData.h"
-
 #ifdef _DEBUG
 #pragma comment(lib, "MachineIndependentd.lib")
 #pragma comment(lib, "SPIRVd.lib")

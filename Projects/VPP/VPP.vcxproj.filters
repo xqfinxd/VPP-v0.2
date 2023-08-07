@@ -41,9 +41,6 @@
     <ClInclude Include="..\..\Source\impl\Pipeline.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\impl\ShaderData.h">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\impl\Window.h">
       <Filter>Header</Filter>
     </ClInclude>

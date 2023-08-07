@@ -11,7 +11,6 @@
 #include "impl/DrawCmd.h"
 #include "impl/Image.h"
 #include "impl/Pipeline.h"
-#include "impl/ShaderData.h"
 #include "impl/VPPImage.h"
 #include "impl/VPPShader.h"
 #include "impl/Window.h"

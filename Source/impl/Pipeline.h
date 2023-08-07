@@ -3,7 +3,6 @@
 #include <vulkan/vulkan.hpp>
 
 #include "Device.h"
-#include "ShaderData.h"
 
 class ShaderInterpreter;
 
