@@ -24,7 +24,7 @@ public:
     return game_object_;
   }
 
-  virtual void OnStart() = 0;
+  virtual void OnStart() {}
 
 protected:
   bool enable_ = true;

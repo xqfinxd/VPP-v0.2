@@ -28,10 +28,10 @@ public:
     auto id = GetComponentID<Comp>();
     auto iter = components_.find(id);
     if (iter == components_.end()) {
-      Component* baseComp = new Comp;
-      baseComp->game_object_ = this;
-      components_[id] = baseComp;
-      return baseComp;
+      auto comp = new Comp;
+      comp->game_object_ = this;
+      components_[id] = comp;
+      return comp;
     }
 
     return nullptr;

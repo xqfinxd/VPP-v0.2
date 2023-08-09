@@ -3,8 +3,9 @@
 #include "VPP_API.h"
 #include "Camera.h"
 #include "Scene.h"
-#include "Component.h"
 #include "GameObject.h"
+#include "Component.h"
+#include "CubeRenderer.h"
 
 struct SDL_Window;
 

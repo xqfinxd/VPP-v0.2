@@ -8,6 +8,8 @@ int main(int argc, char** argv) {
   VPP::Scene scene;
   scene.AddCamera("main");
   VPP::GameObject gameObject;
+  auto cube = gameObject.AddComponent<VPP::CubeRenderer>();
+  auto pObj = cube->GetGameObject();
   
   SDL_Init(SDL_INIT_EVERYTHING);
   SDL_Window* window =
