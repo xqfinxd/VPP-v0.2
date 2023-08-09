@@ -1,10 +1,10 @@
 #pragma once
 
-#include "device.h"
+#include "device_base.h"
 
 #include <map>
 
-namespace vpp {
+namespace VPP {
 
 DeviceBase::~DeviceBase() {
   if (device_) device_.destroy();
@@ -48,11 +48,11 @@ bool DeviceBase::InitPhysicalDevice() {
 }
 
 vk::Result DeviceBase::InitDevice() {
-  struct QueueInfoCache {
-    DeviceQueueBase* base;
+  struct _TempQueueInfo {
+    QueueObject* base;
     uint32_t index;
   };
-  std::vector<QueueInfoCache> queueInfoCaches;
+  std::vector<_TempQueueInfo> queueInfoCaches;
   std::map<uint32_t, std::vector<float>> queuePriorities;
 
   {
@@ -66,13 +66,13 @@ vk::Result DeviceBase::InitDevice() {
       }
     }
     queueInfos.push_back(
-        DeviceQueueInfo{transfer_queue_family_index, UINT32_MAX, &base_queue_});
+        QueueReference{transfer_queue_family_index, UINT32_MAX, &base_queue_});
 
     uint32_t _base = 0, _range = UINT32_MAX;
     {
       uint32_t maxPriority = 0, minPriority = UINT32_MAX;
       std::for_each(queueInfos.begin(), queueInfos.end(),
-                    [&maxPriority, &minPriority](const DeviceQueueInfo& info) {
+                    [&maxPriority, &minPriority](const QueueReference& info) {
                       if (info.queue_priority > maxPriority)
                         maxPriority = info.queue_priority;
                       if (info.queue_priority < minPriority)
@@ -156,8 +156,8 @@ std::vector<const char*> DeviceBase::GetDeviceLayers() const {
   };
 }
 
-std::vector<DeviceQueueInfo> DeviceBase::GetDeviceQueueInfos() {
+std::vector<QueueReference> DeviceBase::GetDeviceQueueInfos() {
   return {};
 }
 
-} // namespace vpp
+} // namespace VPP

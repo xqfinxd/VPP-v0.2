@@ -5,56 +5,31 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Source">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="src">
+      <UniqueIdentifier>{b25f4ad6-31e8-47ba-acd3-0cfeb0b891c2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\source\Application.cc">
-      <Filter>Source</Filter>
+    <ClCompile Include="..\..\Source\device\device_base.cc">
+      <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\impl\Window.cc">
-      <Filter>Source</Filter>
+    <ClCompile Include="..\..\Source\device\graphics_device.cc">
+      <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\impl\Device.cc">
-      <Filter>Source</Filter>
+    <ClCompile Include="..\..\Source\VPP.cc">
+      <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\impl\Buffer.cc">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\impl\Image.cc">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\impl\Pipeline.cc">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\impl\DrawCmd.cc">
-      <Filter>Source</Filter>
-    </ClCompile>
+    <ClCompile Include="..\..\Source\VPP_Core.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\impl\Pipeline.h">
-      <Filter>Header</Filter>
+    <ClInclude Include="..\..\Source\device\graphics_device.h">
+      <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\impl\Window.h">
-      <Filter>Header</Filter>
+    <ClInclude Include="..\..\Source\device\device_base.h">
+      <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\impl\Buffer.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\impl\Device.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\impl\DrawCmd.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\impl\Image.h">
-      <Filter>Header</Filter>
+    <ClInclude Include="..\..\Source\VPP_Core.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

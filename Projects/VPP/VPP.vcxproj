@@ -11,13 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\source\Application.cc" />
-    <ClCompile Include="..\..\Source\impl\Buffer.cc" />
-    <ClCompile Include="..\..\Source\impl\DrawCmd.cc" />
-    <ClCompile Include="..\..\Source\impl\Image.cc" />
-    <ClCompile Include="..\..\Source\impl\Device.cc" />
-    <ClCompile Include="..\..\Source\impl\Pipeline.cc" />
-    <ClCompile Include="..\..\Source\impl\Window.cc" />
+    <ClCompile Include="..\..\Source\device\device_base.cc" />
+    <ClCompile Include="..\..\Source\device\graphics_device.cc" />
+    <ClCompile Include="..\..\Source\VPP.cc" />
+    <ClCompile Include="..\..\Source\VPP_Core.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VPPImage\VPPImage.vcxproj">
@@ -28,12 +25,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\impl\Buffer.h" />
-    <ClInclude Include="..\..\Source\impl\Device.h" />
-    <ClInclude Include="..\..\Source\impl\DrawCmd.h" />
-    <ClInclude Include="..\..\Source\impl\Image.h" />
-    <ClInclude Include="..\..\Source\impl\Pipeline.h" />
-    <ClInclude Include="..\..\Source\impl\Window.h" />
+    <ClInclude Include="..\..\Source\device\device_base.h" />
+    <ClInclude Include="..\..\Source\device\graphics_device.h" />
+    <ClInclude Include="..\..\Source\VPP_Core.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

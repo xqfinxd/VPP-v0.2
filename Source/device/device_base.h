@@ -4,23 +4,25 @@
 
 // clang-format off
 
-namespace vpp {
+namespace VPP {
 
-struct DeviceQueueBase {
+struct QueueObject {
   uint32_t  queue_family_index = UINT32_MAX;
   uint32_t  queue_priority = 0;
   vk::Queue queue = nullptr;
 };
 
-struct DeviceQueueInfo {
+struct QueueReference {
   uint32_t          queue_family_index = UINT32_MAX;
   uint32_t          queue_priority = 0;
-  DeviceQueueBase*  queue = nullptr;
+  QueueObject*      queue = nullptr;
 };
 
 class DeviceBase {
 public:
   virtual ~DeviceBase();
+  const vk::PhysicalDevice& gpu() const {return physical_device_;}
+  const vk::Device& device() const {return device_;}
 
 protected:
   DeviceBase() {}
@@ -36,14 +38,14 @@ protected:
 
   virtual std::vector<const char*> GetDeviceExtensions() const;
   virtual std::vector<const char*> GetDeviceLayers() const;
-  virtual std::vector<DeviceQueueInfo> GetDeviceQueueInfos();
+  virtual std::vector<QueueReference> GetDeviceQueueInfos();
 
 protected:
-  vk::Instance                           instance_;
-  vk::PhysicalDevice                     physical_device_;
-  std::vector<vk::QueueFamilyProperties> queue_family_properties_;
-  vk::Device                             device_;
-  DeviceQueueBase                        base_queue_;
+  vk::Instance                            instance_;
+  vk::PhysicalDevice                      physical_device_;
+  std::vector<vk::QueueFamilyProperties>  queue_family_properties_;
+  vk::Device                              device_;
+  QueueObject                             base_queue_;
 };
 
 }
