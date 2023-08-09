@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics_device.h"
+#include "GraphicsDevice.h"
 
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_vulkan.h>

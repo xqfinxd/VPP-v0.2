@@ -1,9 +1,8 @@
 ﻿#pragma once
 
-#include "device/graphics_device.h"
-
 namespace VPP {
 
+class GraphicsDevice;
 GraphicsDevice* GetDevice();
 
 } // namespace VPP

@@ -1,6 +1,8 @@
 ﻿#include "VPP.h"
 #include "VPP_Core.h"
 
+#include "device/GraphicsDevice.h"
+
 namespace VPP {
 
 static GraphicsDevice* g_Device = nullptr;

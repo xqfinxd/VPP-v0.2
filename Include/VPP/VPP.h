@@ -1,6 +1,10 @@
 #pragma once
 
 #include "VPP_API.h"
+#include "Camera.h"
+#include "Scene.h"
+#include "Component.h"
+#include "GameObject.h"
 
 struct SDL_Window;
 

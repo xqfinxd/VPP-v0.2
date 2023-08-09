@@ -8,28 +8,51 @@
     <Filter Include="src">
       <UniqueIdentifier>{b25f4ad6-31e8-47ba-acd3-0cfeb0b891c2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{87b9c46c-0391-4095-afb8-df7b3a6a6863}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Source\device\device_base.cc">
+    <ClCompile Include="..\..\Source\device\DeviceBase.cc">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\device\graphics_device.cc">
+    <ClCompile Include="..\..\Source\device\GraphicsDevice.cc">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\VPP.cc">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\VPP_Core.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\device\graphics_device.h">
+    <ClInclude Include="..\..\Source\device\GraphicsDevice.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\device\device_base.h">
+    <ClInclude Include="..\..\Source\device\DeviceBase.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\VPP_Core.h">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\Component.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\GameObject.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\Scene.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\VPP.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\VPP_API.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\Camera.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\CubeRenderer.h">
+      <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

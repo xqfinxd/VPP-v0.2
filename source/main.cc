@@ -5,6 +5,10 @@
 #include <SDL2/SDL.h>
 
 int main(int argc, char** argv) {
+  VPP::Scene scene;
+  scene.AddCamera("main");
+  VPP::GameObject gameObject;
+  
   SDL_Init(SDL_INIT_EVERYTHING);
   SDL_Window* window =
       SDL_CreateWindow("VPP", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

@@ -11,10 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Source\device\device_base.cc" />
-    <ClCompile Include="..\..\Source\device\graphics_device.cc" />
+    <ClCompile Include="..\..\Source\device\DeviceBase.cc" />
+    <ClCompile Include="..\..\Source\device\GraphicsDevice.cc" />
     <ClCompile Include="..\..\Source\VPP.cc" />
-    <ClCompile Include="..\..\Source\VPP_Core.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VPPImage\VPPImage.vcxproj">
@@ -25,8 +24,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\device\device_base.h" />
-    <ClInclude Include="..\..\Source\device\graphics_device.h" />
+    <ClInclude Include="..\..\Include\VPP\Camera.h" />
+    <ClInclude Include="..\..\Include\VPP\Component.h" />
+    <ClInclude Include="..\..\Include\VPP\CubeRenderer.h" />
+    <ClInclude Include="..\..\Include\VPP\GameObject.h" />
+    <ClInclude Include="..\..\Include\VPP\Scene.h" />
+    <ClInclude Include="..\..\Include\VPP\VPP.h" />
+    <ClInclude Include="..\..\Include\VPP\VPP_API.h" />
+    <ClInclude Include="..\..\Source\device\DeviceBase.h" />
+    <ClInclude Include="..\..\Source\device\GraphicsDevice.h" />
     <ClInclude Include="..\..\Source\VPP_Core.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
