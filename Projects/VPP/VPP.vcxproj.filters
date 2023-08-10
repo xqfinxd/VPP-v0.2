@@ -5,33 +5,33 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="src">
-      <UniqueIdentifier>{b25f4ad6-31e8-47ba-acd3-0cfeb0b891c2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="include">
       <UniqueIdentifier>{87b9c46c-0391-4095-afb8-df7b3a6a6863}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{b25f4ad6-31e8-47ba-acd3-0cfeb0b891c2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Source\device\DeviceBase.cc">
-      <Filter>src</Filter>
+      <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\device\GraphicsDevice.cc">
-      <Filter>src</Filter>
+      <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\VPP.cc">
-      <Filter>src</Filter>
+      <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\device\GraphicsDevice.h">
-      <Filter>src</Filter>
+      <Filter>source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\device\DeviceBase.h">
-      <Filter>src</Filter>
+      <Filter>source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\VPP_Core.h">
-      <Filter>src</Filter>
+      <Filter>source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Include\VPP\Component.h">
       <Filter>include</Filter>
@@ -42,7 +42,7 @@
     <ClInclude Include="..\..\Include\VPP\Scene.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Include\VPP\VPP.h">
+    <ClInclude Include="..\..\Include\VPP\VPP.hpp">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Include\VPP\VPP_API.h">
@@ -51,7 +51,13 @@
     <ClInclude Include="..\..\Include\VPP\Camera.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Include\VPP\CubeRenderer.h">
+    <ClInclude Include="..\..\Include\VPP\Mesh.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\MeshFilter.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\MeshRenderer.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

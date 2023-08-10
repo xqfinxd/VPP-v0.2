@@ -5,7 +5,6 @@
 #include "Scene.h"
 #include "GameObject.h"
 #include "Component.h"
-#include "CubeRenderer.h"
 
 struct SDL_Window;
 

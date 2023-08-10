@@ -1,15 +1,14 @@
 ﻿#include <iostream>
 
-#include "VPP/VPP.h"
+#include "VPP/VPP.hpp"
 
 #include <SDL2/SDL.h>
 
 int main(int argc, char** argv) {
   VPP::Scene scene;
-  scene.AddCamera("main");
-  VPP::GameObject gameObject;
-  auto cube = gameObject.AddComponent<VPP::CubeRenderer>();
-  auto pObj = cube->GetGameObject();
+  auto gameObject = scene.AddGameObject();
+  auto camera = gameObject->AddComponent<VPP::Camera>();
+  auto pObj = camera->GetGameObject();
   
   SDL_Init(SDL_INIT_EVERYTHING);
   SDL_Window* window =

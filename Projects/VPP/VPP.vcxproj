@@ -26,10 +26,12 @@
   <ItemGroup>
     <ClInclude Include="..\..\Include\VPP\Camera.h" />
     <ClInclude Include="..\..\Include\VPP\Component.h" />
-    <ClInclude Include="..\..\Include\VPP\CubeRenderer.h" />
     <ClInclude Include="..\..\Include\VPP\GameObject.h" />
+    <ClInclude Include="..\..\Include\VPP\Mesh.h" />
+    <ClInclude Include="..\..\Include\VPP\MeshFilter.h" />
+    <ClInclude Include="..\..\Include\VPP\MeshRenderer.h" />
     <ClInclude Include="..\..\Include\VPP\Scene.h" />
-    <ClInclude Include="..\..\Include\VPP\VPP.h" />
+    <ClInclude Include="..\..\Include\VPP\VPP.hpp" />
     <ClInclude Include="..\..\Include\VPP\VPP_API.h" />
     <ClInclude Include="..\..\Source\device\DeviceBase.h" />
     <ClInclude Include="..\..\Source\device\GraphicsDevice.h" />

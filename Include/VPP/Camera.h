@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Component.h"
 #include <glm/glm.hpp>
 
 namespace VPP {
@@ -18,7 +19,7 @@ union ProjectionData {
   } perspective;
 };
 
-struct Camera {
+struct Camera : public Component {
 public:
   Camera() {
     projection_data.perspective.fov_axis = FovAxisType::eVertical;
@@ -27,7 +28,6 @@ public:
   ~Camera() {}
 
 private:
-  bool enable = false;
   glm::vec3 position{0.f, 1.f, -10.f};
   glm::vec3 rotation{0.f};
   glm::vec3 world_up{0.f, 1.f, 0.f};
@@ -38,7 +38,7 @@ private:
 
   ProjectionType projection_type = ProjectionType::ePerspective;
   ProjectionData projection_data;
-  float near = 0.f;
+  float near = 0.01f;
   float far = 1000.f;
   float depth = 0.f;
 };
