@@ -1,6 +1,9 @@
 #pragma once
 
 #include <type_traits>
+#include <memory>
+#include <vector>
+#include <map>
 
 // clang-format off
 
