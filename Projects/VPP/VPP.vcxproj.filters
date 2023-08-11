@@ -60,5 +60,8 @@
     <ClInclude Include="..\..\Include\VPP\MeshRenderer.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\Material.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

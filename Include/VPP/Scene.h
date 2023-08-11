@@ -9,10 +9,10 @@ namespace VPP {
 
 class Scene : public GameObjectManager {
 public:
-  Scene() {}
-  ~Scene() {
-    
+  Scene() : GameObjectManager(this) {
+  
   }
+  ~Scene() {}
 
   void Run() {}
   void Draw() {}

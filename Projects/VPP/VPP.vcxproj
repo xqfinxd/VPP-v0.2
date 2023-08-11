@@ -27,6 +27,7 @@
     <ClInclude Include="..\..\Include\VPP\Camera.h" />
     <ClInclude Include="..\..\Include\VPP\Component.h" />
     <ClInclude Include="..\..\Include\VPP\GameObject.h" />
+    <ClInclude Include="..\..\Include\VPP\Material.h" />
     <ClInclude Include="..\..\Include\VPP\Mesh.h" />
     <ClInclude Include="..\..\Include\VPP\MeshFilter.h" />
     <ClInclude Include="..\..\Include\VPP\MeshRenderer.h" />
