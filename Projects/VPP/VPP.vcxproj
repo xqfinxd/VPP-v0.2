@@ -31,7 +31,9 @@
     <ClInclude Include="..\..\Include\VPP\Mesh.h" />
     <ClInclude Include="..\..\Include\VPP\MeshFilter.h" />
     <ClInclude Include="..\..\Include\VPP\MeshRenderer.h" />
+    <ClInclude Include="..\..\Include\VPP\Handle.h" />
     <ClInclude Include="..\..\Include\VPP\Scene.h" />
+    <ClInclude Include="..\..\Include\VPP\Shader.h" />
     <ClInclude Include="..\..\Include\VPP\VPP.hpp" />
     <ClInclude Include="..\..\Include\VPP\VPP_API.h" />
     <ClInclude Include="..\..\Source\device\DeviceBase.h" />

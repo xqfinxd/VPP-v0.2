@@ -2,6 +2,7 @@
 #include "VPP_Core.h"
 
 #include "device/GraphicsDevice.h"
+#include "impl/VPPShader.h"
 
 namespace VPP {
 
@@ -14,6 +15,9 @@ GraphicsDevice* GetDevice() {
 void InitDevice(SDL_Window* window) {
   if (g_Device) return;
   g_Device = new GraphicsDevice(window);
+
+  auto parser = ParseGlslShaders({"basic.vert", "basic.frag"});
+  parser->GetStageSpirv(vk::ShaderStageFlagBits::eFragment);
 }
 
 void QuitDevice() {

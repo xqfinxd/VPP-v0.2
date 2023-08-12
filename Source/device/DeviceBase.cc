@@ -7,8 +7,8 @@
 namespace VPP {
 
 DeviceBase::~DeviceBase() {
-  if (device_) device_.destroy();
-  if (instance_) instance_.destroy();
+  if (m_Device) m_Device.destroy();
+  if (m_Instance) m_Instance.destroy();
 }
 
 vk::Result DeviceBase::InitInstance() {
@@ -23,11 +23,11 @@ vk::Result DeviceBase::InitInstance() {
                     .setPEnabledExtensionNames(extensions)
                     .setPApplicationInfo(&appCI);
 
-  return vk::createInstance(&instCI, nullptr, &instance_);
+  return vk::createInstance(&instCI, nullptr, &m_Instance);
 }
 
 bool DeviceBase::InitPhysicalDevice() {
-  auto allGpus = instance_.enumeratePhysicalDevices();
+  auto allGpus = m_Instance.enumeratePhysicalDevices();
 
   for (const auto& curGpu : allGpus) {
     if (!IsPhysicalDeviceSuitable(curGpu)) continue;
@@ -36,10 +36,10 @@ bool DeviceBase::InitPhysicalDevice() {
     curGpu.getQueueFamilyProperties(&queueFamilyCount, nullptr);
     if (!queueFamilyCount) continue;
 
-    queue_family_properties_.reserve(queueFamilyCount);
-    queue_family_properties_ = curGpu.getQueueFamilyProperties();
+    m_QueueFamilyProperties.reserve(queueFamilyCount);
+    m_QueueFamilyProperties = curGpu.getQueueFamilyProperties();
 
-    physical_device_ = curGpu;
+    m_PhysicalDevice = curGpu;
 
     return true;
   }
@@ -58,25 +58,25 @@ vk::Result DeviceBase::InitDevice() {
   {
     auto queueInfos = GetDeviceQueueInfos();
     uint32_t transfer_queue_family_index = 0;
-    for (uint32_t i = 0; i < queue_family_properties_.size(); ++i) {
-      if (queue_family_properties_[i].queueFlags &
+    for (uint32_t i = 0; i < m_QueueFamilyProperties.size(); ++i) {
+      if (m_QueueFamilyProperties[i].queueFlags &
           vk::QueueFlagBits::eTransfer) {
         transfer_queue_family_index = i;
         break;
       }
     }
     queueInfos.push_back(
-        QueueReference{transfer_queue_family_index, UINT32_MAX, &base_queue_});
+        QueueReference{transfer_queue_family_index, UINT32_MAX, &m_BasicQueue});
 
     uint32_t _base = 0, _range = UINT32_MAX;
     {
       uint32_t maxPriority = 0, minPriority = UINT32_MAX;
       std::for_each(queueInfos.begin(), queueInfos.end(),
                     [&maxPriority, &minPriority](const QueueReference& info) {
-                      if (info.queue_priority > maxPriority)
-                        maxPriority = info.queue_priority;
-                      if (info.queue_priority < minPriority)
-                        minPriority = info.queue_priority;
+                      if (info.m_QueuePriority > maxPriority)
+                        maxPriority = info.m_QueuePriority;
+                      if (info.m_QueuePriority < minPriority)
+                        minPriority = info.m_QueuePriority;
                     });
       if (maxPriority - minPriority != 0) {
         _base = minPriority;
@@ -89,24 +89,24 @@ vk::Result DeviceBase::InitDevice() {
 
     for (size_t i = 0; i < queueInfos.size(); i++) {
       auto& info = queueInfos[i];
-      auto& qp = queuePriorities[info.queue_family_index];
+      auto& qp = queuePriorities[info.m_QueueFamilyIndex];
 
-      info.queue->queue_family_index = info.queue_family_index;
-      info.queue->queue_priority = info.queue_priority;
+      info.m_QueueObject->m_QueueFamilyIndex = info.m_QueueFamilyIndex;
+      info.m_QueueObject->m_QueuePriority = info.m_QueuePriority;
 
-      auto normalizedPriority = Norm(info.queue_priority);
+      auto normalizedPriority = Norm(info.m_QueuePriority);
       qp.push_back(normalizedPriority);
 
       queueInfoCaches.emplace_back();
-      queueInfoCaches.back().base = info.queue;
+      queueInfoCaches.back().base = info.m_QueueObject;
       queueInfoCaches.back().index = (uint32_t)qp.size() - 1;
     }
   }
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos{};
   for (const auto& qp : queuePriorities) {
-    assert(qp.first < queue_family_properties_.size());
-    assert(qp.second.size() < queue_family_properties_[qp.first].queueCount);
+    assert(qp.first < m_QueueFamilyProperties.size());
+    assert(qp.second.size() < m_QueueFamilyProperties[qp.first].queueCount);
 
     auto queueCreateInfo = vk::DeviceQueueCreateInfo()
                                .setQueueFamilyIndex(qp.first)
@@ -125,11 +125,11 @@ vk::Result DeviceBase::InitDevice() {
                                       .setPEnabledLayerNames(layers)
                                       .setPEnabledFeatures(nullptr);
 
-  auto result = physical_device_.createDevice(&deviceCI, nullptr, &device_);
+  auto result = m_PhysicalDevice.createDevice(&deviceCI, nullptr, &m_Device);
   if (result == vk::Result::eSuccess) {
     for (auto& cache : queueInfoCaches) {
-      device_.getQueue(cache.base->queue_family_index, cache.index,
-                       &cache.base->queue);
+      m_Device.getQueue(cache.base->m_QueueFamilyIndex, cache.index,
+                       &cache.base->m_Queue);
     }
   }
 

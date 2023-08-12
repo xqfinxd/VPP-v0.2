@@ -11,7 +11,7 @@ namespace VPP {
 GraphicsDevice::GraphicsDevice(SDL_Window* window) {
   assert(window);
   assert(SDL_GetWindowFlags(window) & SDL_WINDOW_VULKAN);
-  window_ = window;
+  m_Window = window;
 
   {
     auto result = InitInstance();
@@ -32,16 +32,16 @@ GraphicsDevice::GraphicsDevice(SDL_Window* window) {
 }
 
 GraphicsDevice::~GraphicsDevice() {
-  if (instance_ && surface_) instance_.destroy(surface_);
+  if (m_Instance && m_Surface) m_Instance.destroy(m_Surface);
 }
 
 std::vector<const char*> GraphicsDevice::GetInstanceExtensions() const {
   std::vector<const char*> extensions;
   uint32_t extensionCount = 0;
-  SDL_Vulkan_GetInstanceExtensions(window_, &extensionCount, nullptr);
+  SDL_Vulkan_GetInstanceExtensions(m_Window, &extensionCount, nullptr);
   assert(extensionCount);
   extensions.resize(extensionCount);
-  SDL_Vulkan_GetInstanceExtensions(window_, &extensionCount, extensions.data());
+  SDL_Vulkan_GetInstanceExtensions(m_Window, &extensionCount, extensions.data());
 
   return extensions;
 }
@@ -69,19 +69,19 @@ std::vector<const char*> GraphicsDevice::GetDeviceExtensions() const {
 std::vector<QueueReference> GraphicsDevice::GetDeviceQueueInfos() {
   std::vector<QueueReference> infos;
   infos.emplace_back();
-  infos.back().queue = &present_queue_;
-  infos.back().queue_priority = UINT32_MAX;
-  for (uint32_t i = 0; i < queue_family_properties_.size(); i++) {
-    if (physical_device_.getSurfaceSupportKHR(i, surface_))
-      infos.back().queue_family_index = i;
+  infos.back().m_QueueObject = &m_PresentQueue;
+  infos.back().m_QueuePriority = UINT32_MAX;
+  for (uint32_t i = 0; i < m_QueueFamilyProperties.size(); i++) {
+    if (m_PhysicalDevice.getSurfaceSupportKHR(i, m_Surface))
+      infos.back().m_QueueFamilyIndex = i;
   }
 
   infos.emplace_back();
-  infos.back().queue = &present_queue_;
-  infos.back().queue_priority = UINT32_MAX;
-  for (uint32_t i = 0; i < queue_family_properties_.size(); i++) {
-    if (queue_family_properties_[i].queueFlags & vk::QueueFlagBits::eGraphics)
-      infos.back().queue_family_index = i;
+  infos.back().m_QueueObject = &m_PresentQueue;
+  infos.back().m_QueuePriority = UINT32_MAX;
+  for (uint32_t i = 0; i < m_QueueFamilyProperties.size(); i++) {
+    if (m_QueueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics)
+      infos.back().m_QueueFamilyIndex = i;
   }
 
   return infos;
@@ -89,8 +89,8 @@ std::vector<QueueReference> GraphicsDevice::GetDeviceQueueInfos() {
 
 bool GraphicsDevice::InitSurface() {
   VkSurfaceKHR cSurf;
-  auto result = SDL_Vulkan_CreateSurface(window_, instance_, &cSurf);
-  if (result == SDL_TRUE) surface_ = cSurf;
+  auto result = SDL_Vulkan_CreateSurface(m_Window, m_Instance, &cSurf);
+  if (result == SDL_TRUE) m_Surface = cSurf;
 
   return result == SDL_TRUE;
 }

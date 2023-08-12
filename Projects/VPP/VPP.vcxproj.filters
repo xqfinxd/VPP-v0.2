@@ -63,5 +63,11 @@
     <ClInclude Include="..\..\Include\VPP\Material.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\Handle.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Include\VPP\Shader.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -7,15 +7,18 @@
 #include <vector>
 
 #include "Component.h"
+#include "Handle.h"
+
+// clang-format off
 
 namespace VPP {
 
 class Scene;
 
 struct Transform {
-  glm::vec3 postion{0.f};
-  glm::vec3 rotation{0.f};
-  glm::vec3 scale{1.f};
+  glm::vec3 m_Postion{0.f};
+  glm::vec3 m_Rotation{0.f};
+  glm::vec3 m_Scale{1.f};
 };
 
 class GameObject : public ComponentManager {
@@ -26,68 +29,68 @@ public:
   ~GameObject() {}
 
   Transform& transform() {
-    return transform_;
+    return m_Transform;
   }
 
   Scene* GetScene() {
-    return scene_;
+    return m_Scene;
   }
 
   const Scene* GetScene() const {
-    return scene_;
+    return m_Scene;
   }
 
   const char* name() const {
-    return name_.c_str();
+    return m_Name.c_str();
   }
   void SetName(const char* newName) {
-    name_.assign(newName);
+    m_Name.assign(newName);
   }
 
 protected:
-  bool enable_ = true;
-  std::string name_;
-  Transform transform_;
+  bool        m_Enable = true;
+  std::string m_Name;
+  Transform   m_Transform;
 
 private:
-  Scene* scene_ = nullptr;
+  Scene*      m_Scene = nullptr;
 };
+
+
+struct tagGameObject;
 
 class GameObjectManager {
 public:
-  GameObjectManager(Scene* scene) : scene_(scene) {}
+  using GameObjectID = Handle<tagGameObject>;
+  GameObjectManager(Scene* scene) : m_Scene(scene) {}
   ~GameObjectManager() {}
 
-  GameObject* AddGameObject() {
-    auto newGO = new GameObject;
-    auto pointer = reinterpret_cast<intptr_t>(newGO);
-    game_objects_[pointer].reset(newGO);
-    sort_ids_.push_back(pointer);
-    newGO->scene_ = scene_;
-    return newGO;
+  GameObjectID AddGameObject(GameObject** gameObject = nullptr) {
+    GameObjectID goID;
+    auto pGo = m_GameObjects.Acquire(goID);
+    if(gameObject) *gameObject = pGo;
+
+    return goID;
   }
 
-  void RemoveGameObject(intptr_t pointer) {
-    game_objects_.erase(pointer);
-    
-    auto id_iter = std::find(sort_ids_.begin(), sort_ids_.end(), pointer);
-    if (id_iter != sort_ids_.end()) sort_ids_.erase(id_iter);
+  void RemoveGameObject(GameObjectID id) {
+    m_GameObjects.Release(id);
   }
 
-  GameObject* FindGameObject(intptr_t pointer) {
-    auto iter = game_objects_.find(pointer);
-    if (iter != game_objects_.end()) {
-      return iter->second.get();
-    }
+  GameObject* FindGameObject(GameObjectID id) {
+    return m_GameObjects.Dereference(id);
+  }
 
-    return nullptr;
+  const GameObject* FindGameObject(GameObjectID id) const {
+    return m_GameObjects.Dereference(id);
   }
 
 private:
-  using _GameObject = std::unique_ptr<GameObject>;
-  std::map<intptr_t, _GameObject> game_objects_;
-  std::vector<intptr_t> sort_ids_;
-  Scene* scene_ = nullptr;
+  using HMgr = HandleManager<GameObject, GameObjectID>;
+  HMgr    m_GameObjects;
+  Scene*  m_Scene = nullptr;
 };
 
 } // namespace VPP
+
+// clang-format on

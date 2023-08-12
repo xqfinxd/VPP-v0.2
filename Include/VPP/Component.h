@@ -1,9 +1,9 @@
 #pragma once
 
-#include <type_traits>
-#include <memory>
-#include <vector>
 #include <map>
+#include <memory>
+#include <type_traits>
+#include <vector>
 
 // clang-format off
 
@@ -19,11 +19,11 @@ public:
   virtual ~Component() {}
 
   GameObject* GetGameObject() {
-    return game_object_;
+    return m_GameObject;
   }
 
   const GameObject* GetGameObject() const {
-    return game_object_;
+    return m_GameObject;
   }
 
   virtual void Awake() {}
@@ -31,36 +31,49 @@ public:
   virtual void Update() {}
 
 protected:
-  bool enable_ = true;
+  bool m_Enable = true;
 
 private:
-  GameObject* game_object_ = nullptr;
+  GameObject* m_GameObject = nullptr;
 };
 
 size_t AssignComponentID() {
-  static size_t _IDCounter = 1;
-  return _IDCounter++;
+  static size_t _MagicCounter = 1;
+  return _MagicCounter++;
 }
 
-template <class Comp>
-typename std::enable_if<std::is_base_of_v<Component, Comp>, size_t>::type
+template <class TComp>
+typename std::enable_if<
+  std::is_base_of_v<Component, TComp>, size_t
+>::type
 GetComponentID() {
-  static const size_t _ThisID = AssignComponentID();
-  return _ThisID;
+  static const size_t _MagicNumber = AssignComponentID();
+  return _MagicNumber;
 }
 
 class ComponentManager {
 public:
   ~ComponentManager() {}
 
-  template <class Comp> Comp* AddComponent() {
-    auto id = GetComponentID<Comp>();
-    auto iter = components_.find(id);
-    if (iter == components_.end()) {
-      auto newComp = new Comp;
-      newComp->game_object_ = owner_;
-      components_[id].reset(newComp);
-      sort_ids_.push_back(id);
+  ComponentManager(const ComponentManager& other) {
+    m_GameObject = other.m_GameObject;
+  }
+
+  ComponentManager(ComponentManager&& other) noexcept {
+    m_GameObject = other.m_GameObject;
+    std::swap(m_Components, other.m_Components);
+    std::swap(m_SortIDs, other.m_SortIDs);
+  }
+
+  template <class TComp>
+  TComp* AddComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter == m_Components.end()) {
+      auto newComp = new TComp;
+      newComp->m_GameObject = m_GameObject;
+      m_Components[id].reset(newComp);
+      m_SortIDs.push_back(id);
 
       newComp->Awake();
       return newComp;
@@ -69,35 +82,37 @@ public:
     return nullptr;
   }
 
-  template <class Comp> void RemoveComponent() {
-    auto id = GetComponentID<Comp>();
-    auto iter = components_.find(id);
-    if (iter != components_.end()) {
-      components_.erase(iter);
+  template <class TComp>
+  void RemoveComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter != m_Components.end()) {
+      m_Components.erase(iter);
 
-      auto id_iter = std::find(sort_ids_.begin(), sort_ids_.end(), id);
-      if (id_iter != sort_ids_.end()) sort_ids_.erase(id_iter);
+      auto id_iter = std::find(m_SortIDs.begin(), m_SortIDs.end(), id);
+      if (id_iter != m_SortIDs.end()) m_SortIDs.erase(id_iter);
     }
   }
 
-  template <class Comp> Comp* GetComponent() {
-    auto id = GetComponentID<Comp>();
-    auto iter = components_.find(id);
-    if (iter != components_.end()) {
-      return dynamic_cast<Comp*>(iter->second.get());
+  template <class TComp>
+  TComp* GetComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter != m_Components.end()) {
+      return dynamic_cast<TComp*>(iter->second.get());
     }
 
     return nullptr;
   }
 
 protected:
-  ComponentManager(GameObject* owner) : owner_ (owner) {}
+  ComponentManager(GameObject* owner) : m_GameObject (owner) {}
 
 private:
   using _Component = std::unique_ptr<Component>;
-  std::map<size_t, _Component>  components_;
-  std::vector<size_t>           sort_ids_;
-  GameObject*                   owner_;
+  std::map<size_t, _Component>  m_Components;
+  std::vector<size_t>           m_SortIDs;
+  GameObject*                   m_GameObject;
 };
 
 } // namespace VPP

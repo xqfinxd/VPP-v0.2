@@ -23,10 +23,10 @@ protected:
   bool InitSurface();
 
 protected:
-  SDL_Window*       window_;
-  vk::SurfaceKHR    surface_;
-  QueueObject       graphics_queue_;
-  QueueObject       present_queue_;
+  SDL_Window*       m_Window;
+  vk::SurfaceKHR    m_Surface;
+  QueueObject       m_GraphicsQueue;
+  QueueObject       m_PresentQueue;
 };
 
 }

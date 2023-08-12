@@ -1,10 +1,15 @@
 #pragma once
 
 #include "VPP_API.h"
-#include "Camera.h"
 #include "Scene.h"
-#include "GameObject.h"
 #include "Component.h"
+#include "GameObject.h"
+#include "Camera.h"
+#include "Mesh.h"
+#include "MeshFilter.h"
+#include "Shader.h"
+#include "Material.h"
+#include "MeshRenderer.h"
 
 struct SDL_Window;
 

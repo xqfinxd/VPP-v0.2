@@ -6,9 +6,17 @@
 
 int main(int argc, char** argv) {
   VPP::Scene scene;
-  auto gameObject = scene.AddGameObject();
-  auto camera = gameObject->AddComponent<VPP::Camera>();
-  auto pObj = camera->GetGameObject();
+  {
+    VPP::GameObject* cameraGO = nullptr;
+    auto cameraGOID = scene.AddGameObject(&cameraGO);
+    auto camera = cameraGO->AddComponent<VPP::Camera>();
+  }
+  {
+    VPP::GameObject* cubeGO = nullptr;
+    auto cubeGOID = scene.AddGameObject(&cubeGO);
+    auto cubeRenderer = cubeGO->AddComponent<VPP::MeshRenderer>();
+    auto cubeMesh = cubeGO->AddComponent<VPP::MeshFilter>();
+  }
   
   SDL_Init(SDL_INIT_EVERYTHING);
   SDL_Window* window =
