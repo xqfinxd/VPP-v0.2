@@ -21,14 +21,56 @@ struct Transform {
   glm::vec3 m_Scale{1.f};
 };
 
-class GameObject : public ComponentManager {
+class GameObject {
   friend class GameObjectManager;
 
 public:
-  GameObject() : ComponentManager(this) {}
+  GameObject() {}
   ~GameObject() {}
+  GameObject(const GameObject&) = delete;
+  GameObject(GameObject&&) noexcept = default;
 
-  Transform& transform() {
+  template <class TComp>
+  TComp* AddComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter == m_Components.end()) {
+      auto newComp = new TComp;
+      newComp->m_GameObject = this;
+      m_Components[id].reset(newComp);
+      m_SortComponents.push_back(id);
+
+      newComp->Awake();
+      return newComp;
+    }
+
+    return nullptr;
+  }
+
+  template <class TComp>
+  void RemoveComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter != m_Components.end()) {
+      m_Components.erase(iter);
+
+      auto id_iter = std::find(m_SortComponents.begin(), m_SortComponents.end(), id);
+      if (id_iter != m_SortComponents.end()) m_SortComponents.erase(id_iter);
+    }
+  }
+
+  template <class TComp>
+  TComp* GetComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter != m_Components.end()) {
+      return dynamic_cast<TComp*>(iter->second.get());
+    }
+
+    return nullptr;
+  }
+
+  Transform& GetTransform() {
     return m_Transform;
   }
 
@@ -40,24 +82,26 @@ public:
     return m_Scene;
   }
 
-  const char* name() const {
+  const char* GetName() const {
     return m_Name.c_str();
   }
   void SetName(const char* newName) {
     m_Name.assign(newName);
   }
 
-protected:
-  bool        m_Enable = true;
-  std::string m_Name;
-  Transform   m_Transform;
-
 private:
+  using _Component = std::unique_ptr<Component>;
+  bool                          m_Enable = true;
+  std::string                   m_Name;
+  Transform                     m_Transform;
+  std::map<size_t, _Component>  m_Components;
+  std::vector<size_t>           m_SortComponents;
+
   Scene*      m_Scene = nullptr;
 };
 
 
-struct tagGameObject;
+struct tagGameObject{};
 
 class GameObjectManager {
 public:

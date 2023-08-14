@@ -9,11 +9,13 @@ int main(int argc, char** argv) {
   {
     VPP::GameObject* cameraGO = nullptr;
     auto cameraGOID = scene.AddGameObject(&cameraGO);
+    cameraGO->SetName("MainCamera");
     auto camera = cameraGO->AddComponent<VPP::Camera>();
   }
   {
     VPP::GameObject* cubeGO = nullptr;
     auto cubeGOID = scene.AddGameObject(&cubeGO);
+    cubeGO->SetName("Cube");
     auto cubeRenderer = cubeGO->AddComponent<VPP::MeshRenderer>();
     auto cubeMesh = cubeGO->AddComponent<VPP::MeshFilter>();
   }

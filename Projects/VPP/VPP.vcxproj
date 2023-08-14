@@ -11,8 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Source\device\DeviceBase.cc" />
-    <ClCompile Include="..\..\Source\device\GraphicsDevice.cc" />
+    <ClCompile Include="..\..\Source\DeviceBase.cc" />
+    <ClCompile Include="..\..\Source\GraphicsDevice.cc" />
+    <ClCompile Include="..\..\Source\Shader.cc" />
     <ClCompile Include="..\..\Source\VPP.cc" />
   </ItemGroup>
   <ItemGroup>
@@ -36,8 +37,8 @@
     <ClInclude Include="..\..\Include\VPP\Shader.h" />
     <ClInclude Include="..\..\Include\VPP\VPP.hpp" />
     <ClInclude Include="..\..\Include\VPP\VPP_API.h" />
-    <ClInclude Include="..\..\Source\device\DeviceBase.h" />
-    <ClInclude Include="..\..\Source\device\GraphicsDevice.h" />
+    <ClInclude Include="..\..\Source\DeviceBase.h" />
+    <ClInclude Include="..\..\Source\GraphicsDevice.h" />
     <ClInclude Include="..\..\Source\VPP_Core.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -77,11 +78,13 @@
     <EnableMicrosoftCodeAnalysis>true</EnableMicrosoftCodeAnalysis>
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
     <CodeAnalysisRuleSet>NativeMinimumRules.ruleset</CodeAnalysisRuleSet>
+    <PublicIncludeDirectories>$(SolutionDir)Include;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <EnableMicrosoftCodeAnalysis>true</EnableMicrosoftCodeAnalysis>
     <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
     <CodeAnalysisRuleSet>NativeMinimumRules.ruleset</CodeAnalysisRuleSet>
+    <PublicIncludeDirectories>$(SolutionDir)Include;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

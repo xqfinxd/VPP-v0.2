@@ -12,11 +12,13 @@ namespace VPP {
 class GameObject;
 
 class Component {
-  friend class ComponentManager;
+  friend class GameObject;
 
 public:
   Component() {}
   virtual ~Component() {}
+  Component(const Component&) = delete;
+  Component(Component&&) = default;
 
   GameObject* GetGameObject() {
     return m_GameObject;
@@ -50,70 +52,6 @@ GetComponentID() {
   static const size_t _MagicNumber = AssignComponentID();
   return _MagicNumber;
 }
-
-class ComponentManager {
-public:
-  ~ComponentManager() {}
-
-  ComponentManager(const ComponentManager& other) {
-    m_GameObject = other.m_GameObject;
-  }
-
-  ComponentManager(ComponentManager&& other) noexcept {
-    m_GameObject = other.m_GameObject;
-    std::swap(m_Components, other.m_Components);
-    std::swap(m_SortIDs, other.m_SortIDs);
-  }
-
-  template <class TComp>
-  TComp* AddComponent() {
-    auto id = GetComponentID<TComp>();
-    auto iter = m_Components.find(id);
-    if (iter == m_Components.end()) {
-      auto newComp = new TComp;
-      newComp->m_GameObject = m_GameObject;
-      m_Components[id].reset(newComp);
-      m_SortIDs.push_back(id);
-
-      newComp->Awake();
-      return newComp;
-    }
-
-    return nullptr;
-  }
-
-  template <class TComp>
-  void RemoveComponent() {
-    auto id = GetComponentID<TComp>();
-    auto iter = m_Components.find(id);
-    if (iter != m_Components.end()) {
-      m_Components.erase(iter);
-
-      auto id_iter = std::find(m_SortIDs.begin(), m_SortIDs.end(), id);
-      if (id_iter != m_SortIDs.end()) m_SortIDs.erase(id_iter);
-    }
-  }
-
-  template <class TComp>
-  TComp* GetComponent() {
-    auto id = GetComponentID<TComp>();
-    auto iter = m_Components.find(id);
-    if (iter != m_Components.end()) {
-      return dynamic_cast<TComp*>(iter->second.get());
-    }
-
-    return nullptr;
-  }
-
-protected:
-  ComponentManager(GameObject* owner) : m_GameObject (owner) {}
-
-private:
-  using _Component = std::unique_ptr<Component>;
-  std::map<size_t, _Component>  m_Components;
-  std::vector<size_t>           m_SortIDs;
-  GameObject*                   m_GameObject;
-};
 
 } // namespace VPP
 

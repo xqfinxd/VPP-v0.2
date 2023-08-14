@@ -13,23 +13,20 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Source\device\DeviceBase.cc">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\device\GraphicsDevice.cc">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Source\VPP.cc">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\GraphicsDevice.cc">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\DeviceBase.cc">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Shader.cc">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Source\device\GraphicsDevice.h">
-      <Filter>source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\device\DeviceBase.h">
-      <Filter>source</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\VPP_Core.h">
       <Filter>source</Filter>
     </ClInclude>
@@ -68,6 +65,12 @@
     </ClInclude>
     <ClInclude Include="..\..\Include\VPP\Shader.h">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\GraphicsDevice.h">
+      <Filter>source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DeviceBase.h">
+      <Filter>source</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Handle.h"
+#include <string>
 
-// clang-format on
+// clang-format off
 
 namespace VPP {
 
@@ -11,13 +12,32 @@ public:
   Shader() {}
   ~Shader() {}
 
+  const char* GetName() const {
+    return m_Name.c_str();
+  }
+
 private:
-  
+  std::string m_Name;
 };
 
 struct tagShader {};
 using ShaderID = Handle<tagShader>;
-using ShaderManager = HandleManager<Shader, ShaderID>;
+class ShaderManager {
+public:
+  void LoadFile(const char* file);
+  ShaderID FindShader(const std::string& name);
+
+private:
+  struct NameCompare {
+    bool operator()(const std::string& l, const std::string& r) const {
+      return _stricmp(l.c_str(), r.c_str()) < 0;
+    }
+  };
+  using HMgr = HandleManager<Shader, ShaderID>;
+  using NameMap = std::map<std::string, ShaderID, NameCompare>;
+  HMgr    m_Shaders;
+  NameMap m_NameMap;
+};
 
 } // namespace VPP
 
