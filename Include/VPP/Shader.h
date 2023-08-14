@@ -7,10 +7,14 @@
 
 namespace VPP {
 
+class ShaderImpl;
 class Shader {
 public:
   Shader() {}
   ~Shader() {}
+
+  Shader(const Shader&) = delete;
+  Shader(Shader&&) noexcept = default;
 
   const char* GetName() const {
     return m_Name.c_str();
@@ -18,6 +22,7 @@ public:
 
 private:
   std::string m_Name;
+  ShaderImpl* m_Impl = nullptr;
 };
 
 struct tagShader {};

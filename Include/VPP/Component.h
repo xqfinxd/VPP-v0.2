@@ -18,7 +18,7 @@ public:
   Component() {}
   virtual ~Component() {}
   Component(const Component&) = delete;
-  Component(Component&&) = default;
+  Component(Component&&) noexcept = default;
 
   GameObject* GetGameObject() {
     return m_GameObject;
