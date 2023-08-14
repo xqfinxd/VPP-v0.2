@@ -20,6 +20,9 @@
     <ProjectReference Include="..\GlslParser\GlslParser.vcxproj">
       <Project>{b37cc4ea-ff3d-47e6-914d-ec3da3120e3f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\lualib\lualib.vcxproj">
+      <Project>{b7ee861d-cb42-434e-ac66-da3315b4c3fb}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\VPPImage\VPPImage.vcxproj">
       <Project>{c18aae56-7fbb-4e39-b01a-26929b408e73}</Project>
     </ProjectReference>
