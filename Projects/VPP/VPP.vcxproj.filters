@@ -72,5 +72,8 @@
     <ClInclude Include="..\..\Source\DeviceBase.h">
       <Filter>source</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\ShaderImpl.h">
+      <Filter>source</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

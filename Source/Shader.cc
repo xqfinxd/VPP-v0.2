@@ -1,69 +1,98 @@
 #include "Shader.h"
 
 #include <map>
-
 #include <lua.hpp>
+
+#include "ShaderImpl.h"
 
 namespace VPP {
 
-struct LuaStackPop {
-  LuaStackPop(lua_State* L) {
-    m_State = L;
-    m_Top = lua_gettop(m_State);
-  }
-  ~LuaStackPop() {
-    if (m_State) {
-      int newTop = lua_gettop(m_State);
-      if (newTop > m_Top) lua_pop(m_State, newTop - m_Top);
-    }
-  }
-
-  lua_State*  m_State = nullptr;
-  int         m_Top = 0;
-};
-
 static const char* load_shader_result = "__load_shader_result";
 
-static int LuaLoadShader(lua_State* L) {
-  auto argNum = lua_gettop(L);
-  if (argNum <= 0) return 0;
-
-  if (!lua_istable(L, 1)) return 0;
-
-  auto tableSize = luaL_len(L, 1);
-  if (tableSize <= 0) return 0;
-
-  bool checkType = true;
-  for (int i = 0; i < tableSize; i++) {
-    auto isUD = LUA_TUSERDATA == lua_rawgeti(L, 1, 1);
-    lua_pop(L, 1);
-    if (!isUD) checkType = false;
+class ShaderLoader {
+public:
+  ShaderLoader() {
+    m_State = luaL_newstate();
+    lua_rawgeti(m_State, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+    luaL_Reg funcs[] = {
+        {"Shader", BeginShader},
+        {"Pass", SetPass},
+    };
+    lua_pushlightuserdata(m_State, this); // shared upvalue : this
+    luaL_setfuncs(m_State, funcs, 1);
+    lua_pop(m_State, 1);
   }
 
-  if (!checkType) return 0;
-  
-  bool* result = nullptr;
-  { 
-    lua_getglobal(L, load_shader_result);
-    if (lua_islightuserdata(L, -1))
-      result = (bool*)lua_touserdata(L, -1);
-    lua_pop(L, 1);
+  ~ShaderLoader() {
+    lua_close(m_State);
   }
 
-  return 0;
-}
+  // return a func for loading table actually 
+  static int BeginShader(lua_State* L) {
+    auto argNum = lua_gettop(L);
+    if (argNum <= 0) return 0;
 
-static int LuaBeginShader(lua_State* L) {
-  auto argNum = lua_gettop(L);
-  if (argNum <= 0) return 0;
+    if (lua_isstring(L, 1)) {
+      lua_pushvalue(L, 1); // first upvalue : shader name
+      lua_pushvalue(L, lua_upvalueindex(1)); // second upvalue : this
+      lua_pushcclosure(L, LoadShader, 2);
+      return 1;
+    }
 
-  if (lua_isstring(L, 1)) {
-    lua_pushvalue(L, 1);
-    lua_pushcclosure(L, LuaLoadShader, 1);
-    return 1;
+    return 0;
   }
 
-  return 0;
+  // handle all data
+  static int LoadShader(lua_State* L) {
+    auto argNum = lua_gettop(L);
+    if (argNum <= 0) return 0;
+
+    if (!lua_istable(L, 1)) return 0;
+
+    // array index for pass table
+    auto tableSize = luaL_len(L, 1);
+    if (tableSize <= 0) return 0;
+    bool checkType = true;
+    for (int i = 0; i < tableSize; i++) {
+      checkType = checkType && LUA_TTABLE == lua_rawgeti(L, 1, 1);
+      lua_pop(L, 1);
+    }
+
+    if (!checkType) return 0;
+
+    for (int i = 0; i < tableSize; i++) {
+      auto anchor = lua_gettop(L);
+      checkType = checkType && LUA_TTABLE == lua_rawgeti(L, 1, 1);
+      
+
+
+      auto extra = lua_gettop(L) - anchor;
+      assert(extra >= 0);
+      lua_pop(L, extra);
+    }
+
+    return 0;
+  }
+
+  // only forward pass table
+  static int SetPass(lua_State* L) {
+    auto argNum = lua_gettop(L);
+    if (argNum <= 0) return 0;
+
+    if (lua_istable(L, 1)) {
+      lua_pushvalue(L, 1);
+      return 1;
+    }
+
+    return 0;
+  }
+
+private:
+  lua_State* m_State;
+};
+
+void ShaderImplDeleter::operator()(ShaderImpl* impl) const {
+  delete impl;
 }
 
 } // namespace VPP

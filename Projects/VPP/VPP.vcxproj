@@ -42,6 +42,7 @@
     <ClInclude Include="..\..\Include\VPP\VPP_API.h" />
     <ClInclude Include="..\..\Source\DeviceBase.h" />
     <ClInclude Include="..\..\Source\GraphicsDevice.h" />
+    <ClInclude Include="..\..\Source\ShaderImpl.h" />
     <ClInclude Include="..\..\Source\VPP_Core.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
