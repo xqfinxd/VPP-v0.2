@@ -7,9 +7,9 @@
 
 namespace VPP {
 
-class Scene : public GameObjectManager {
+class Scene : public GameObjectContainer {
 public:
-  Scene() : GameObjectManager(this) {
+  Scene() : GameObjectContainer(this) {
   
   }
   ~Scene() {}

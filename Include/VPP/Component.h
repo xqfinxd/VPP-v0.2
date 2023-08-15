@@ -12,7 +12,7 @@ namespace VPP {
 class GameObject;
 
 class Component {
-  friend class GameObject;
+  friend class ComponentContainer;
 
 public:
   Component() {}
@@ -52,6 +52,60 @@ GetComponentID() {
   static const size_t _MagicNumber = AssignComponentID();
   return _MagicNumber;
 }
+
+class ComponentContainer {
+public:
+  ComponentContainer(GameObject* owner) : m_Owner(owner){}
+  ~ComponentContainer(){}
+
+  template <class TComp>
+  TComp* AddComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter == m_Components.end()) {
+      auto newComp = new TComp;
+      newComp->m_GameObject = m_Owner;
+      m_Components[id].reset(newComp);
+      m_SortComponents.push_back(id);
+
+      newComp->Awake();
+      return newComp;
+    }
+
+    return nullptr;
+  }
+
+  template <class TComp>
+  void RemoveComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter != m_Components.end()) {
+      m_Components.erase(iter);
+
+      auto id_iter = std::find(m_SortComponents.begin(), m_SortComponents.end(), id);
+      if (id_iter != m_SortComponents.end()) m_SortComponents.erase(id_iter);
+    }
+  }
+
+  template <class TComp>
+  TComp* GetComponent() {
+    auto id = GetComponentID<TComp>();
+    auto iter = m_Components.find(id);
+    if (iter != m_Components.end()) {
+      return dynamic_cast<TComp*>(iter->second.get());
+    }
+
+    return nullptr;
+  }
+
+private:
+  using UComponent = std::unique_ptr<Component>;
+  std::map<size_t, UComponent>  m_Components;
+  std::vector<size_t>           m_SortComponents;
+
+private:
+  GameObject* m_Owner;
+};
 
 } // namespace VPP
 

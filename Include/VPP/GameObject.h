@@ -21,54 +21,12 @@ struct Transform {
   glm::vec3 m_Scale{1.f};
 };
 
-class GameObject {
-  friend class GameObjectManager;
+class GameObject : public ComponentContainer {
+  friend class GameObjectContainer;
 
 public:
-  GameObject() {}
+  GameObject() : ComponentContainer(this) {}
   ~GameObject() {}
-  GameObject(const GameObject&) = delete;
-  GameObject(GameObject&&) noexcept = default;
-
-  template <class TComp>
-  TComp* AddComponent() {
-    auto id = GetComponentID<TComp>();
-    auto iter = m_Components.find(id);
-    if (iter == m_Components.end()) {
-      auto newComp = new TComp;
-      newComp->m_GameObject = this;
-      m_Components[id].reset(newComp);
-      m_SortComponents.push_back(id);
-
-      newComp->Awake();
-      return newComp;
-    }
-
-    return nullptr;
-  }
-
-  template <class TComp>
-  void RemoveComponent() {
-    auto id = GetComponentID<TComp>();
-    auto iter = m_Components.find(id);
-    if (iter != m_Components.end()) {
-      m_Components.erase(iter);
-
-      auto id_iter = std::find(m_SortComponents.begin(), m_SortComponents.end(), id);
-      if (id_iter != m_SortComponents.end()) m_SortComponents.erase(id_iter);
-    }
-  }
-
-  template <class TComp>
-  TComp* GetComponent() {
-    auto id = GetComponentID<TComp>();
-    auto iter = m_Components.find(id);
-    if (iter != m_Components.end()) {
-      return dynamic_cast<TComp*>(iter->second.get());
-    }
-
-    return nullptr;
-  }
 
   Transform& GetTransform() {
     return m_Transform;
@@ -77,7 +35,6 @@ public:
   Scene* GetScene() {
     return m_Scene;
   }
-
   const Scene* GetScene() const {
     return m_Scene;
   }
@@ -90,49 +47,51 @@ public:
   }
 
 private:
-  using _Component = std::unique_ptr<Component>;
-  bool                          m_Enable = true;
-  std::string                   m_Name;
-  Transform                     m_Transform;
-  std::map<size_t, _Component>  m_Components;
-  std::vector<size_t>           m_SortComponents;
-
+  bool        m_Enable = true;
+  std::string m_Name;
+  Transform   m_Transform;
   Scene*      m_Scene = nullptr;
 };
 
 
 struct tagGameObject{};
+using GameObjectID = Handle<tagGameObject>;
 
-class GameObjectManager {
+class GameObjectContainer {
 public:
-  using GameObjectID = Handle<tagGameObject>;
-  GameObjectManager(Scene* scene) : m_Scene(scene) {}
-  ~GameObjectManager() {}
+  GameObjectContainer(Scene* owner) : m_Owner(owner) {}
+  ~GameObjectContainer() {}
 
   GameObjectID AddGameObject(GameObject** gameObject = nullptr) {
-    GameObjectID goID;
-    auto pGo = m_GameObjects.Acquire(goID);
-    if(gameObject) *gameObject = pGo;
+    GameObjectID id;
+    auto uPtr = m_GameObjects.Acquire(id);
+    uPtr->reset(new GameObject);
+    if(gameObject) *gameObject = uPtr->get();
 
-    return goID;
+    return id;
   }
 
   void RemoveGameObject(GameObjectID id) {
+    if (auto pObject = m_GameObjects.Dereference(id))
+      pObject->reset();
     m_GameObjects.Release(id);
   }
 
   GameObject* FindGameObject(GameObjectID id) {
-    return m_GameObjects.Dereference(id);
+    return m_GameObjects.Dereference(id)->get();
   }
 
   const GameObject* FindGameObject(GameObjectID id) const {
-    return m_GameObjects.Dereference(id);
+    return m_GameObjects.Dereference(id)->get();
   }
 
 private:
-  using HMgr = HandleManager<GameObject, GameObjectID>;
+  using UGameObject = std::unique_ptr<GameObject>;
+  using HMgr = HandleManager<UGameObject, GameObjectID>;
   HMgr    m_GameObjects;
-  Scene*  m_Scene = nullptr;
+
+private:
+  Scene*  m_Owner = nullptr;
 };
 
 } // namespace VPP
