@@ -1,13 +1,37 @@
+BasedOnStyle: llvm
 ---
-# Use LLVM code formatting rules.
-Language: Cpp
-BasedOnStyle: LLVM
-
+AccessModifierOffset: -4
+AlignEscapedNewlines: DontAlign
+AllowShortBlocksOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLambdasOnASingleLine: Empty
-AllowShortLoopsOnASingleLine: 'false'
-
-ColumnLimit: 80
-PointerAlignment: Left
-FixNamespaceComments: 'true'
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeTernaryOperators: true
+ColumnLimit: 0
+DerivePointerAlignment: false
+IncludeCategories:
+  - Regex: '<[[:alnum:]_]+>'
+    Priority: 1
+  - Regex: '<[[:alnum:]_./]+>'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3
+# IndentPPDirectives: AfterHash
+IndentWidth: 4
+KeepEmptyLinesAtTheStartOfBlocks: false
+Language: Cpp
+PointerAlignment: Right
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: false
+SpaceAroundPointerQualifiers: After
+SpaceBeforeCaseColon: false
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeInheritanceColon: false
+SpaceBeforeParens: Never
+SpaceBeforeRangeBasedForLoopColon: false
+Standard: Latest
+TabWidth: 4
+UseTab: Never
