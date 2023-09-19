@@ -5,7 +5,7 @@
 #endif
 
 #ifdef _VPP_H_
-#error "You must not define any header option macros when compiling GLFW"
+#error "You must not include VPP.h before Config.h"
 #endif
 
 #include "VPP/VPP.h"
